@@ -6,16 +6,27 @@ This document explains the technical architecture and key design decisions of th
 
 Mac App Positioner is a native macOS application written in Swift that automatically positions application windows according to predefined layouts across multiple monitors. The application uses AppKit and Accessibility APIs to detect monitor configurations and manipulate window positions.
 
+**CRITICAL ARCHITECTURE UPDATE**: Version 2.0 introduces a canonical coordinate system architecture that eliminates the coordinate system mixing issues that caused repeated positioning bugs.
+
 ## Core Components
 
 The application is designed with a modular architecture, separating concerns into distinct Swift classes:
 
--   **`MacAppPositioner/Source/`**: The main application source code.
-    -   **`main.swift`**: The main entry point for the command-line interface.
-    -   **`CoordinateManager.swift`**: Handles coordinate system conversions between macOS frameworks.
-    -   **`WindowManager.swift`**: Manages window detection and positioning using Accessibility APIs.
-    -   **`ConfigManager.swift`**: Handles loading and parsing the JSON configuration file.
-    -   **`ProfileManager.swift`**: Manages profile detection, application, and updates.
+**Version 2.0 Architecture**:
+-   **`MacAppPositioner/CLI/`**: Command-line interface
+    -   **`CanonicalMain.swift`**: Main CLI entry point using canonical coordinate system
+-   **`MacAppPositioner/GUI/`**: SwiftUI graphical interface  
+    -   **`ContentView.swift`**: Main GUI with tabbed interface
+    -   **`MonitorVisualizationView.swift`**: Visual monitor representation
+    -   **`ProfileManagerView.swift`**: Profile management interface
+    -   **`SettingsView.swift`**: Application preferences
+-   **`MacAppPositioner/Shared/`**: Core logic shared between CLI and GUI
+    -   **`CanonicalCoordinateManager.swift`**: **NEW** - Canonical coordinate system manager
+    -   **`CanonicalProfileManager.swift`**: **NEW** - Profile manager using canonical coordinates
+    -   **`ConfigManager.swift`**: JSON configuration management
+    -   **`CoordinateManager.swift`**: **DEPRECATED** - Legacy coordinate conversion
+    -   **`WindowManager.swift`**: **DEPRECATED** - Legacy window management
+    -   **`ProfileManager.swift`**: **DEPRECATED** - Legacy profile management
 
 ## Technology Stack
 

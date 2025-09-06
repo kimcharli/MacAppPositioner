@@ -29,18 +29,19 @@ class CoordinateManager {
      * - Cocoa rect: (100, 200, 300, 150) on 1440px high screen
      * - Quartz result: (100, 1090, 300, 150) // Y flipped: 1440 - 200 - 150 = 1090
      */
-    func translateRectFromCocoaToQuartz(rect: CGRect) -> CGRect {
-        // Get the primary screen for coordinate conversion reference
-        guard let primaryScreen = NSScreen.main else {
-            print("Warning: Could not get main screen for coordinate conversion")
+    func translateRectFromCocoaToQuartz(rect: CGRect, screen: NSScreen? = nil) -> CGRect {
+        // Use provided screen or fall back to main screen for coordinate conversion reference
+        let referenceScreen = screen ?? NSScreen.main
+        guard let targetScreen = referenceScreen else {
+            print("Warning: Could not get screen for coordinate conversion")
             return rect
         }
         
-        let primaryScreenHeight = primaryScreen.frame.height
+        let screenHeight = targetScreen.frame.height
 
         // Convert Y coordinate from bottom-left to top-left origin
         // Formula: newY = screenHeight - originalY - rectHeight
-        let newY = primaryScreenHeight - rect.origin.y - rect.height
+        let newY = screenHeight - rect.origin.y - rect.height
         
         // X coordinate remains unchanged, only Y coordinate is flipped
         return CGRect(x: rect.origin.x, y: newY, width: rect.width, height: rect.height)
@@ -54,9 +55,9 @@ class CoordinateManager {
      * @param height: Height reference for the object at this point (default: 0)
      * @return: CGPoint in Quartz coordinate system
      */
-    func translatePointFromCocoaToQuartz(point: CGPoint, height: CGFloat = 0) -> CGPoint {
+    func translatePointFromCocoaToQuartz(point: CGPoint, height: CGFloat = 0, screen: NSScreen? = nil) -> CGPoint {
         let rect = CGRect(origin: point, size: CGSize(width: 0, height: height))
-        let translatedRect = translateRectFromCocoaToQuartz(rect: rect)
+        let translatedRect = translateRectFromCocoaToQuartz(rect: rect, screen: screen)
         return translatedRect.origin
     }
     

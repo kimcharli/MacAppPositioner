@@ -43,12 +43,40 @@ This file tracks the development tasks for the Mac App Positioner application.
 
 ---
 
-## 🚧 CURRENT PHASE: User Interface Development
+## ✅ RECENTLY COMPLETED: Project Restructure
 
-### Phase 2: SwiftUI Interface
+### Project Architecture Restructure ✅
+- [x] **Code Reorganization for Multi-Interface Support**
+    - [x] Move shared core logic to `MacAppPositioner/Shared/` directory
+    - [x] Separate CLI-specific code to `MacAppPositioner/CLI/` directory  
+    - [x] Update build.sh to use new directory structure
+    - [x] Test CLI functionality after restructure
+    - [x] Verify all commands work with new architecture
+
+**Result**: Project now ready for GUI development while maintaining CLI functionality
+
+---
+
+## 🚧 CURRENT PHASE: SwiftUI Interface Development
+
+### Phase 2A: Minimal Viable GUI (Next Steps)
+- [ ] **Add SwiftUI App Target**
+    - [ ] Create new SwiftUI target in Xcode project
+    - [ ] Configure target to import Shared classes
+    - [ ] Create basic App.swift and ContentView.swift
+- [ ] **Basic Profile Interface**
+    - [ ] Display list of available profiles
+    - [ ] Show currently detected/active profile
+    - [ ] Add "Apply Profile" buttons with status feedback
+- [ ] **Test GUI-CLI Integration**
+    - [ ] Verify GUI can use ProfileManager, WindowManager, etc.
+    - [ ] Test that both CLI and GUI work simultaneously
+    - [ ] Validate shared config.json usage
+
+### Phase 2B: Enhanced GUI Features  
 - [ ] **UI Architecture Planning**
-    - [ ] Design SwiftUI app structure (separate from CLI tool)
-    - [ ] Plan data flow between UI and core logic
+    - [x] Design SwiftUI app structure (separate from CLI tool) - COMPLETED via restructure
+    - [x] Plan data flow between UI and core logic - COMPLETED via Shared classes
     - [ ] Design user experience for profile management
 - [ ] **Core UI Components**
     - [ ] Profile list view with current/available profiles
@@ -125,13 +153,15 @@ This file tracks the development tasks for the Mac App Positioner application.
 
 ## 📊 PROGRESS SUMMARY
 
-**Current State:** Fully functional command-line application
-- ✅ Core window positioning engine complete
-- ✅ Multi-monitor support working
+**Current State:** CLI application with GUI-ready architecture
+- ✅ Core window positioning engine complete and battle-tested
+- ✅ Multi-monitor support working across diverse setups
 - ✅ Configuration system robust and flexible
-- ✅ Documentation comprehensive
-- ✅ Ready for GUI development
+- ✅ Documentation comprehensive (6 detailed guides)
+- ✅ **Project restructured for multi-interface support**
+- ✅ **Shared core logic separated from CLI-specific code**
+- ✅ **Ready for immediate GUI development**
 
-**Next Priority:** SwiftUI interface development to make the application accessible to non-technical users
+**Next Priority:** SwiftUI interface (Phase 2A) - Add app target and basic profile UI
 
-**Architecture Decision:** Keep CLI tool available while adding GUI - both interfaces can share the same core logic classes.
+**Architecture Advantage:** CLI and GUI will share identical core logic (WindowManager, ProfileManager, CoordinateManager, ConfigManager) while providing different user experiences.

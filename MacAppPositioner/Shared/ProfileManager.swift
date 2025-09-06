@@ -144,7 +144,11 @@ class ProfileManager {
             return
         }
 
-        let screenFrame = primaryScreen.visibleFrame
+        // Use full screen frame for accurate positioning
+        let screenFrame = primaryScreen.frame
+        let visibleFrame = primaryScreen.visibleFrame
+        print("Primary screen frame: \(screenFrame)")
+        print("Primary screen visible frame: \(visibleFrame)")
 
         if let layout = config.layout?.primary {
             for (positionName, bundleIdentifier) in layout {
@@ -155,23 +159,49 @@ class ProfileManager {
                     if let (initialPosition, size) = windowManager.getWindowFrame(pid: pid) {
                         print("Initial position of \(bundleIdentifier): \(initialPosition)")
 
+                        // Calculate quadrant dimensions using visible frame (accounts for menu bar/dock)
+                        let quadrantWidth = visibleFrame.width / 2
+                        let quadrantHeight = visibleFrame.height / 2
+                        print("Quadrant dimensions: \(quadrantWidth) x \(quadrantHeight)")
+                        print("Window size: \(size)")
+                        
+                        // Center windows within each quadrant
                         var newPositionCocoa = CGPoint.zero
                         switch positionName {
                         case "top_left":
-                            newPositionCocoa = CGPoint(x: screenFrame.minX, y: screenFrame.maxY - size.height)
+                            // Top-left quadrant - center in top-left area
+                            newPositionCocoa = CGPoint(
+                                x: visibleFrame.minX + (quadrantWidth - size.width) / 2,
+                                y: visibleFrame.minY + quadrantHeight + (quadrantHeight - size.height) / 2
+                            )
                         case "top_right":
-                            newPositionCocoa = CGPoint(x: screenFrame.maxX - size.width, y: screenFrame.maxY - size.height)
+                            // Top-right quadrant - center in top-right area
+                            newPositionCocoa = CGPoint(
+                                x: visibleFrame.minX + quadrantWidth + (quadrantWidth - size.width) / 2,
+                                y: visibleFrame.minY + quadrantHeight + (quadrantHeight - size.height) / 2
+                            )
                         case "bottom_left":
-                            newPositionCocoa = CGPoint(x: screenFrame.minX, y: screenFrame.minY)
+                            // Bottom-left quadrant - center in bottom-left area
+                            newPositionCocoa = CGPoint(
+                                x: visibleFrame.minX + (quadrantWidth - size.width) / 2,
+                                y: visibleFrame.minY + (quadrantHeight - size.height) / 2
+                            )
                         case "bottom_right":
-                            newPositionCocoa = CGPoint(x: screenFrame.maxX - size.width, y: screenFrame.minY)
+                            // Bottom-right quadrant - center in bottom-right area
+                            newPositionCocoa = CGPoint(
+                                x: visibleFrame.minX + quadrantWidth + (quadrantWidth - size.width) / 2,
+                                y: visibleFrame.minY + (quadrantHeight - size.height) / 2
+                            )
                         default:
                             print("Unknown position: \(positionName)")
                         }
                         
                         let windowRectCocoa = CGRect(origin: newPositionCocoa, size: size)
-                        let windowRectQuartz = coordinateManager.translateRectFromCocoaToQuartz(rect: windowRectCocoa)
+                        let windowRectQuartz = coordinateManager.translateRectFromCocoaToQuartz(rect: windowRectCocoa, screen: primaryScreen)
                         
+                        print("Position '\(positionName)' calculated:")
+                        print("  Cocoa coordinates: \(newPositionCocoa)")
+                        print("  Quartz coordinates: \(windowRectQuartz.origin)")
                         print("Moving \(bundleIdentifier) to \(windowRectQuartz.origin)")
                         let success = windowManager.setWindowPosition(pid: pid, position: windowRectQuartz.origin)
                         
