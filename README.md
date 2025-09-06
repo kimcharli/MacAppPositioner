@@ -1,5 +1,7 @@
 # Mac App Positioner
 
+*INCOMPLETE*
+
 A native macOS application that automatically positions application windows according to predefined layouts across multiple monitors. Perfect for developers, designers, and power users who work with multiple applications and displays.
 
 ![macOS](https://img.shields.io/badge/macOS-10.15+-blue)
