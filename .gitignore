@@ -1,0 +1,30 @@
+# Xcode
+#
+# gitignore contributors: remember to keep this file platform-agnostic
+# gitignore contributors: https://github.com/github/gitignore/blob/main/CONTRIBUTING.md
+
+## User-specific
+.DS_Store
+*.xcodeproj.xcworkspace
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserdatad/
+
+## Build generated
+build/
+DerivedData/
+
+## Various
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Swift Package Manager
+#
+# Add this line if you want to avoid checking in source code from Swift Package Manager dependencies.
+# Packages/
+# Package.pins
+# Package.resolved
+.build/

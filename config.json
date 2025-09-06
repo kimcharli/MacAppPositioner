@@ -1,0 +1,52 @@
+{
+  "profiles" : {
+    "home" : {
+      "monitors" : [
+        {
+          "resolution" : "macbook",
+          "position" : "builtin"
+        },
+        {
+          "resolution" : "2560.0x1440.0",
+          "position" : "left"
+        },
+        {
+          "resolution" : "3840.0x2160.0",
+          "position" : "primary"
+        }
+      ]
+    },
+    "office" : {
+      "monitors" : [
+        {
+          "resolution" : "3440x1440",
+          "position" : "primary"
+        },
+        {
+          "resolution" : "2560x1440",
+          "position" : "left"
+        },
+        {
+          "resolution" : "builtin",
+          "position" : "builtin"
+        }
+      ]
+    }
+  },
+  "applications" : {
+    "com.google.Chrome" : {
+      "positioning_strategy" : "chrome"
+    }
+  },
+  "layout" : {
+    "primary" : {
+      "top_left" : "com.google.Chrome",
+      "bottom_left" : "com.microsoft.Outlook",
+      "top_right" : "com.microsoft.teams2",
+      "bottom_right" : "com.kakao.KakaoTalkMac"
+    },
+    "builtin" : [
+      "md.obsidian"
+    ]
+  }
+}
