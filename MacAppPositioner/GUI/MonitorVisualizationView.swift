@@ -69,33 +69,33 @@ struct MonitorVisualizationView: View {
     
     private func detectCurrentMonitors() -> [MonitorInfo] {
         var monitorInfos: [MonitorInfo] = []
-        let canonicalCoordinateManager = CocoaCoordinateManager.shared
+        let cocoaCoordinateManager = CocoaCoordinateManager.shared
         let configManager = ConfigManager()
         
-        // Get canonical monitor info
-        let canonicalMonitors = canonicalCoordinateManager.getAllMonitors()
+        // Get monitor info using native Cocoa coordinates
+        let cocoaMonitors = cocoaCoordinateManager.getAllMonitors()
         
         // Load config to determine which monitor is primary according to config
         let config = configManager.loadConfig()
         let primaryMonitorResolution = config?.profiles.values.first?.monitors.first(where: { $0.position == "primary" })?.resolution
         
-        for (index, canonicalMonitor) in canonicalMonitors.enumerated() {
-            let displayName = canonicalMonitor.isBuiltIn ? "Built-in Display" : "External Display"
+        for (index, cocoaMonitor) in cocoaMonitors.enumerated() {
+            let displayName = cocoaMonitor.isBuiltIn ? "Built-in Display" : "External Display"
             
             // Check if this monitor is primary according to config (not NSScreen.main)
-            let isPrimaryFromConfig = canonicalMonitor.resolution == primaryMonitorResolution
+            let isPrimaryFromConfig = cocoaMonitor.resolution == primaryMonitorResolution
             
             let monitor = MonitorInfo(
                 id: index,
                 name: displayName,
-                resolution: canonicalMonitor.resolution,
-                width: canonicalMonitor.frame.width,
-                height: canonicalMonitor.frame.height,
-                originX: canonicalMonitor.frame.origin.x,
-                originY: canonicalMonitor.frame.origin.y,
-                isBuiltIn: canonicalMonitor.isBuiltIn,
+                resolution: cocoaMonitor.resolution,
+                width: cocoaMonitor.frame.width,
+                height: cocoaMonitor.frame.height,
+                originX: cocoaMonitor.frame.origin.x,
+                originY: cocoaMonitor.frame.origin.y,
+                isBuiltIn: cocoaMonitor.isBuiltIn,
                 isPrimary: isPrimaryFromConfig,  // Use config-defined primary, not NSScreen.main
-                backingScaleFactor: canonicalMonitor.scale
+                backingScaleFactor: cocoaMonitor.scale
             )
             
             monitorInfos.append(monitor)

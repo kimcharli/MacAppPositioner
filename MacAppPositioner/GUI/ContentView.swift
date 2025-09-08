@@ -50,7 +50,7 @@ struct MainDashboardView: View {
     @State private var statusMessage: String = ""
     @State private var isLoading: Bool = false
     
-    // Shared logic instances - Updated to use canonical coordinate system
+    // Shared logic instances - Using native Cocoa coordinate system
     private let profileManager = CocoaProfileManager()
     private let configManager = ConfigManager()
     
