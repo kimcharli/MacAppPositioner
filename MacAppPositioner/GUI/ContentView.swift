@@ -163,13 +163,13 @@ struct MainDashboardView: View {
     // MARK: - Actions
     
     private func loadProfiles() {
-        guard let config = configManager.loadConfig() else {
-            statusMessage = "Failed to load config.json"
-            return
+        switch AppUtils.loadProfileNames() {
+        case .success(let profileNames):
+            profiles = profileNames
+            statusMessage = "Loaded \(profiles.count) profile(s)"
+        case .failure(let error):
+            statusMessage = error.localizedDescription
         }
-        
-        profiles = Array(config.profiles.keys).sorted()
-        statusMessage = "Loaded \(profiles.count) profile(s)"
     }
     
     private func detectCurrentProfile() {

@@ -96,7 +96,7 @@ struct MonitorVisualizationView: View {
             
             // Check workspace and primary status
             let isWorkspace = cocoaMonitor.isWorkspace
-            let isPrimary = primaryResolution != nil && ResolutionUtils.normalizeResolution(cocoaMonitor.resolution) == ResolutionUtils.normalizeResolution(primaryResolution!)
+            let isPrimary = primaryResolution != nil && AppUtils.normalizeResolution(cocoaMonitor.resolution) == AppUtils.normalizeResolution(primaryResolution!)
             
             let monitor = MonitorInfo(
                 id: index,

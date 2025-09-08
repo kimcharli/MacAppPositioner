@@ -116,13 +116,13 @@ struct ProfileManagerView: View {
     }
     
     private func loadProfiles() {
-        guard let config = configManager.loadConfig() else {
-            statusMessage = "Failed to load configuration"
-            return
+        switch AppUtils.loadProfiles() {
+        case .success(let profilesDict):
+            profiles = profilesDict
+            statusMessage = "Loaded \(profiles.count) profile(s)"
+        case .failure(let error):
+            statusMessage = error.localizedDescription
         }
-        
-        profiles = config.profiles
-        statusMessage = "Loaded \(profiles.count) profile(s)"
     }
     
     private func deleteProfile(_ profileName: String) {

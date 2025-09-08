@@ -77,7 +77,7 @@ class CocoaCoordinateManager {
         return NSScreen.screens.map { screen in
             let screenResolution = "\(screen.frame.width)x\(screen.frame.height)"
             let isWorkspace = if let workspaceRes = workspaceMonitorResolution {
-                ResolutionUtils.normalizeResolution(screenResolution) == ResolutionUtils.normalizeResolution(workspaceRes)
+                AppUtils.normalizeResolution(screenResolution) == AppUtils.normalizeResolution(workspaceRes)
             } else {
                 false
             }
@@ -93,7 +93,7 @@ class CocoaCoordinateManager {
      */
     func findWorkspaceMonitor(resolution: String) -> CocoaMonitorInfo? {
         return getAllMonitors().first { monitor in
-            ResolutionUtils.normalizeResolution(monitor.resolution) == ResolutionUtils.normalizeResolution(resolution)
+            AppUtils.normalizeResolution(monitor.resolution) == AppUtils.normalizeResolution(resolution)
         }
     }
     

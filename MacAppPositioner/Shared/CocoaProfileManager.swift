@@ -27,7 +27,7 @@ class CocoaProfileManager {
         }
 
         let monitors = coordinateManager.getAllMonitors()
-        let currentResolutions = Set(monitors.map { ResolutionUtils.normalizeResolution($0.resolution) })
+        let currentResolutions = Set(monitors.map { AppUtils.normalizeResolution($0.resolution) })
 
         for (profileName, profile) in config.profiles {
             var profileResolutions: Set<String> = []
@@ -37,10 +37,10 @@ class CocoaProfileManager {
                 if monitor.resolution == "builtin" || monitor.resolution == "macbook" {
                     // Find builtin screen resolution
                     if let builtinMonitor = monitors.first(where: { $0.isBuiltIn }) {
-                        profileResolutions.insert(ResolutionUtils.normalizeResolution(builtinMonitor.resolution))
+                        profileResolutions.insert(AppUtils.normalizeResolution(builtinMonitor.resolution))
                     }
                 } else {
-                    profileResolutions.insert(ResolutionUtils.normalizeResolution(monitor.resolution))
+                    profileResolutions.insert(AppUtils.normalizeResolution(monitor.resolution))
                 }
             }
             
