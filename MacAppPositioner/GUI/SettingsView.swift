@@ -138,8 +138,12 @@ struct SettingsView: View {
         let testApp = runningApps.first { $0.bundleIdentifier == "com.apple.finder" }
         
         if let app = testApp {
-            let canonicalCoordinateManager = CanonicalCoordinateManager.shared
-            if let _ = canonicalCoordinateManager.getWindowPosition(pid: app.processIdentifier) {
+            // Test accessibility by trying to access window attributes
+            let appElement = AXUIElementCreateApplication(app.processIdentifier)
+            var windows: CFTypeRef?
+            let result = AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windows)
+            
+            if result == .success {
                 statusMessage = "✅ Accessibility working correctly"
             } else {
                 statusMessage = "❌ Accessibility permissions may be missing"

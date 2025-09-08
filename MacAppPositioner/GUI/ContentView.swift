@@ -51,7 +51,7 @@ struct MainDashboardView: View {
     @State private var isLoading: Bool = false
     
     // Shared logic instances - Updated to use canonical coordinate system
-    private let profileManager = CanonicalProfileManager()
+    private let profileManager = CocoaProfileManager()
     private let configManager = ConfigManager()
     
     var body: some View {
@@ -199,7 +199,7 @@ struct MainDashboardView: View {
         
         // Run profile application on background queue
         DispatchQueue.global(qos: .userInitiated).async {
-            self.profileManager.applyProfile(name: profileName)
+            self.profileManager.applyProfile(profileName)
             
             DispatchQueue.main.async {
                 self.isLoading = false
