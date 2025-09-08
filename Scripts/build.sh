@@ -15,10 +15,10 @@ if ! command -v swiftc &> /dev/null; then
 fi
 
 # Create output directory if it doesn't exist
-mkdir -p MacAppPositioner
+mkdir -p dist
 
 # Compile the application with Native Cocoa Coordinate System
-swiftc -o MacAppPositioner/MacAppPositioner \
+swiftc -o dist/MacAppPositioner \
     MacAppPositioner/CLI/CocoaMain.swift \
     MacAppPositioner/Shared/ConfigManager.swift \
     MacAppPositioner/Shared/CocoaProfileManager.swift \
@@ -27,10 +27,10 @@ swiftc -o MacAppPositioner/MacAppPositioner \
 
 if [ $? -eq 0 ]; then
     echo "✅ Build successful!"
-    echo "   Run with: ./MacAppPositioner/MacAppPositioner <command>"
+    echo "   Run with: ./dist/MacAppPositioner <command>"
     echo "   Examples:"
-    echo "     ./MacAppPositioner/MacAppPositioner detect"
-    echo "     ./MacAppPositioner/MacAppPositioner apply office"
+    echo "     ./dist/MacAppPositioner detect"
+    echo "     ./dist/MacAppPositioner apply office"
     
     # Optional: Run coordinate system validation tests
     echo ""

@@ -15,10 +15,10 @@ if ! command -v swiftc &> /dev/null; then
 fi
 
 # Create output directory if it doesn't exist
-mkdir -p MacAppPositioner
+mkdir -p dist
 
 # Compile the GUI application with native Cocoa coordinate system
-swiftc -o MacAppPositioner/MacAppPositionerGUI \
+swiftc -o dist/MacAppPositionerGUI \
     MacAppPositioner/GUI/App.swift \
     MacAppPositioner/GUI/ContentView.swift \
     MacAppPositioner/GUI/MonitorVisualizationView.swift \
@@ -32,7 +32,7 @@ swiftc -o MacAppPositioner/MacAppPositionerGUI \
 
 if [ $? -eq 0 ]; then
     echo "✅ GUI Build successful!"
-    echo "   Run with: ./MacAppPositioner/MacAppPositionerGUI"
+    echo "   Run with: ./dist/MacAppPositionerGUI"
     echo "   Note: GUI app will launch in window mode"
 else
     echo "❌ GUI Build failed"
