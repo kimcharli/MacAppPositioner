@@ -42,7 +42,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let command = args[1]
         let profileName = (args.count > 2) ? args[2] : nil
-        let profileManager = CanonicalProfileManager()
+        let profileManager = CocoaProfileManager()
 
         // Execute requested command
         switch command {
@@ -73,7 +73,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
      * Executes profile detection command.
      * Identifies which configured profile matches the current monitor setup.
      */
-    private func executeDetectCommand(_ profileManager: CanonicalProfileManager) {
+    private func executeDetectCommand(_ profileManager: CocoaProfileManager) {
         if let detectedProfile = profileManager.detectProfile() {
             print("Detected profile: \(detectedProfile)")
         } else {
@@ -85,9 +85,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
      * Executes profile application command.
      * Positions running applications according to the specified profile's layout.
      */
-    private func executeApplyCommand(_ profileManager: CanonicalProfileManager, profileName: String?) {
+    private func executeApplyCommand(_ profileManager: CocoaProfileManager, profileName: String?) {
         if let name = profileName {
-            profileManager.applyProfile(name: name)
+            profileManager.applyProfile(name)
         } else {
             print("Please specify a profile name to apply.")
             printUsage()
@@ -98,7 +98,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
      * Executes profile update command.
      * Updates an existing profile with the current monitor configuration.
      */
-    private func executeUpdateCommand(_ profileManager: CanonicalProfileManager, profileName: String?) {
+    private func executeUpdateCommand(_ profileManager: CocoaProfileManager, profileName: String?) {
         if let name = profileName {
             profileManager.updateProfile(name: name)
         } else {
@@ -111,7 +111,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
      * Executes configuration generation command.
      * Outputs JSON configuration template for the current monitor setup.
      */
-    private func executeGenerateConfigCommand(_ profileManager: CanonicalProfileManager) {
+    private func executeGenerateConfigCommand(_ profileManager: CocoaProfileManager) {
         profileManager.generateConfig()
     }
     

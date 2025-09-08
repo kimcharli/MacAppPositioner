@@ -89,6 +89,10 @@ Configure your layouts in `config.json`:
 }
 ```
 
+### Resolution Format
+
+Monitor resolutions use a user-friendly format: `"widthxheight"` (e.g., `"3440x1440"`, `"2560x1440"`). The application automatically normalizes both this format and system-generated formats with decimal points for consistent matching.
+
 ## How It Works
 
 1. **Monitor Detection** - Uses `NSScreen` API to detect your current display setup

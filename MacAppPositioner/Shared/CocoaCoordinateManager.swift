@@ -49,6 +49,20 @@ class CocoaCoordinateManager {
     
     private init() {}
     
+    // MARK: - Helper Functions
+    
+    /**
+     * Normalize resolution strings to handle both user-friendly and system formats
+     * Converts "3440x1440" and "3440.0x1440.0" to a consistent comparable format
+     */
+    private func normalizeResolution(_ resolution: String) -> String {
+        // Remove .0 suffixes and normalize to simple "widthxheight" format
+        let cleaned = resolution
+            .replacingOccurrences(of: ".0", with: "")
+            .replacingOccurrences(of: " ", with: "")
+        return cleaned
+    }
+    
     // MARK: - Monitor Detection (Native Cocoa)
     
     /**
@@ -74,7 +88,11 @@ class CocoaCoordinateManager {
         
         return NSScreen.screens.map { screen in
             let screenResolution = "\(screen.frame.width)x\(screen.frame.height)"
-            let isWorkspace = screenResolution == workspaceMonitorResolution
+            let isWorkspace = if let workspaceRes = workspaceMonitorResolution {
+                normalizeResolution(screenResolution) == normalizeResolution(workspaceRes)
+            } else {
+                false
+            }
             
             print("🔍 Screen \(screenResolution): isWorkspace=\(isWorkspace), isMain=\(screen == NSScreen.main)")
             
@@ -87,7 +105,7 @@ class CocoaCoordinateManager {
      */
     func findWorkspaceMonitor(resolution: String) -> CocoaMonitorInfo? {
         return getAllMonitors().first { monitor in
-            monitor.resolution == resolution
+            normalizeResolution(monitor.resolution) == normalizeResolution(resolution)
         }
     }
     

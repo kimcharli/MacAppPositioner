@@ -16,6 +16,20 @@ class CocoaProfileManager {
     private let configManager = ConfigManager()
     private let coordinateManager = CocoaCoordinateManager.shared
     
+    // MARK: - Helper Functions
+    
+    /**
+     * Normalize resolution strings to handle both user-friendly and system formats
+     * Converts "3440x1440" and "3440.0x1440.0" to a consistent comparable format
+     */
+    private func normalizeResolution(_ resolution: String) -> String {
+        // Remove .0 suffixes and normalize to simple "widthxheight" format
+        let cleaned = resolution
+            .replacingOccurrences(of: ".0", with: "")
+            .replacingOccurrences(of: " ", with: "")
+        return cleaned
+    }
+    
     // MARK: - Profile Detection
     
     func detectProfile() -> String? {
@@ -25,7 +39,7 @@ class CocoaProfileManager {
         }
 
         let monitors = coordinateManager.getAllMonitors()
-        let currentResolutions = Set(monitors.map { $0.resolution })
+        let currentResolutions = Set(monitors.map { normalizeResolution($0.resolution) })
 
         for (profileName, profile) in config.profiles {
             var profileResolutions: Set<String> = []
@@ -35,10 +49,10 @@ class CocoaProfileManager {
                 if monitor.resolution == "builtin" || monitor.resolution == "macbook" {
                     // Find builtin screen resolution
                     if let builtinMonitor = monitors.first(where: { $0.isBuiltIn }) {
-                        profileResolutions.insert(builtinMonitor.resolution)
+                        profileResolutions.insert(normalizeResolution(builtinMonitor.resolution))
                     }
                 } else {
-                    profileResolutions.insert(monitor.resolution)
+                    profileResolutions.insert(normalizeResolution(monitor.resolution))
                 }
             }
             
@@ -203,6 +217,15 @@ class CocoaProfileManager {
     }
     
     // MARK: - Profile Generation
+    
+    func updateProfile(name: String) {
+        print("Update profile functionality not yet implemented for profile: \(name)")
+    }
+    
+    func generateConfig() {
+        let config = generateConfigForCurrentSetup()
+        print(config)
+    }
     
     func generateConfigForCurrentSetup() -> String {
         let monitors = coordinateManager.getAllMonitors()

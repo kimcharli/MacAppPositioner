@@ -7,11 +7,11 @@
           "position" : "builtin"
         },
         {
-          "resolution" : "2560.0x1440.0",
+          "resolution" : "2560x1440",
           "position" : "left"
         },
         {
-          "resolution" : "3840.0x2160.0",
+          "resolution" : "3840x2160",
           "position" : "workspace"
         }
       ]
@@ -27,7 +27,7 @@
           "position" : "left"
         },
         {
-          "resolution" : "builtin",
+          "resolution" : "2056x1329",
           "position" : "builtin"
         }
       ]
