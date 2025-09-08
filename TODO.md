@@ -43,59 +43,82 @@ This file tracks the development tasks for the Mac App Positioner application.
 
 ---
 
-## ✅ RECENTLY COMPLETED: Project Restructure
+## ✅ RECENTLY COMPLETED: Native Cocoa Coordinate System & GUI Implementation
 
-### Project Architecture Restructure ✅
-- [x] **Code Reorganization for Multi-Interface Support**
-    - [x] Move shared core logic to `MacAppPositioner/Shared/` directory
-    - [x] Separate CLI-specific code to `MacAppPositioner/CLI/` directory  
-    - [x] Update build.sh to use new directory structure
-    - [x] Test CLI functionality after restructure
-    - [x] Verify all commands work with new architecture
+### Major Architecture Transformation ✅
+- [x] **Native Cocoa Coordinate System Implementation**
+    - [x] Updated DEVELOPMENT_RULES.md to mandate Apple's native Cocoa coordinate system as official standard
+    - [x] Added Apple documentation reference: https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/CocoaDrawingGuide/Transforms/Transforms.html
+    - [x] Completely eliminated all custom coordinate conversions (removed Canonical* files)
+    - [x] Refactored to use direct NSScreen.frame usage throughout
+    - [x] Implemented proper Accessibility API coordinate conversion at system boundary only
+    
+- [x] **Terminology Standardization**
+    - [x] Replaced all "primary" references with "workspace" to avoid NSScreen.main confusion
+    - [x] Updated config.json with workspace/builtin monitor distinction
+    - [x] Added proper CodingKeys enum to Layout struct for JSON mapping
+    
+- [x] **Critical Bug Fixes**
+    - [x] Fixed workspace monitor detection bug (was using first profile instead of specified profile)
+    - [x] Resolved Chrome positioning on wrong monitor issue
+    - [x] Implemented exact corner positioning with no padding using actual window dimensions
+    - [x] Fixed Accessibility API coordinate conversion for workspace monitor (negative Y coordinates)
+    - [x] Documented all coordinate system issues and fixes in COORDINATE_SYSTEM_ISSUES.md
 
-**Result**: Project now ready for GUI development while maintaining CLI functionality
+### Complete Project Structure Overhaul ✅
+- [x] **Swift Project Standards Implementation**
+    - [x] Reorganized to Scripts/ folder for build scripts (build.sh, build-gui.sh)
+    - [x] Created Tests/ folder for all test files
+    - [x] Added dist/ folder for compiled binaries
+    - [x] Cleaned up root directory following Swift Package Manager conventions
+    
+- [x] **Obsolete Code Removal**
+    - [x] Removed all Canonical* coordinate system files
+    - [x] Cleaned up test_ files and moved remaining to Tests/ folder
+    - [x] Removed CanonicalMain.swift and updated CLI to CocoaMain.swift
+    - [x] Updated all documentation to remove Canonical references
+
+### Phase 2: Complete SwiftUI GUI Implementation ✅
+- [x] **SwiftUI App Target Complete**
+    - [x] Created full SwiftUI application with App.swift and ContentView.swift
+    - [x] Implemented all core GUI components (MonitorVisualizationView, ProfileManagerView, SettingsView)
+    - [x] Fixed GUI compilation errors after coordinate system changes
+    - [x] Verified GUI uses native Cocoa coordinate system throughout
+    
+- [x] **Basic Profile Interface Complete**
+    - [x] Display list of available profiles with current/active profile indication
+    - [x] Functional "Apply Profile" buttons with real-time status feedback
+    - [x] Monitor setup visualization showing current configuration
+    
+- [x] **GUI-CLI Integration Verified**
+    - [x] Confirmed GUI uses same ProfileManager, CoordinateManager core logic
+    - [x] Tested both CLI and GUI work simultaneously without conflicts
+    - [x] Validated shared config.json usage between interfaces
+
+**Result**: Both CLI and GUI applications fully functional with native Cocoa coordinate system
 
 ---
 
-## 🚧 CURRENT PHASE: SwiftUI Interface Development
+## 🚧 CURRENT PHASE: Advanced Features & Polish
 
-### Phase 2A: Minimal Viable GUI (Next Steps)
-- [ ] **Add SwiftUI App Target**
-    - [ ] Create new SwiftUI target in Xcode project
-    - [ ] Configure target to import Shared classes
-    - [ ] Create basic App.swift and ContentView.swift
-- [ ] **Basic Profile Interface**
-    - [ ] Display list of available profiles
-    - [ ] Show currently detected/active profile
-    - [ ] Add "Apply Profile" buttons with status feedback
-- [ ] **Test GUI-CLI Integration**
-    - [ ] Verify GUI can use ProfileManager, WindowManager, etc.
-    - [ ] Test that both CLI and GUI work simultaneously
-    - [ ] Validate shared config.json usage
-
-### Phase 2B: Enhanced GUI Features  
-- [ ] **UI Architecture Planning**
-    - [x] Design SwiftUI app structure (separate from CLI tool) - COMPLETED via restructure
-    - [x] Plan data flow between UI and core logic - COMPLETED via Shared classes
-    - [ ] Design user experience for profile management
-- [ ] **Core UI Components**
-    - [ ] Profile list view with current/available profiles
-    - [ ] Profile application controls with status feedback
-    - [ ] Monitor setup visualization/detection display
-    - [ ] Settings/preferences interface
-- [ ] **Profile Management UI**
-    - [ ] Create new profile interface
+### Next Priority Features
+- [ ] **Enhanced Profile Management**
+    - [ ] Create new profile interface in GUI
     - [ ] Edit existing profiles (rename, modify layout)
     - [ ] Delete profiles with confirmation
     - [ ] Import/export profile configurations
-- [ ] **Real-time Features**
-    - [ ] Live monitor detection and display
-    - [ ] Application status indicators (running/not running)
-    - [ ] Window positioning preview/validation
-- [ ] **Integration**
-    - [ ] Connect SwiftUI interface with existing core logic
-    - [ ] Maintain backward compatibility with CLI tool
-    - [ ] Share configuration files between UI and CLI versions
+    
+- [ ] **Layout Snapshots**
+    - [ ] Capture current window positions across all monitors  
+    - [ ] Save captured layout as new profile
+    - [ ] Smart application detection and bundle ID resolution
+    - [ ] Handle applications with multiple windows
+    
+- [ ] **Advanced Positioning Options**
+    - [ ] Custom positioning beyond quadrants (percentage-based, absolute coordinates)
+    - [ ] Window sizing in addition to positioning  
+    - [ ] Support for multiple windows per application
+    - [ ] Application-specific positioning strategies and rules
 
 ---
 
@@ -116,21 +139,17 @@ This file tracks the development tasks for the Mac App Positioner application.
     - [ ] Customizable keyboard shortcuts
     - [ ] Conflict detection with system shortcuts
 
-### Phase 4: Advanced Features (Remaining)
-- [ ] **Layout Snapshots**
-    - [ ] Capture current window positions across all monitors  
-    - [ ] Save captured layout as new profile
-    - [ ] Smart application detection and bundle ID resolution
-    - [ ] Handle applications with multiple windows
+### Phase 4: Intelligence & Automation
 - [ ] **Dynamic Profile Management**
     - [ ] Auto-create profiles when new monitor setups detected
     - [ ] Smart profile suggestions based on usage patterns
     - [ ] Profile templates for common setups (laptop only, dual monitor, etc.)
-- [ ] **Advanced Positioning**
-    - [ ] Custom positioning beyond quadrants (percentage-based, absolute coordinates)
-    - [ ] Window sizing in addition to positioning  
-    - [ ] Support for multiple windows per application
-    - [ ] Application-specific positioning strategies and rules
+    - [ ] Machine learning-based layout optimization
+- [ ] **Real-time Features**
+    - [ ] Live monitor detection and display
+    - [ ] Application status indicators (running/not running)
+    - [ ] Window positioning preview/validation
+    - [ ] Automatic profile switching based on connected monitors
 
 ### Phase 5: Polish and Distribution
 - [ ] **User Experience Improvements**
@@ -153,15 +172,18 @@ This file tracks the development tasks for the Mac App Positioner application.
 
 ## 📊 PROGRESS SUMMARY
 
-**Current State:** CLI application with GUI-ready architecture
-- ✅ Core window positioning engine complete and battle-tested
-- ✅ Multi-monitor support working across diverse setups
-- ✅ Configuration system robust and flexible
-- ✅ Documentation comprehensive (6 detailed guides)
-- ✅ **Project restructured for multi-interface support**
-- ✅ **Shared core logic separated from CLI-specific code**
-- ✅ **Ready for immediate GUI development**
+**Current State:** Complete dual-interface application with native Cocoa coordinate system
 
-**Next Priority:** SwiftUI interface (Phase 2A) - Add app target and basic profile UI
+- ✅ **Native Cocoa coordinate system** implemented following Apple's official standards
+- ✅ **Both CLI and GUI applications** fully functional and battle-tested
+- ✅ **Exact window positioning** with zero padding and proper coordinate conversion
+- ✅ **Multi-monitor support** with workspace/builtin monitor distinction
+- ✅ **Project structure** organized following Swift Package Manager conventions
+- ✅ **Comprehensive documentation** including coordinate system issue reference
+- ✅ **Clean codebase** with all obsolete coordinate conversion code removed
 
-**Architecture Advantage:** CLI and GUI will share identical core logic (WindowManager, ProfileManager, CoordinateManager, ConfigManager) while providing different user experiences.
+**Next Priority:** Enhanced profile management and layout snapshots
+
+**Architecture Achievement:** Native Cocoa coordinate system provides precise, reliable positioning while CLI and GUI share identical core logic (CocoaProfileManager, CocoaCoordinateManager, ConfigManager) ensuring consistent behavior across interfaces.
+
+**Key Technical Success:** Resolved all coordinate system confusion by implementing Apple's native Cocoa standard, eliminating custom conversions, and achieving exact corner positioning through proper Accessibility API boundary conversion.

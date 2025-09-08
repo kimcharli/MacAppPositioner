@@ -1,8 +1,8 @@
 # Mac App Positioner
 
-*INCOMPLETE*
-
 A native macOS application that automatically positions application windows according to predefined layouts across multiple monitors. Perfect for developers, designers, and power users who work with multiple applications and displays.
+
+**Available as both Command Line Interface (CLI) and Graphical User Interface (GUI) applications.**
 
 ![macOS](https://img.shields.io/badge/macOS-10.15+-blue)
 ![Swift](https://img.shields.io/badge/Swift-5.0+-orange)
@@ -10,12 +10,14 @@ A native macOS application that automatically positions application windows acco
 
 ## Features
 
+✅ **Dual Interface** - Available as both CLI and GUI applications  
 ✅ **Multi-Monitor Support** - Works seamlessly across multiple displays with different resolutions  
+✅ **Native Cocoa Coordinate System** - Uses Apple's official coordinate system for precise positioning  
+✅ **Exact Corner Positioning** - Zero padding, pixel-perfect window placement  
 ✅ **Quadrant Positioning** - Divide your workspace monitor into four zones for systematic app organization  
 ✅ **Profile System** - Create different layouts for home, office, or travel setups  
 ✅ **Dynamic Detection** - Automatically detects your current monitor configuration  
 ✅ **Application-Specific Rules** - Handle apps that resist positioning (like Chrome)  
-✅ **Command Line Interface** - Powerful CLI for automation and scripting  
 ✅ **Native Swift Implementation** - Fast, efficient, and follows macOS conventions
 
 ## Quick Start
@@ -32,18 +34,28 @@ A native macOS application that automatically positions application windows acco
 
 ### 3. Basic Usage
 
+#### Command Line Interface (CLI)
 ```bash
 # Detect your current monitor setup
-./MacAppPositioner detect
+./dist/MacAppPositioner detect
 
 # Apply a layout profile
-./MacAppPositioner apply office
+./dist/MacAppPositioner apply office
 
 # Update a profile with current monitor configuration  
-./MacAppPositioner update home
+./dist/MacAppPositioner update home
 
 # Generate configuration template
-./MacAppPositioner generate-config
+./dist/MacAppPositioner generate-config
+```
+
+#### Graphical User Interface (GUI)
+```bash
+# Launch the GUI application
+./dist/MacAppPositionerGUI
+
+# Or build and run
+./Scripts/build-gui.sh && ./dist/MacAppPositionerGUI
 ```
 
 ## Example Configuration
@@ -81,8 +93,9 @@ Configure your layouts in `config.json`:
 
 1. **Monitor Detection** - Uses `NSScreen` API to detect your current display setup
 2. **Profile Matching** - Compares detected monitors with configured profiles
-3. **Application Positioning** - Uses Accessibility API to move running applications
-4. **Coordinate Translation** - Handles macOS coordinate system differences automatically
+3. **Native Cocoa Coordinates** - Uses Apple's official coordinate system (bottom-left origin, Y increases upward)
+4. **Application Positioning** - Uses Accessibility API to move running applications with precise coordinate conversion
+5. **Exact Positioning** - Achieves pixel-perfect corner placement with zero padding
 
 ## Monitor Layout Example
 
@@ -106,15 +119,18 @@ Your workspace monitor is divided into quadrants:
 git clone <repository-url>
 cd MacAppPositioner
 
-# Option 1: Simple build script (recommended)
+# Option 1: Build CLI (recommended)
 ./Scripts/build.sh
 
-# Option 2: Open in Xcode
-open MacAppPositioner.xcodeproj
-# Build with ⌘+B
+# Option 2: Build GUI
+./Scripts/build-gui.sh
 
-# Option 3: Command line with xcodebuild
-xcodebuild -project MacAppPositioner.xcodeproj -scheme MacAppPositioner
+# Option 3: Build both
+./Scripts/build.sh && ./Scripts/build-gui.sh
+
+# Binaries will be created in dist/ folder:
+# - dist/MacAppPositioner (CLI)
+# - dist/MacAppPositionerGUI (GUI)
 ```
 
 ### Finding Application Bundle IDs
@@ -138,26 +154,29 @@ osascript -e 'id of app "Chrome"'
 ### Daily Workflow
 ```bash
 # Morning routine - detect and apply layout
-./MacAppPositioner detect && ./MacAppPositioner apply office
+./dist/MacAppPositioner detect && ./dist/MacAppPositioner apply office
 
 # Switch to focus mode
-./MacAppPositioner apply minimal
+./dist/MacAppPositioner apply minimal
+
+# Or use the GUI for visual feedback
+./dist/MacAppPositionerGUI
 ```
 
 ### Shell Integration
 ```bash
 # Add to your .zshrc or .bashrc
-alias layout-office='~/path/to/MacAppPositioner apply office'  
-alias layout-home='~/path/to/MacAppPositioner apply home'
+alias layout-office='~/path/to/dist/MacAppPositioner apply office'  
+alias layout-home='~/path/to/dist/MacAppPositioner apply home'
 ```
 
 ### Monitor Setup Changes
 ```bash
 # Connected new monitor? Update your profile
-./MacAppPositioner update office
+./dist/MacAppPositioner update office
 
 # See what monitors are detected
-./MacAppPositioner generate-config
+./dist/MacAppPositioner generate-config
 ```
 
 ## Supported Applications
@@ -188,9 +207,10 @@ See the [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for detailed solutions.
 
 ## Roadmap
 
-🚧 **Current Phase:** SwiftUI Interface Development  
+✅ **Completed:** Native Cocoa Coordinate System & Dual Interface (CLI + GUI)  
+🚧 **Current Phase:** Advanced Features & Polish (Profile Management, Layout Snapshots)  
 📋 **Next:** Menu Bar App Integration  
-🎯 **Future:** Layout Snapshots, Advanced Positioning
+🎯 **Future:** Intelligence & Automation, Polish & Distribution
 
 See [TODO.md](TODO.md) for detailed development roadmap.
 
@@ -204,9 +224,11 @@ We welcome contributions! Please see the [Development Guide](docs/DEVELOPMENT.md
 
 ## Architecture Principles
 
+- **Native Cocoa Coordinate System** - Uses Apple's official coordinate system for precision and reliability
 - **Dynamic Over Static** - Real-time monitor detection vs hardcoded values
 - **Native Integration** - Uses macOS frameworks (AppKit, Accessibility)  
 - **Modular Design** - Separated concerns across distinct Swift classes
+- **Dual Interface** - CLI and GUI share identical core logic for consistency
 - **Error Resilience** - Comprehensive error handling and user feedback
 
 ## License
@@ -216,6 +238,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## Acknowledgments
 
 Built with native macOS technologies:
+
 - **AppKit** for monitor detection and workspace management
 - **Accessibility API** for window manipulation
 - **Foundation** for JSON configuration and file I/O
