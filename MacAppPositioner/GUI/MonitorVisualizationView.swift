@@ -71,19 +71,32 @@ struct MonitorVisualizationView: View {
         var monitorInfos: [MonitorInfo] = []
         let cocoaCoordinateManager = CocoaCoordinateManager.shared
         let configManager = ConfigManager()
+        let profileManager = CocoaProfileManager()
+        
+        // Detect current profile
+        let currentProfile = profileManager.detectProfile()
         
         // Get monitor info using native Cocoa coordinates
-        let cocoaMonitors = cocoaCoordinateManager.getAllMonitors()
+        // Pass the detected profile to get workspace marking
+        let cocoaMonitors = cocoaCoordinateManager.getAllMonitors(for: currentProfile)
         
-        // Load config to determine which monitor is primary according to config
+        // Load config to determine which monitor is primary
         let config = configManager.loadConfig()
-        let primaryMonitorResolution = config?.profiles.values.first?.monitors.first(where: { $0.position == "primary" })?.resolution
+        var primaryResolution: String? = nil
+        
+        // If we have a detected profile, use its primary configuration
+        // Note: workspace is already determined by CocoaCoordinateManager
+        if let profile = currentProfile,
+           let profileConfig = config?.profiles[profile] {
+            primaryResolution = profileConfig.monitors.first(where: { $0.position == "primary" })?.resolution
+        }
         
         for (index, cocoaMonitor) in cocoaMonitors.enumerated() {
             let displayName = cocoaMonitor.isBuiltIn ? "Built-in Display" : "External Display"
             
-            // Check if this monitor is primary according to config (not NSScreen.main)
-            let isPrimaryFromConfig = cocoaMonitor.resolution == primaryMonitorResolution
+            // Check workspace and primary status
+            let isWorkspace = cocoaMonitor.isWorkspace
+            let isPrimary = primaryResolution != nil && normalizeResolution(cocoaMonitor.resolution) == normalizeResolution(primaryResolution!)
             
             let monitor = MonitorInfo(
                 id: index,
@@ -94,7 +107,8 @@ struct MonitorVisualizationView: View {
                 originX: cocoaMonitor.frame.origin.x,
                 originY: cocoaMonitor.frame.origin.y,
                 isBuiltIn: cocoaMonitor.isBuiltIn,
-                isPrimary: isPrimaryFromConfig,  // Use config-defined primary, not NSScreen.main
+                isPrimary: isPrimary,
+                isWorkspace: isWorkspace,
                 backingScaleFactor: cocoaMonitor.scale
             )
             
@@ -102,6 +116,17 @@ struct MonitorVisualizationView: View {
         }
         
         return monitorInfos
+    }
+    
+    /**
+     * Normalize resolution strings to handle both user-friendly and system formats
+     */
+    private func normalizeResolution(_ resolution: String) -> String {
+        // Remove .0 suffixes and normalize to simple "widthxheight" format
+        let cleaned = resolution
+            .replacingOccurrences(of: ".0", with: "")
+            .replacingOccurrences(of: " ", with: "")
+        return cleaned
     }
 }
 
@@ -120,16 +145,21 @@ struct MonitorCardView: View {
                     .frame(width: 80, height: 50)
                     .overlay(
                         Rectangle()
-                            .stroke(monitor.isPrimary ? Color.blue : Color.gray, lineWidth: 2)
+                            .stroke(monitor.isWorkspace ? Color.purple : (monitor.isPrimary ? Color.blue : Color.gray), lineWidth: monitor.isWorkspace ? 3 : 2)
                     )
                     .cornerRadius(6)
                 
                 VStack(spacing: 2) {
                     Image(systemName: monitor.isBuiltIn ? "laptopcomputer" : "display")
                         .font(.title3)
-                        .foregroundColor(monitor.isPrimary ? .blue : .secondary)
+                        .foregroundColor(monitor.isWorkspace ? .purple : (monitor.isPrimary ? .blue : .secondary))
                     
-                    if monitor.isPrimary {
+                    if monitor.isWorkspace {
+                        Text("Workspace")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.purple)
+                    } else if monitor.isPrimary {
                         Text("Primary")
                             .font(.caption2)
                             .fontWeight(.bold)
@@ -149,14 +179,27 @@ struct MonitorCardView: View {
                     .font(.caption2)
                     .foregroundColor(.secondary)
                 
-                if monitor.backingScaleFactor > 1.0 {
-                    Text("Retina")
-                        .font(.caption2)
-                        .foregroundColor(.green)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(Color.green.opacity(0.1))
-                        .cornerRadius(3)
+                // Show badges for special monitor properties
+                HStack(spacing: 4) {
+                    if monitor.isWorkspace {
+                        Text("4-Zone")
+                            .font(.caption2)
+                            .foregroundColor(.purple)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(Color.purple.opacity(0.1))
+                            .cornerRadius(3)
+                    }
+                    
+                    if monitor.backingScaleFactor > 1.0 {
+                        Text("Retina")
+                            .font(.caption2)
+                            .foregroundColor(.green)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(Color.green.opacity(0.1))
+                            .cornerRadius(3)
+                    }
                 }
             }
         }
@@ -178,6 +221,7 @@ struct MonitorInfo {
     let originY: CGFloat
     let isBuiltIn: Bool
     let isPrimary: Bool
+    let isWorkspace: Bool
     let backingScaleFactor: CGFloat
 }
 
