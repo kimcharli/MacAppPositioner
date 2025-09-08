@@ -12,7 +12,7 @@
         },
         {
           "resolution" : "3840.0x2160.0",
-          "position" : "primary"
+          "position" : "workspace"
         }
       ]
     },
@@ -20,7 +20,7 @@
       "monitors" : [
         {
           "resolution" : "3440x1440",
-          "position" : "primary"
+          "position" : "workspace"
         },
         {
           "resolution" : "2560x1440",
@@ -39,7 +39,7 @@
     }
   },
   "layout" : {
-    "primary" : {
+    "workspace" : {
       "top_left" : "com.google.Chrome",
       "bottom_left" : "com.microsoft.Outlook",
       "top_right" : "com.microsoft.teams2",
