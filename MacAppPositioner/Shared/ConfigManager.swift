@@ -1,8 +1,13 @@
 import Foundation
 
 struct Layout: Codable {
-    var primary: [String: String]
+    var workspace: [String: String]
     var builtin: [String]
+    
+    enum CodingKeys: String, CodingKey {
+        case workspace = "workspace"
+        case builtin = "builtin"
+    }
 }
 
 struct AppSettings: Codable {

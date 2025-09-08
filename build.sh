@@ -5,7 +5,7 @@
 
 set -e  # Exit on any error
 
-echo "🏗️  Building Mac App Positioner with Canonical Coordinate System..."
+echo "🏗️  Building Mac App Positioner with Native Cocoa Coordinate System..."
 
 # Check if Swift compiler is available
 if ! command -v swiftc &> /dev/null; then
@@ -17,12 +17,12 @@ fi
 # Create output directory if it doesn't exist
 mkdir -p MacAppPositioner
 
-# Compile the application with Canonical Coordinate System
+# Compile the application with Native Cocoa Coordinate System
 swiftc -o MacAppPositioner/MacAppPositioner \
-    MacAppPositioner/CLI/main.swift \
+    MacAppPositioner/CLI/CocoaMain.swift \
     MacAppPositioner/Shared/ConfigManager.swift \
-    MacAppPositioner/Shared/CanonicalProfileManager.swift \
-    MacAppPositioner/Shared/CanonicalCoordinateManager.swift \
+    MacAppPositioner/Shared/CocoaProfileManager.swift \
+    MacAppPositioner/Shared/CocoaCoordinateManager.swift \
     -framework AppKit
 
 if [ $? -eq 0 ]; then

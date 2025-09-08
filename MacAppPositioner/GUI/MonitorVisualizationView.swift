@@ -69,7 +69,7 @@ struct MonitorVisualizationView: View {
     
     private func detectCurrentMonitors() -> [MonitorInfo] {
         var monitorInfos: [MonitorInfo] = []
-        let canonicalCoordinateManager = CanonicalCoordinateManager.shared
+        let canonicalCoordinateManager = CocoaCoordinateManager.shared
         let configManager = ConfigManager()
         
         // Get canonical monitor info

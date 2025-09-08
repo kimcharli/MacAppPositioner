@@ -19,7 +19,7 @@ struct ProfileManagerView: View {
     @State private var statusMessage: String = ""
     
     private let configManager = ConfigManager()
-    private let profileManager = CanonicalProfileManager()
+    private let profileManager = CocoaProfileManager()
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {

@@ -139,7 +139,7 @@ Generates JSON configuration template based on current monitor setup.
       "monitors": [
         {
           "resolution": "3440x1440",
-          "position": "primary"
+          "position": "workspace"
         },
         {
           "resolution": "2560x1440", 
@@ -153,7 +153,7 @@ Generates JSON configuration template based on current monitor setup.
     }
   },
   "layout": {
-    "primary": {
+    "workspace": {
       "top_left": "com.google.Chrome",
       "top_right": "com.microsoft.teams2", 
       "bottom_left": "com.microsoft.Outlook",
@@ -176,10 +176,10 @@ Generates JSON configuration template based on current monitor setup.
 #### Monitor Definitions
 Each monitor is defined by:
 - **resolution**: Screen dimensions (e.g., "3440x1440") or "macbook" for built-in display
-- **position**: Role in layout - "primary", "left", "right", "secondary", "builtin"
+- **position**: Role in layout - "workspace", "left", "right", "secondary", "builtin"
 
 #### Monitor Position Types
-- **primary**: Target monitor for quadrant layout (where apps will be positioned)
+- **workspace**: Target monitor for quadrant layout (where apps will be positioned)
 - **left/right**: Physical position relative to main display
 - **secondary**: Additional monitor without specific positioning
 - **builtin**: MacBook's built-in display
@@ -193,7 +193,7 @@ Use the `generate-config` command to see detected resolutions:
 ### Layout Configuration
 
 #### Primary Monitor Layout (Quadrant System)
-The primary monitor is divided into four equal quadrants:
+The workspace monitor is divided into four equal quadrants:
 
 ```
 ┌─────────────────┬─────────────────┐
@@ -209,7 +209,7 @@ The primary monitor is divided into four equal quadrants:
 Map applications to quadrants using bundle identifiers:
 
 ```json
-"primary": {
+"workspace": {
   "top_left": "com.google.Chrome",
   "top_right": "com.microsoft.teams2",
   "bottom_left": "com.microsoft.Outlook", 
@@ -299,7 +299,7 @@ Some applications may require special handling:
 
 ### Monitor Setup
 - **Consistent Arrangements**: Keep monitor arrangements consistent for reliable profile detection
-- **Primary vs Main**: Remember that "primary" (where apps are positioned) is independent from macOS "main" display
+- **Workspace vs Main**: Remember that "workspace" (where apps are positioned) is independent from macOS "main" display
 - **Resolution Matching**: Profile detection matches by exact resolution strings
 
 ### Application Management

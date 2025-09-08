@@ -5,7 +5,7 @@
 
 set -e  # Exit on any error
 
-echo "🎨 Building Mac App Positioner GUI with Canonical Coordinate System..."
+echo "🎨 Building Mac App Positioner GUI with Native Cocoa Coordinate System..."
 
 # Check if Swift compiler is available
 if ! command -v swiftc &> /dev/null; then
@@ -17,7 +17,7 @@ fi
 # Create output directory if it doesn't exist
 mkdir -p MacAppPositioner
 
-# Compile the GUI application with canonical coordinate system
+# Compile the GUI application with native Cocoa coordinate system
 swiftc -o MacAppPositioner/MacAppPositionerGUI \
     MacAppPositioner/GUI/App.swift \
     MacAppPositioner/GUI/ContentView.swift \
@@ -25,8 +25,8 @@ swiftc -o MacAppPositioner/MacAppPositionerGUI \
     MacAppPositioner/GUI/ProfileManagerView.swift \
     MacAppPositioner/GUI/SettingsView.swift \
     MacAppPositioner/Shared/ConfigManager.swift \
-    MacAppPositioner/Shared/CanonicalCoordinateManager.swift \
-    MacAppPositioner/Shared/CanonicalProfileManager.swift \
+    MacAppPositioner/Shared/CocoaCoordinateManager.swift \
+    MacAppPositioner/Shared/CocoaProfileManager.swift \
     -framework AppKit \
     -framework SwiftUI
 

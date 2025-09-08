@@ -11,7 +11,7 @@ A native macOS application that automatically positions application windows acco
 ## Features
 
 ✅ **Multi-Monitor Support** - Works seamlessly across multiple displays with different resolutions  
-✅ **Quadrant Positioning** - Divide your primary monitor into four zones for systematic app organization  
+✅ **Quadrant Positioning** - Divide your workspace monitor into four zones for systematic app organization  
 ✅ **Profile System** - Create different layouts for home, office, or travel setups  
 ✅ **Dynamic Detection** - Automatically detects your current monitor configuration  
 ✅ **Application-Specific Rules** - Handle apps that resist positioning (like Chrome)  
@@ -57,7 +57,7 @@ Configure your layouts in `config.json`:
       "monitors": [
         {
           "resolution": "3440x1440",
-          "position": "primary"
+          "position": "workspace"
         },
         {
           "resolution": "2560x1440", 
@@ -67,7 +67,7 @@ Configure your layouts in `config.json`:
     }
   },
   "layout": {
-    "primary": {
+    "workspace": {
       "top_left": "com.google.Chrome",
       "top_right": "com.microsoft.teams2",
       "bottom_left": "com.microsoft.Outlook", 
@@ -86,7 +86,7 @@ Configure your layouts in `config.json`:
 
 ## Monitor Layout Example
 
-Your primary monitor is divided into quadrants:
+Your workspace monitor is divided into quadrants:
 
 ```
 ┌─────────────────┬─────────────────┐

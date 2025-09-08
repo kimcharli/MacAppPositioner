@@ -4,11 +4,11 @@ This document defines the key terms used in Mac App Positioner to avoid confusio
 
 ## Monitor Classification Terms
 
-### Primary Monitor (Config)
+### Workspace Monitor (Config)
 - **Definition**: The target monitor where applications will be positioned in quadrants
 - **Purpose**: Defines which screen the app layout will be applied to
-- **Configuration**: Set via `position: "primary"` in `config.json`
-- **Example**: Ultra-wide monitor designated as primary for app positioning
+- **Configuration**: Set via `position: "workspace"` in `config.json`
+- **Example**: Ultra-wide monitor designated as workspace for app positioning
 - **Independence**: Completely independent from macOS "main" display setting
 
 ### Main Display (macOS System)
@@ -27,7 +27,7 @@ This document defines the key terms used in Mac App Positioner to avoid confusio
 - **Usage**: Often used for secondary apps or specific workflows
 
 ### Secondary Monitor
-- **Definition**: Any additional external monitor that is not the primary positioning target
+- **Definition**: Any additional external monitor that is not the workspace positioning target
 - **Purpose**: May have specific apps assigned but not the main quadrant layout
 - **Configuration**: Various position descriptors: `"left"`, `"right"`, `"above"`, etc.
 
@@ -46,10 +46,10 @@ This document defines the key terms used in Mac App Positioner to avoid confusio
 - **Conversion**: May differ from arrangement coordinates due to coordinate system differences
 
 ### Quadrant Layout
-- **Definition**: Division of primary monitor into four equal sections
+- **Definition**: Division of workspace monitor into four equal sections
 - **Quadrants**: `top_left`, `top_right`, `bottom_left`, `bottom_right`
-- **Purpose**: Systematic organization of applications across the primary monitor
-- **Configuration**: Defined in `config.json` under `primary`
+- **Purpose**: Systematic organization of applications across the workspace monitor
+- **Configuration**: Defined in `config.json` under `workspace`
 
 ## Configuration Terms
 
@@ -68,7 +68,7 @@ This document defines the key terms used in Mac App Positioner to avoid confusio
 ### Layout
 - **Definition**: Application-to-position assignments
 - **Types**: 
-  - `primary`: Apps positioned in quadrants of primary monitor
+  - `workspace`: Apps positioned in quadrants of workspace monitor
   - `builtin`: Apps positioned on built-in display
   - Individual monitor assignments
 
@@ -88,7 +88,7 @@ This document defines the key terms used in Mac App Positioner to avoid confusio
 
 ## Key Principles
 
-1. **Primary ≠ Main**: The positioning target (primary) is independent from macOS main display
+1. **Workspace ≠ Main**: The positioning target (workspace) is independent from macOS main display
 2. **Dynamic Coordinates**: Monitor positions are detected in real-time from Display Settings
 3. **Resolution Matching**: Monitors are matched by resolution between config and detected setup
 4. **Coordinate System**: Script handles conversion between macOS and window positioning coordinates
