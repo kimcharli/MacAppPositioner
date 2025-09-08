@@ -96,7 +96,7 @@ struct MonitorVisualizationView: View {
             
             // Check workspace and primary status
             let isWorkspace = cocoaMonitor.isWorkspace
-            let isPrimary = primaryResolution != nil && normalizeResolution(cocoaMonitor.resolution) == normalizeResolution(primaryResolution!)
+            let isPrimary = primaryResolution != nil && ResolutionUtils.normalizeResolution(cocoaMonitor.resolution) == ResolutionUtils.normalizeResolution(primaryResolution!)
             
             let monitor = MonitorInfo(
                 id: index,
@@ -118,16 +118,6 @@ struct MonitorVisualizationView: View {
         return monitorInfos
     }
     
-    /**
-     * Normalize resolution strings to handle both user-friendly and system formats
-     */
-    private func normalizeResolution(_ resolution: String) -> String {
-        // Remove .0 suffixes and normalize to simple "widthxheight" format
-        let cleaned = resolution
-            .replacingOccurrences(of: ".0", with: "")
-            .replacingOccurrences(of: " ", with: "")
-        return cleaned
-    }
 }
 
 /**

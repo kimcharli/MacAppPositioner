@@ -18,18 +18,6 @@ class CocoaProfileManager {
     
     // MARK: - Helper Functions
     
-    /**
-     * Normalize resolution strings to handle both user-friendly and system formats
-     * Converts "3440x1440" and "3440.0x1440.0" to a consistent comparable format
-     */
-    private func normalizeResolution(_ resolution: String) -> String {
-        // Remove .0 suffixes and normalize to simple "widthxheight" format
-        let cleaned = resolution
-            .replacingOccurrences(of: ".0", with: "")
-            .replacingOccurrences(of: " ", with: "")
-        return cleaned
-    }
-    
     // MARK: - Profile Detection
     
     func detectProfile() -> String? {
@@ -39,7 +27,7 @@ class CocoaProfileManager {
         }
 
         let monitors = coordinateManager.getAllMonitors()
-        let currentResolutions = Set(monitors.map { normalizeResolution($0.resolution) })
+        let currentResolutions = Set(monitors.map { ResolutionUtils.normalizeResolution($0.resolution) })
 
         for (profileName, profile) in config.profiles {
             var profileResolutions: Set<String> = []
@@ -49,10 +37,10 @@ class CocoaProfileManager {
                 if monitor.resolution == "builtin" || monitor.resolution == "macbook" {
                     // Find builtin screen resolution
                     if let builtinMonitor = monitors.first(where: { $0.isBuiltIn }) {
-                        profileResolutions.insert(normalizeResolution(builtinMonitor.resolution))
+                        profileResolutions.insert(ResolutionUtils.normalizeResolution(builtinMonitor.resolution))
                     }
                 } else {
-                    profileResolutions.insert(normalizeResolution(monitor.resolution))
+                    profileResolutions.insert(ResolutionUtils.normalizeResolution(monitor.resolution))
                 }
             }
             
