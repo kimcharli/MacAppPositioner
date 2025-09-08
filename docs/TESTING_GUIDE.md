@@ -8,9 +8,6 @@
 
 ### Development Workflow
 ```bash
-# Quick validation during development
-./test_quick.sh
-
 # Full test suite before commits
 ./Scripts/test_all.sh
 ```
@@ -23,12 +20,6 @@
 ```
 
 ## Test Scripts
-
-### `./test_quick.sh` - Quick Development Test
-- **Purpose**: Fast validation during development
-- **Runtime**: ~2 seconds
-- **Tests**: Core coordinate system functionality
-- **Use**: Run before/after code changes
 
 ### `./Scripts/test_all.sh` - Comprehensive Test Suite  
 - **Purpose**: Full validation before commits/releases
@@ -172,7 +163,6 @@ cat config.json | jq '.'
 ## Integration with Development
 
 ### Pre-Commit Checklist
-- [ ] `./test_quick.sh` passes
 - [ ] Code changes don't break coordinate system
 - [ ] New features have test coverage
 
