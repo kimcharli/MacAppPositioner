@@ -50,7 +50,7 @@ open MacAppPositioner.xcodeproj
 #### Option 1: Using build.sh (Recommended)
 ```bash
 # Simple one-command build
-./build.sh
+./Scripts/build.sh
 
 # Output:
 # 🏗️  Building Mac App Positioner...

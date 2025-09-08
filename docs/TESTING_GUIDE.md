@@ -12,14 +12,14 @@
 ./test_quick.sh
 
 # Full test suite before commits
-./test_all.sh
+./Scripts/test_all.sh
 ```
 
 ### Build Integration
 ```bash
 # Build with test validation tip
-./build.sh
-./build-gui.sh
+./Scripts/build.sh
+./Scripts/build-gui.sh
 ```
 
 ## Test Scripts
@@ -30,7 +30,7 @@
 - **Tests**: Core coordinate system functionality
 - **Use**: Run before/after code changes
 
-### `./test_all.sh` - Comprehensive Test Suite  
+### `./Scripts/test_all.sh` - Comprehensive Test Suite  
 - **Purpose**: Full validation before commits/releases
 - **Runtime**: ~10 seconds
 - **Tests**: All coordinate system validation tests
@@ -177,7 +177,7 @@ cat config.json | jq '.'
 - [ ] New features have test coverage
 
 ### Pre-Release Checklist  
-- [ ] `./test_all.sh` passes
+- [ ] `./Scripts/test_all.sh` passes
 - [ ] All coordinate system tests pass
 - [ ] Manual positioning test successful
 - [ ] Multi-monitor setup validated
@@ -187,7 +187,7 @@ cat config.json | jq '.'
 # Example GitHub Actions integration
 - name: Run Coordinate System Tests
   run: |
-    ./test_all.sh
+    ./Scripts/test_all.sh
     
 - name: Validate Positioning
   run: |

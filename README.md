@@ -107,7 +107,7 @@ git clone <repository-url>
 cd MacAppPositioner
 
 # Option 1: Simple build script (recommended)
-./build.sh
+./Scripts/build.sh
 
 # Option 2: Open in Xcode
 open MacAppPositioner.xcodeproj

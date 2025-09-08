@@ -34,7 +34,7 @@ if [ $? -eq 0 ]; then
     
     # Optional: Run coordinate system validation tests
     echo ""
-    echo "💡 Tip: Run './test_all.sh' to validate coordinate system before using"
+    echo "💡 Tip: Run './Scripts/test_all.sh' to validate coordinate system before using"
 else
     echo "❌ Build failed"
     exit 1

@@ -315,7 +315,7 @@ grep -r "screen.frame" MacAppPositioner/
 ```bash
 # 1. Revert to canonical coordinate system
 cp MacAppPositioner/Shared/CanonicalProfileManager.swift MacAppPositioner/Shared/ProfileManager.swift
-./build.sh
+./Scripts/build.sh
 
 # 2. Test immediately  
 ./MacAppPositioner/MacAppPositioner apply home
