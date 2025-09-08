@@ -1,32 +1,29 @@
-# Application Architecture
+# MacAppPositioner Architecture
 
-This document explains the technical architecture and key design decisions of the Mac App Positioner.
+Native macOS window positioning application using Apple's Cocoa coordinate system.
 
 ## Overview
 
-Mac App Positioner is a native macOS application written in Swift that automatically positions application windows according to predefined layouts across multiple monitors. The application uses AppKit and Accessibility APIs to detect monitor configurations and manipulate window positions.
+Mac App Positioner is a native macOS application written in Swift that automatically positions application windows according to predefined layouts across multiple monitors. The application uses native AppKit and Accessibility APIs without coordinate conversions.
 
-**CRITICAL ARCHITECTURE UPDATE**: Version 2.0 introduces a canonical coordinate system architecture that eliminates the coordinate system mixing issues that caused repeated positioning bugs.
+**CURRENT ARCHITECTURE**: Uses Apple's native Cocoa coordinate system throughout, eliminating coordinate conversion bugs and following macOS best practices.
 
 ## Core Components
 
-The application is designed with a modular architecture, separating concerns into distinct Swift classes:
+### CLI Interface
+- **`CocoaMain.swift`**: Main CLI entry point using native Cocoa coordinates
+- **Command-line arguments**: detect, apply, generate-config, test-coordinates
 
-**Version 2.0 Architecture**:
--   **`MacAppPositioner/CLI/`**: Command-line interface
-    -   **`CanonicalMain.swift`**: Main CLI entry point using canonical coordinate system
--   **`MacAppPositioner/GUI/`**: SwiftUI graphical interface  
-    -   **`ContentView.swift`**: Main GUI with tabbed interface
-    -   **`MonitorVisualizationView.swift`**: Visual monitor representation
-    -   **`ProfileManagerView.swift`**: Profile management interface
-    -   **`SettingsView.swift`**: Application preferences
--   **`MacAppPositioner/Shared/`**: Core logic shared between CLI and GUI
-    -   **`CanonicalCoordinateManager.swift`**: **NEW** - Canonical coordinate system manager
-    -   **`CanonicalProfileManager.swift`**: **NEW** - Profile manager using canonical coordinates
-    -   **`ConfigManager.swift`**: JSON configuration management
-    -   **`CoordinateManager.swift`**: **DEPRECATED** - Legacy coordinate conversion
-    -   **`WindowManager.swift`**: **DEPRECATED** - Legacy window management
-    -   **`ProfileManager.swift`**: **DEPRECATED** - Legacy profile management
+### GUI Interface  
+- **`ContentView.swift`**: Main GUI with tabbed interface
+- **`MonitorVisualizationView.swift`**: Visual monitor representation
+- **`ProfileManagerView.swift`**: Profile management interface
+- **`SettingsView.swift`**: Application preferences
+
+### Core Logic (`MacAppPositioner/Shared/`)
+- **`CocoaCoordinateManager.swift`**: Native Cocoa coordinate system manager (no conversions)
+- **`CocoaProfileManager.swift`**: Profile-based window positioning using native coordinates
+- **`ConfigManager.swift`**: JSON configuration management
 
 ## Technology Stack
 
