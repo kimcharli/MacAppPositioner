@@ -144,12 +144,29 @@ class CocoaProfileManager {
                 }
                 
                 if let builtinMonitor = builtinMonitor {
+                    // Check if app is already on the builtin monitor
+                    if let currentPosition = getCurrentWindowPosition(pid: pid) {
+                        let windowCenter = CGPoint(
+                            x: currentPosition.midX,
+                            y: currentPosition.midY
+                        )
+                        
+                        // Check if window center is within builtin monitor bounds
+                        let isOnBuiltin = builtinMonitor.frame.contains(windowCenter)
+                        
+                        if isOnBuiltin {
+                            print("\n📱 \(bundleID) is already on builtin screen, skipping repositioning")
+                            continue
+                        }
+                    }
+                    
+                    // Only reposition if not already on builtin screen
                     let centerPosition = CGPoint(
                         x: builtinMonitor.visibleFrame.midX - 300,
                         y: builtinMonitor.visibleFrame.midY - 200
                     )
                     
-                    print("\n📱 Positioning \(bundleID) on builtin screen:")
+                    print("\n📱 Moving \(bundleID) to builtin screen:")
                     print("  Position: \(centerPosition) [Native Cocoa]")
                     
                     coordinateManager.setWindowPosition(pid: pid, position: centerPosition)
