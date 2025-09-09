@@ -11,13 +11,26 @@ import SwiftUI
  * a choice between command-line and graphical interfaces.
  */
 
+class AppDelegate: NSObject, NSApplicationDelegate {
+    private var menuBarManager: MenuBarManager?
+
+    func applicationDidFinishLaunching(_ aNotification: Notification) {
+        menuBarManager = MenuBarManager()
+        menuBarManager?.setupMenuBar()
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return false
+    }
+}
+
 @main
 struct MacAppPositionerApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        Settings {
+            // This is needed to have an empty scene for the menu bar app
         }
-        .windowStyle(.titleBar)
-        .windowResizability(.contentSize)
     }
 }

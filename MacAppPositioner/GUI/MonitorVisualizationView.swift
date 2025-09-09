@@ -52,6 +52,7 @@ struct MonitorVisualizationView: View {
             viewModel.loadMonitorInfo()
         }
     }
+}
 
 /**
  * Individual monitor card component
@@ -152,7 +153,7 @@ struct MonitorInfo {
 
 struct MonitorVisualizationView_Previews: PreviewProvider {
     static var previews: some View {
-        MonitorVisualizationView()
+        MonitorVisualizationView(viewModel: DashboardViewModel())
             .frame(width: 400)
             .padding()
     }

@@ -188,19 +188,4 @@ class CocoaCoordinateManager {
     func debugDescription(rect: CGRect, label: String) -> String {
         return "\(label): (\(rect.origin.x), \(rect.origin.y), \(rect.width), \(rect.height)) [Native Cocoa]"
     }
-}seX = visibleFrame.maxX - windowSize.width  // Right edge minus window width
-            baseY = visibleFrame.minY + windowSize.height  // Bottom edge plus window height
-        default:
-            baseX = visibleFrame.minX
-            baseY = visibleFrame.minY
-        }
-        
-        return CGPoint(x: baseX, y: baseY)
-    }
-    
-    // MARK: - Debug Utilities
-    
-    func debugDescription(rect: CGRect, label: String) -> String {
-        return "\(label): (\(rect.origin.x), \(rect.origin.y), \(rect.width), \(rect.height)) [Native Cocoa]"
-    }
 }

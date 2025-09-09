@@ -22,7 +22,6 @@ swiftc -o dist/MacAppPositioner \
     MacAppPositioner/CLI/CocoaMain.swift \
     MacAppPositioner/Shared/ConfigManager.swift \
     MacAppPositioner/Shared/WindowManager.swift \
-    MacAppPositioner/Shared/CoordinateManager.swift \
     MacAppPositioner/Shared/CocoaCoordinateManager.swift \
     MacAppPositioner/Shared/CocoaProfileManager.swift \
     MacAppPositioner/Shared/AppUtils.swift \
