@@ -67,22 +67,40 @@ struct MacAppPositioner {
         
         let command = arguments[1]
         let profileManager = CocoaProfileManager()
-        
+        let configManager = ConfigManager()
+
         switch command {
         case "detect":
             if let profile = profileManager.detectProfile() {
-                print("Detected profile: \(profile)")
+                print("✅ Detected profile: \(profile)")
             } else {
-                print("No matching profile found")
-                print("\nRun 'generate-config' to create a configuration for your current setup")
+                print("❌ No matching profile found for the current monitor setup.")
+                if let config = configManager.loadConfig() {
+                    let profiles = Array(config.profiles.keys)
+                    if !profiles.isEmpty {
+                        print("💡 Available profiles: \(profiles.joined(separator: ", "))")
+                    }
+                }
+                print("Run 'generate-config' to create a configuration for your current setup.")
             }
             
         case "apply":
             if arguments.count > 2 {
                 // Force apply specified profile
                 let profileName = arguments[2]
-                print("📌 Force applying profile: \(profileName)")
-                profileManager.applyProfile(profileName)
+                if let config = configManager.loadConfig(), config.profiles[profileName] != nil {
+                    print("📌 Force applying profile: \(profileName)")
+                    profileManager.applyProfile(profileName)
+                } else {
+                    print("❌ Profile '\(profileName)' not found in config.json.")
+                    if let config = configManager.loadConfig() {
+                        let profiles = Array(config.profiles.keys)
+                        if !profiles.isEmpty {
+                            print("💡 Available profiles: \(profiles.joined(separator: ", "))")
+                        }
+                    }
+                    exit(1)
+                }
             } else {
                 // Auto-detect and apply
                 if let detectedProfile = profileManager.detectProfile() {
@@ -91,7 +109,13 @@ struct MacAppPositioner {
                     profileManager.applyProfile(detectedProfile)
                 } else {
                     print("❌ No matching profile detected for current monitor configuration.")
-                    print("💡 Available profiles can be forced with: apply <profile_name>")
+                    if let config = configManager.loadConfig() {
+                        let profiles = Array(config.profiles.keys)
+                        if !profiles.isEmpty {
+                            print("💡 Available profiles can be forced with: apply <profile_name>")
+                            print("💡 Available profiles: \(profiles.joined(separator: ", "))")
+                        }
+                    }
                     exit(1)
                 }
             }
@@ -102,7 +126,7 @@ struct MacAppPositioner {
                 exit(1)
             }
             let profileName = arguments[2]
-            print("Update functionality coming soon for profile: \(profileName)")
+            profileManager.updateProfile(name: profileName)
             
         case "generate-config":
             let generatedConfig = profileManager.generateConfigForCurrentSetup()

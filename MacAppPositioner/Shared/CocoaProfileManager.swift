@@ -59,7 +59,8 @@ class CocoaProfileManager {
                             position: String,
                             sizing: String?,
                             targetMonitor: CocoaMonitorInfo,
-                            appSettings: AppSettings?) {
+                            appSettings: AppSettings?,
+                            mainScreen: NSScreen?) {
         
         guard let pid = getAppPID(bundleID: bundleID) else {
             print("  ❌ App not running: \(bundleID)")
@@ -129,7 +130,7 @@ class CocoaProfileManager {
         print("  Calculated Position: \(calculatedPosition) [Native Cocoa]")
         
         // Set window position
-        coordinateManager.setWindowPosition(pid: pid, position: calculatedPosition)
+        coordinateManager.setWindowPosition(pid: pid, position: calculatedPosition, size: nil, mainScreen: mainScreen)
         
         // Verify final position
         if let finalPosition = getCurrentWindowPosition(pid: pid) {
@@ -139,6 +140,12 @@ class CocoaProfileManager {
     
     // MARK: - Profile Application
     
+    /**
+     * Applies the specified profile by positioning applications according to the layout.
+     * This is the main entry point for applying a window layout.
+     *
+     * @param profileName The name of the profile to apply.
+     */
     func applyProfile(_ profileName: String) {
         print("🎯 COCOA ProfileManager: applyProfile called")
         
@@ -160,7 +167,7 @@ class CocoaProfileManager {
             print("  isMain: \(monitor.isMain), isWorkspace: \(monitor.isWorkspace)")
         }
         
-        // Find the workspace monitor from the config
+        // Find the workspace monitor from the config, which is our primary target for positioning.
         guard let workspaceMonitorConfig = profile.monitors.first(where: { $0.position == "workspace" }) else {
             print("No workspace monitor found in profile")
             return
@@ -181,7 +188,9 @@ class CocoaProfileManager {
             return
         }
         
-        // Position workspace applications using unified function
+        let mainScreen = NSScreen.main
+
+        // Position applications on the workspace monitor.
         for (bundleID, workspaceApp) in layout {
             print("\nProcessing \(bundleID) for workspace position '\(workspaceApp.position)':")
             
@@ -192,11 +201,12 @@ class CocoaProfileManager {
                 position: workspaceApp.position,
                 sizing: workspaceApp.sizing,
                 targetMonitor: workspaceMonitor,
-                appSettings: appSettings
+                appSettings: appSettings,
+                mainScreen: mainScreen
             )
         }
         
-        // Handle builtin layout if exists
+        // Position applications on the built-in monitor, if a layout is defined.
         if let builtinApps = config.layout?.builtin,
            let builtinMonitor = allMonitors.first(where: { $0.isBuiltIn }) {
             
@@ -211,7 +221,8 @@ class CocoaProfileManager {
                     position: builtinApp.position ?? "center",
                     sizing: builtinApp.sizing,
                     targetMonitor: builtinMonitor,
-                    appSettings: appSettings
+                    appSettings: appSettings,
+                    mainScreen: mainScreen
                 )
             }
         }
@@ -266,7 +277,37 @@ class CocoaProfileManager {
     // MARK: - Profile Generation
     
     func updateProfile(name: String) {
-        print("Update profile functionality not yet implemented for profile: \(name)")
+        guard var config = configManager.loadConfig() else {
+            print("Failed to load config.json")
+            return
+        }
+
+        guard config.profiles[name] != nil else {
+            print("Profile '\(name)' not found in config.json")
+            return
+        }
+
+        let monitors = coordinateManager.getAllMonitors()
+        let newMonitors = monitors.map { monitor -> Monitor in
+            let position: String
+            if monitor.isBuiltIn {
+                position = "builtin"
+            } else if monitor.isWorkspace {
+                position = "workspace"
+            } else {
+                position = "secondary"
+            }
+            return Monitor(resolution: monitor.resolution, position: position)
+        }
+
+        let newProfile = Profile(monitors: newMonitors)
+        config.profiles[name] = newProfile
+
+        if configManager.saveConfig(config) {
+            print("✅ Profile '\(name)' updated successfully.")
+        } else {
+            print("❌ Failed to save updated configuration.")
+        }
     }
     
     func generateConfig() {

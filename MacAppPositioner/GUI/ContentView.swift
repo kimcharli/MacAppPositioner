@@ -45,14 +45,7 @@ struct ContentView: View {
  * Main dashboard view (original ContentView content)
  */
 struct MainDashboardView: View {
-    @State private var profiles: [String] = []
-    @State private var detectedProfile: String? = nil
-    @State private var statusMessage: String = ""
-    @State private var isLoading: Bool = false
-    
-    // Shared logic instances - Using native Cocoa coordinate system
-    private let profileManager = CocoaProfileManager()
-    private let configManager = ConfigManager()
+    @StateObject private var viewModel = DashboardViewModel()
     
     var body: some View {
         VStack(spacing: 20) {
@@ -71,7 +64,7 @@ struct MainDashboardView: View {
             Divider()
             
             // Monitor Visualization Section
-            MonitorVisualizationView()
+            MonitorVisualizationView(viewModel: viewModel)
             
             Divider()
             
@@ -86,7 +79,7 @@ struct MainDashboardView: View {
                         .font(.title2)
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        if let detected = detectedProfile {
+                        if let detected = viewModel.detectedProfile {
                             Text("Detected Profile: \(detected)")
                                 .font(.body)
                                 .fontWeight(.medium)
@@ -97,7 +90,7 @@ struct MainDashboardView: View {
                         }
                         
                         Button("Refresh Detection") {
-                            detectCurrentProfile()
+                            viewModel.detectCurrentProfile()
                         }
                         .buttonStyle(.link)
                         .font(.caption)
@@ -115,17 +108,17 @@ struct MainDashboardView: View {
                 Text("Available Profiles")
                     .font(.headline)
                 
-                if profiles.isEmpty {
+                if viewModel.profiles.isEmpty {
                     Text("No profiles found in config.json")
                         .foregroundColor(.secondary)
                         .padding()
                 } else {
-                    ForEach(profiles, id: \.self) { profileName in
+                    ForEach(viewModel.profiles, id: \.self) { profileName in
                         ProfileRowView(
                             profileName: profileName,
-                            isDetected: profileName == detectedProfile,
+                            isDetected: profileName == viewModel.detectedProfile,
                             onApply: {
-                                applyProfile(profileName)
+                                viewModel.applyProfile(profileName)
                             }
                         )
                     }
@@ -136,13 +129,13 @@ struct MainDashboardView: View {
             
             // Status Section
             VStack(spacing: 8) {
-                if isLoading {
+                if viewModel.isLoading {
                     ProgressView()
                         .scaleEffect(0.8)
                 }
                 
-                if !statusMessage.isEmpty {
-                    Text(statusMessage)
+                if !viewModel.statusMessage.isEmpty {
+                    Text(viewModel.statusMessage)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -155,56 +148,8 @@ struct MainDashboardView: View {
         .padding()
         .frame(minWidth: 400, minHeight: 500)
         .onAppear {
-            loadProfiles()
-            detectCurrentProfile()
-        }
-    }
-    
-    // MARK: - Actions
-    
-    private func loadProfiles() {
-        switch AppUtils.loadProfileNames() {
-        case .success(let profileNames):
-            profiles = profileNames
-            statusMessage = "Loaded \(profiles.count) profile(s)"
-        case .failure(let error):
-            statusMessage = error.localizedDescription
-        }
-    }
-    
-    private func detectCurrentProfile() {
-        isLoading = true
-        statusMessage = "Detecting current setup..."
-        
-        // Run detection on background queue to avoid blocking UI
-        DispatchQueue.global(qos: .userInitiated).async {
-            let detected = profileManager.detectProfile()
-            
-            DispatchQueue.main.async {
-                self.detectedProfile = detected
-                self.isLoading = false
-                
-                if detected != nil {
-                    self.statusMessage = "Profile detection complete"
-                } else {
-                    self.statusMessage = "No matching profile for current monitor setup"
-                }
-            }
-        }
-    }
-    
-    private func applyProfile(_ profileName: String) {
-        isLoading = true
-        statusMessage = "Applying \(profileName) profile..."
-        
-        // Run profile application on background queue
-        DispatchQueue.global(qos: .userInitiated).async {
-            self.profileManager.applyProfile(profileName)
-            
-            DispatchQueue.main.async {
-                self.isLoading = false
-                self.statusMessage = "Applied \(profileName) profile"
-            }
+            viewModel.loadProfiles()
+            viewModel.detectCurrentProfile()
         }
     }
 }

@@ -106,4 +106,19 @@ class ConfigManager {
             return nil
         }
     }
+
+    func saveConfig(_ config: Config) -> Bool {
+        let url = URL(fileURLWithPath: "config.json")
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+
+        do {
+            let data = try encoder.encode(config)
+            try data.write(to: url)
+            return true
+        } catch {
+            print("Error encoding or writing config.json: \(error)")
+            return false
+        }
+    }
 }

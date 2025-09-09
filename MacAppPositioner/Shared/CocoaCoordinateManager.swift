@@ -103,7 +103,7 @@ class CocoaCoordinateManager {
      * Set window position using native Cocoa coordinates
      * No conversion - pass coordinates directly to Accessibility API
      */
-    func setWindowPosition(pid: pid_t, position: CGPoint, size: CGSize? = nil) {
+    func setWindowPosition(pid: pid_t, position: CGPoint, size: CGSize? = nil, mainScreen: NSScreen?) {
         let app = AXUIElementCreateApplication(pid)
         
         var windows: CFTypeRef?
@@ -119,13 +119,13 @@ class CocoaCoordinateManager {
         // Convert from Cocoa coordinates to Accessibility API coordinates
         // Workspace monitor is above builtin, so it uses negative Y values in Accessibility API
         let accessibilityPosition: CGPoint
-        if position.y >= 1329 { // If on workspace monitor (Cocoa Y >= 1329)
-            // Workspace monitor: Y=-2160 (top) to Y=0 (bottom) in Accessibility API
-            // Cocoa workspace: Y=1329 (bottom) to Y=3489 (top)
-            // Convert: AccessibilityY = -(CocoaY - 1329)
+        let mainScreenHeight = mainScreen?.frame.height ?? 0
+        
+        if position.y >= mainScreenHeight { // If on workspace monitor
+            // Convert: AccessibilityY = -(CocoaY - mainScreenHeight)
             accessibilityPosition = CGPoint(
                 x: position.x,
-                y: -(position.y - 1329)
+                y: -(position.y - mainScreenHeight)
             )
         } else { // If on builtin monitor
             accessibilityPosition = position
@@ -145,8 +145,13 @@ class CocoaCoordinateManager {
     }
     
     /**
-     * Calculate quadrant position using native Cocoa coordinates
-     * Pure Cocoa calculation - no conversion
+     * Calculate the target position for a window within a specific quadrant of a monitor.
+     * All calculations are performed in the native Cocoa coordinate system.
+     * 
+     * @param quadrant The target quadrant (e.g., "top_left", "bottom_right").
+     * @param windowSize The size of the window to be positioned.
+     * @param visibleFrame The visible frame of the target monitor in Cocoa coordinates.
+     * @return The calculated top-left point of the window in Cocoa coordinates.
      */
     func calculateQuadrantPosition(quadrant: String, windowSize: CGSize, visibleFrame: CGRect) -> CGPoint {
         let baseX: CGFloat
@@ -154,16 +159,36 @@ class CocoaCoordinateManager {
         
         switch quadrant {
         case "top_left":
-            baseX = visibleFrame.minX  // Exact left edge (X=0)
-            baseY = visibleFrame.maxY  // Exact top edge (will convert to Y=-2160)
+            // Position at the top-left corner of the visible frame.
+            baseX = visibleFrame.minX
+            baseY = visibleFrame.maxY
         case "top_right":
-            baseX = visibleFrame.maxX - windowSize.width  // Right edge minus window width
-            baseY = visibleFrame.maxY  // Exact top edge (will convert to Y=-2160)
+            // Position at the top-right corner, accounting for the window's width.
+            baseX = visibleFrame.maxX - windowSize.width
+            baseY = visibleFrame.maxY
         case "bottom_left":
-            baseX = visibleFrame.minX  // Exact left edge (X=0)
-            baseY = visibleFrame.minY + windowSize.height  // Bottom edge plus window height
+            // Position at the bottom-left corner, accounting for the window's height.
+            baseX = visibleFrame.minX
+            baseY = visibleFrame.minY + windowSize.height
         case "bottom_right":
-            baseX = visibleFrame.maxX - windowSize.width  // Right edge minus window width
+            // Position at the bottom-right corner, accounting for both width and height.
+            baseX = visibleFrame.maxX - windowSize.width
+            baseY = visibleFrame.minY + windowSize.height
+        default:
+            // Default to the top-left corner if the quadrant is unknown.
+            baseX = visibleFrame.minX
+            baseY = visibleFrame.maxY
+        }
+        
+        return CGPoint(x: baseX, y: baseY)
+    }
+    
+    // MARK: - Debug Utilities
+    
+    func debugDescription(rect: CGRect, label: String) -> String {
+        return "\(label): (\(rect.origin.x), \(rect.origin.y), \(rect.width), \(rect.height)) [Native Cocoa]"
+    }
+}seX = visibleFrame.maxX - windowSize.width  // Right edge minus window width
             baseY = visibleFrame.minY + windowSize.height  // Bottom edge plus window height
         default:
             baseX = visibleFrame.minX
