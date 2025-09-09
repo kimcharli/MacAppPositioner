@@ -53,6 +53,90 @@ class CocoaProfileManager {
         return nil
     }
     
+    // MARK: - Unified Positioning
+    
+    private func positionApp(bundleID: String,
+                            position: String,
+                            sizing: String?,
+                            targetMonitor: CocoaMonitorInfo,
+                            appSettings: AppSettings?) {
+        
+        guard let pid = getAppPID(bundleID: bundleID) else {
+            print("  ❌ App not running: \(bundleID)")
+            return
+        }
+        
+        // Check if position is set to "keep"
+        if position == "keep" {
+            print("  🔒 \(bundleID) has 'keep' position - skipping repositioning")
+            return
+        }
+        
+        // Get current window position and size
+        var actualWindowSize = CGSize(width: 1200, height: 800) // Default fallback
+        if let currentPosition = getCurrentWindowPosition(pid: pid) {
+            print("  Current position: \(coordinateManager.debugDescription(rect: currentPosition, label: "Current"))")
+            
+            // Check if already on target monitor (for center position)
+            if position == "center" {
+                let windowCenter = CGPoint(
+                    x: currentPosition.midX,
+                    y: currentPosition.midY
+                )
+                
+                if targetMonitor.frame.contains(windowCenter) {
+                    print("  📱 \(bundleID) is already on target screen, skipping repositioning")
+                    return
+                }
+            }
+            
+            // Use current size if sizing is set to "keep" (default)
+            if sizing == "keep" || appSettings?.sizing == "keep" {
+                actualWindowSize = currentPosition.size
+                print("  🔒 Keeping current window size: \(actualWindowSize)")
+            } else {
+                actualWindowSize = currentPosition.size
+            }
+        }
+        
+        // Calculate target position based on position value
+        let calculatedPosition: CGPoint
+        switch position {
+        case "center":
+            // Center on monitor
+            calculatedPosition = CGPoint(
+                x: targetMonitor.visibleFrame.midX - actualWindowSize.width / 2,
+                y: targetMonitor.visibleFrame.midY - actualWindowSize.height / 2
+            )
+            print("  Centering on monitor")
+        case "top_left", "top_right", "bottom_left", "bottom_right":
+            // Use quadrant positioning
+            calculatedPosition = coordinateManager.calculateQuadrantPosition(
+                quadrant: position,
+                windowSize: actualWindowSize,
+                visibleFrame: targetMonitor.visibleFrame
+            )
+            print("  Quadrant Calculation (Native Cocoa):")
+            print("  Visible Frame: \(coordinateManager.debugDescription(rect: targetMonitor.visibleFrame, label: "Visible"))")
+        default:
+            print("  ⚠️ Unknown position: \(position), using center")
+            calculatedPosition = CGPoint(
+                x: targetMonitor.visibleFrame.midX - actualWindowSize.width / 2,
+                y: targetMonitor.visibleFrame.midY - actualWindowSize.height / 2
+            )
+        }
+        
+        print("  Calculated Position: \(calculatedPosition) [Native Cocoa]")
+        
+        // Set window position
+        coordinateManager.setWindowPosition(pid: pid, position: calculatedPosition)
+        
+        // Verify final position
+        if let finalPosition = getCurrentWindowPosition(pid: pid) {
+            print("  Final position: \(coordinateManager.debugDescription(rect: finalPosition, label: "Final"))")
+        }
+    }
+    
     // MARK: - Profile Application
     
     func applyProfile(_ profileName: String) {
@@ -97,80 +181,38 @@ class CocoaProfileManager {
             return
         }
         
-        // Position applications using native Cocoa coordinates
-        for (quadrant, bundleID) in layout {
-            print("\nProcessing \(bundleID) for position '\(quadrant)':")
+        // Position workspace applications using unified function
+        for (bundleID, workspaceApp) in layout {
+            print("\nProcessing \(bundleID) for workspace position '\(workspaceApp.position)':")
             
-            guard let pid = getAppPID(bundleID: bundleID) else {
-                print("  ❌ App not running: \(bundleID)")
-                continue
-            }
+            let appSettings = config.applications[bundleID]
             
-            // Get current window position and size (native Cocoa)
-            var actualWindowSize = CGSize(width: 1200, height: 800) // Default fallback
-            if let currentPosition = getCurrentWindowPosition(pid: pid) {
-                print("  Current position: \(coordinateManager.debugDescription(rect: currentPosition, label: "Current"))")
-                actualWindowSize = currentPosition.size
-            }
-            
-            // Calculate target position in native Cocoa coordinates using actual window size
-            let targetPosition = coordinateManager.calculateQuadrantPosition(
-                quadrant: quadrant,
-                windowSize: actualWindowSize,
-                visibleFrame: workspaceMonitor.visibleFrame
+            positionApp(
+                bundleID: bundleID,
+                position: workspaceApp.position,
+                sizing: workspaceApp.sizing,
+                targetMonitor: workspaceMonitor,
+                appSettings: appSettings
             )
-            
-            print("    Quadrant Calculation (Native Cocoa):")
-            print("    Visible Frame: \(coordinateManager.debugDescription(rect: workspaceMonitor.visibleFrame, label: "Visible"))")
-            print("    Calculated Position: \(targetPosition) [Native Cocoa]")
-            
-            // Set window position using native Cocoa coordinates
-            coordinateManager.setWindowPosition(pid: pid, position: targetPosition)
-            
-            // Verify final position
-            if let finalPosition = getCurrentWindowPosition(pid: pid) {
-                print("  Final position: \(coordinateManager.debugDescription(rect: finalPosition, label: "Final"))")
-            }
         }
         
         // Handle builtin layout if exists
-        if let builtinApps = config.layout?.builtin {
-            let builtinMonitor = allMonitors.first { $0.isBuiltIn }
+        if let builtinApps = config.layout?.builtin,
+           let builtinMonitor = allMonitors.first(where: { $0.isBuiltIn }) {
             
-            for bundleID in builtinApps {
-                guard let pid = getAppPID(bundleID: bundleID) else {
-                    print("❌ Builtin app not running: \(bundleID)")
-                    continue
-                }
+            for (bundleID, builtinApp) in builtinApps {
+                let displayPosition = builtinApp.position ?? "center"
+                print("\n📱 Processing \(bundleID) for builtin screen (position: \(displayPosition)):")
                 
-                if let builtinMonitor = builtinMonitor {
-                    // Check if app is already on the builtin monitor
-                    if let currentPosition = getCurrentWindowPosition(pid: pid) {
-                        let windowCenter = CGPoint(
-                            x: currentPosition.midX,
-                            y: currentPosition.midY
-                        )
-                        
-                        // Check if window center is within builtin monitor bounds
-                        let isOnBuiltin = builtinMonitor.frame.contains(windowCenter)
-                        
-                        if isOnBuiltin {
-                            print("\n📱 \(bundleID) is already on builtin screen, skipping repositioning")
-                            continue
-                        }
-                    }
-                    
-                    // Only reposition if not already on builtin screen
-                    let centerPosition = CGPoint(
-                        x: builtinMonitor.visibleFrame.midX - 300,
-                        y: builtinMonitor.visibleFrame.midY - 200
-                    )
-                    
-                    print("\n📱 Moving \(bundleID) to builtin screen:")
-                    print("  Position: \(centerPosition) [Native Cocoa]")
-                    
-                    coordinateManager.setWindowPosition(pid: pid, position: centerPosition)
-                }
+                let appSettings = config.applications[bundleID]
+                
+                positionApp(
+                    bundleID: bundleID,
+                    position: builtinApp.position ?? "center",
+                    sizing: builtinApp.sizing,
+                    targetMonitor: builtinMonitor,
+                    appSettings: appSettings
+                )
             }
         }
     }

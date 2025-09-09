@@ -83,14 +83,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     /**
      * Executes profile application command.
-     * Positions running applications according to the specified profile's layout.
+     * If no profile is specified, auto-detects and applies the matching profile.
+     * If a profile name is given, forces application of that specific profile.
      */
     private func executeApplyCommand(_ profileManager: CocoaProfileManager, profileName: String?) {
         if let name = profileName {
+            // Force apply the specified profile
+            print("📌 Force applying profile: \(name)")
             profileManager.applyProfile(name)
         } else {
-            print("Please specify a profile name to apply.")
-            printUsage()
+            // Auto-detect and apply
+            if let detectedProfile = profileManager.detectProfile() {
+                print("✅ Auto-detected profile: \(detectedProfile)")
+                print("🎯 Applying detected profile...")
+                profileManager.applyProfile(detectedProfile)
+            } else {
+                print("❌ No matching profile detected for current monitor configuration.")
+                print("💡 Available profiles can be forced with: apply <profile_name>")
+            }
         }
     }
     
@@ -125,13 +135,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         print("")
         print("Commands:")
         print("  detect                    - Find matching profile for current monitor setup")
-        print("  apply <profile_name>      - Apply window layout from specified profile")
+        print("  apply [profile_name]      - Auto-detect and apply profile (or force specific profile)")
         print("  update <profile_name>     - Update profile with current monitor configuration")  
         print("  generate-config           - Generate configuration template for current setup")
         print("")
         print("Examples:")
         print("  MacAppPositioner detect")
-        print("  MacAppPositioner apply office")
+        print("  MacAppPositioner apply              # Auto-detect and apply")
+        print("  MacAppPositioner apply office       # Force apply 'office' profile")
         print("  MacAppPositioner update home")
         print("  MacAppPositioner generate-config")
     }

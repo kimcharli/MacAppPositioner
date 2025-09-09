@@ -40,13 +40,23 @@
   },
   "layout" : {
     "workspace" : {
-      "top_left" : "com.google.Chrome",
-      "bottom_left" : "com.microsoft.Outlook",
-      "top_right" : "com.microsoft.teams2",
-      "bottom_right" : "com.kakao.KakaoTalkMac"
+      "com.google.Chrome" : {
+        "position" : "top_left"
+      },
+      "com.microsoft.Outlook" : {
+        "position" : "bottom_left"
+      },
+      "com.microsoft.teams2" : {
+        "position" : "top_right"
+      },
+      "com.kakao.KakaoTalkMac" : {
+        "position" : "bottom_right"
+      }
     },
-    "builtin" : [
-      "md.obsidian"
-    ]
+    "builtin" : {
+      "md.obsidian" : {
+        "position" : "keep"
+      }
+    }
   }
 }

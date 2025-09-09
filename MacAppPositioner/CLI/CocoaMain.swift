@@ -14,14 +14,15 @@ func printUsage() {
     
     Commands:
       detect                  - Detect current monitor profile
-      apply <profile-name>    - Apply window layout for profile
+      apply [profile-name]    - Auto-detect and apply profile (or force specific profile)
       update <profile-name>   - Update profile with current monitor setup
       generate-config         - Generate monitor configuration
       test-coordinates        - Test native Cocoa coordinate system
     
     Examples:
       MacAppPositioner detect
-      MacAppPositioner apply home  
+      MacAppPositioner apply              # Auto-detect and apply
+      MacAppPositioner apply office       # Force apply 'office' profile
       MacAppPositioner update office
       MacAppPositioner generate-config
       MacAppPositioner test-coordinates
@@ -77,12 +78,23 @@ struct MacAppPositioner {
             }
             
         case "apply":
-            guard arguments.count > 2 else {
-                print("Usage: MacAppPositioner apply <profile-name>")
-                exit(1)
+            if arguments.count > 2 {
+                // Force apply specified profile
+                let profileName = arguments[2]
+                print("📌 Force applying profile: \(profileName)")
+                profileManager.applyProfile(profileName)
+            } else {
+                // Auto-detect and apply
+                if let detectedProfile = profileManager.detectProfile() {
+                    print("✅ Auto-detected profile: \(detectedProfile)")
+                    print("🎯 Applying detected profile...")
+                    profileManager.applyProfile(detectedProfile)
+                } else {
+                    print("❌ No matching profile detected for current monitor configuration.")
+                    print("💡 Available profiles can be forced with: apply <profile_name>")
+                    exit(1)
+                }
             }
-            let profileName = arguments[2]
-            profileManager.applyProfile(profileName)
             
         case "update":
             guard arguments.count > 2 else {
