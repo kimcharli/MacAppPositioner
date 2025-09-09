@@ -127,24 +127,24 @@ This file tracks the development tasks for the Mac App Positioner application.
 This section lists tasks focused on improving the codebase's architecture, adhering to best practices, and refactoring for long-term maintainability.
 
 ### High Priority - Code Cleanup & Bug Prevention
-- [ ] **Remove Obsolete Files:**
-    - [ ] Delete `MacAppPositioner/CLI/main.swift` to eliminate the redundant CLI entry point. The project has standardized on `CocoaMain.swift`.
-    - [ ] Delete `MacAppPositioner/Shared/CoordinateManager.swift`. This file contains legacy coordinate conversion logic that is explicitly forbidden by the project's architectural rules. Its presence is a major risk for re-introducing coordinate system bugs.
-- [ ] **Refactor Hardcoded Values:**
-    - [ ] Remove the hardcoded `1329` value in `CocoaCoordinateManager.swift`. This value is used to determine the vertical position of the workspace monitor. This should be replaced with a dynamic calculation based on the actual main screen's frame height to make the application more robust and adaptable to different monitor configurations.
+- [x] **Remove Obsolete Files:**
+    - [x] Delete `MacAppPositioner/CLI/main.swift` to eliminate the redundant CLI entry point. The project has standardized on `CocoaMain.swift`.
+    - [x] Delete `MacAppPositioner/Shared/CoordinateManager.swift`. This file contains legacy coordinate conversion logic that is explicitly forbidden by the project's architectural rules. Its presence is a major risk for re-introducing coordinate system bugs.
+- [x] **Refactor Hardcoded Values:**
+    - [x] Remove the hardcoded `1329` value in `CocoaCoordinateManager.swift`. This value is used to determine the vertical position of the workspace monitor. This should be replaced with a dynamic calculation based on the actual main screen's frame height to make the application more robust and adaptable to different monitor configurations.
 
 ### Medium Priority - Feature Implementation & Refactoring
-- [ ] **Implement Missing Functionality:**
-    - [ ] Complete the implementation of the `update` command in the CLI.
+- [x] **Implement Missing Functionality:**
+    - [x] Complete the implementation of the `update` command in the CLI.
     - [ ] Implement the profile editing and creation features in the GUI's `ProfileManagerView.swift`.
-- [ ] **Improve GUI State Management:**
-    - [ ] Refactor the SwiftUI views to use `ObservableObject` view models instead of simple `@State` variables. This will improve state management, especially as the GUI becomes more complex.
-- [ ] **Enhance Error Handling:**
-    - [ ] Provide more specific and user-friendly error messages in both the CLI and GUI. For example, when `config.json` is invalid, the error message should indicate the specific parsing error and line number if possible.
+- [x] **Improve GUI State Management:**
+    - [x] Refactor the SwiftUI views to use `ObservableObject` view models instead of simple `@State` variables. This will improve state management, especially as the GUI becomes more complex.
+- [x] **Enhance Error Handling:**
+    - [x] Provide more specific and user-friendly error messages in both the CLI and GUI. For example, when `config.json` is invalid, the error message should indicate the specific parsing error and line number if possible.
 
 ### Low Priority - Nice-to-have & Future Enhancements
-- [ ] **Add More Code Comments:**
-    - [ ] Add comments to the code to explain complex logic and design decisions, especially in `CocoaProfileManager.swift` and `CocoaCoordinateManager.swift`.
+- [x] **Add More Code Comments:**
+    - [x] Add comments to the code to explain complex logic and design decisions, especially in `CocoaProfileManager.swift` and `CocoaCoordinateManager.swift`.
 
 ---
 

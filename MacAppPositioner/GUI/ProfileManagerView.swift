@@ -88,17 +88,19 @@ struct ProfileManagerView: View {
             })
         }
         .sheet(item: Binding<EditProfileWrapper?>(
-            get: { showingEditProfile.map(EditProfileWrapper.init) },
+            get: { showingEditProfile.map { EditProfileWrapper(profileName: $0) } },
             set: { showingEditProfile = $0?.profileName }
         )) { wrapper in
-            EditProfileView(
-                profileName: wrapper.profileName,
-                profile: profiles[wrapper.profileName]!,
-                onProfileUpdated: { name in
-                    statusMessage = "Updated profile: \(name)"
-                    loadProfiles()
-                }
-            )
+            if let profile = profiles[wrapper.profileName] {
+                EditProfileView(
+                    profileName: wrapper.profileName,
+                    profile: profile,
+                    onProfileUpdated: { name in
+                        statusMessage = "Updated profile: \(name)"
+                        loadProfiles()
+                    }
+                )
+            }
         }
         .alert("Delete Profile", isPresented: .constant(showingDeleteConfirmation != nil)) {
             Button("Cancel", role: .cancel) {
@@ -126,10 +128,19 @@ struct ProfileManagerView: View {
     }
     
     private func deleteProfile(_ profileName: String) {
-        // For now, just remove from local state
-        // In a full implementation, we'd update the config.json file
-        profiles.removeValue(forKey: profileName)
-        statusMessage = "Deleted profile: \(profileName)"
+        guard var config = configManager.loadConfig() else {
+            statusMessage = "Error: could not load config.json"
+            return
+        }
+        
+        config.profiles.removeValue(forKey: profileName)
+        
+        if configManager.saveConfig(config) {
+            statusMessage = "Deleted profile: \(profileName)"
+            loadProfiles()
+        } else {
+            statusMessage = "Error: could not save config.json"
+        }
     }
 }
 
@@ -289,10 +300,37 @@ struct CreateProfileView: View {
             return
         }
         
-        // For now, just simulate profile creation
-        // In a full implementation, we'd use ProfileManager to create the profile
-        onProfileCreated(trimmedName)
-        dismiss()
+        guard var config = ConfigManager().loadConfig() else {
+            statusMessage = "Error: could not load config.json"
+            return
+        }
+        
+        if config.profiles[trimmedName] != nil {
+            statusMessage = "Error: a profile with this name already exists"
+            return
+        }
+        
+        let monitors = CocoaCoordinateManager.shared.getAllMonitors().map { monitor -> Monitor in
+            let position: String
+            if monitor.isBuiltIn {
+                position = "builtin"
+            } else if monitor.isWorkspace {
+                position = "workspace"
+            } else {
+                position = "secondary"
+            }
+            return Monitor(resolution: monitor.resolution, position: position)
+        }
+        
+        let newProfile = Profile(monitors: monitors)
+        config.profiles[trimmedName] = newProfile
+        
+        if ConfigManager().saveConfig(config) {
+            onProfileCreated(trimmedName)
+            dismiss()
+        } else {
+            statusMessage = "Error: could not save config.json"
+        }
     }
 }
 
@@ -302,38 +340,31 @@ struct CreateProfileView: View {
 struct EditProfileView: View {
     @Environment(\.dismiss) private var dismiss
     
-    let profileName: String
+    @State private var newProfileName: String
+    let originalProfileName: String
     let profile: Profile
     let onProfileUpdated: (String) -> Void
     
+    init(profileName: String, profile: Profile, onProfileUpdated: @escaping (String) -> Void) {
+        self.originalProfileName = profileName
+        self._newProfileName = State(initialValue: profileName)
+        self.profile = profile
+        self.onProfileUpdated = onProfileUpdated
+    }
+    
     var body: some View {
         VStack(spacing: 20) {
-            Text("Edit Profile: \(profileName)")
+            Text("Edit Profile: \(originalProfileName)")
                 .font(.title2)
                 .fontWeight(.semibold)
             
-            Text("Profile editing interface would go here")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            
-            // Placeholder for profile editing interface
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Monitors in this profile:")
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Profile Name")
                     .font(.headline)
                 
-                ForEach(Array(profile.monitors.enumerated()), id: \.offset) { index, monitor in
-                    HStack {
-                        Text(monitor.resolution)
-                        Spacer()
-                        Text(monitor.position)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.horizontal)
-                }
+                TextField("Enter new profile name", text: $newProfileName)
+                    .textFieldStyle(.roundedBorder)
             }
-            .padding()
-            .background(Color(NSColor.controlBackgroundColor))
-            .cornerRadius(8)
             
             HStack(spacing: 12) {
                 Button("Cancel") {
@@ -342,16 +373,38 @@ struct EditProfileView: View {
                 .buttonStyle(.bordered)
                 
                 Button("Save Changes") {
-                    onProfileUpdated(profileName)
-                    dismiss()
+                    updateProfileName()
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(newProfileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             
             Spacer()
         }
         .padding()
-        .frame(width: 500, height: 400)
+        .frame(width: 500, height: 200)
+    }
+    
+    private func updateProfileName() {
+        let trimmedName = newProfileName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty, trimmedName != originalProfileName else {
+            return
+        }
+        
+        guard var config = ConfigManager().loadConfig() else {
+            // Handle error
+            return
+        }
+        
+        config.profiles.removeValue(forKey: originalProfileName)
+        config.profiles[trimmedName] = profile
+        
+        if ConfigManager().saveConfig(config) {
+            onProfileUpdated(trimmedName)
+            dismiss()
+        } else {
+            // Handle error
+        }
     }
 }
 
