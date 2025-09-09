@@ -18,6 +18,20 @@ This document provides guidelines for AI agents working with the Mac App Positio
 ```
 
 ### Build Commands
+
+**Recommended: Use provided build scripts**
+```bash
+# Build CLI only
+./Scripts/build.sh
+
+# Build GUI only  
+./Scripts/build-gui.sh
+
+# Build both
+./Scripts/build.sh && ./Scripts/build-gui.sh
+```
+
+**Manual build commands (if needed):**
 ```bash
 # Build CLI only (exclude obsolete ProfileManager.swift)
 swiftc -o dist/MacAppPositioner MacAppPositioner/CLI/CocoaMain.swift \
@@ -39,6 +53,8 @@ swiftc -o dist/MacAppPositionerGUI MacAppPositioner/GUI/*.swift \
   MacAppPositioner/Shared/AppUtils.swift \
   -framework Cocoa -framework CoreGraphics -framework SwiftUI
 ```
+
+✅ **Recommended**: The build scripts are up-to-date and include all current files.
 
 ## Core Principles
 

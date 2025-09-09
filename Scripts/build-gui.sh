@@ -25,9 +25,13 @@ swiftc -o dist/MacAppPositionerGUI \
     MacAppPositioner/GUI/ProfileManagerView.swift \
     MacAppPositioner/GUI/SettingsView.swift \
     MacAppPositioner/Shared/ConfigManager.swift \
+    MacAppPositioner/Shared/WindowManager.swift \
+    MacAppPositioner/Shared/CoordinateManager.swift \
     MacAppPositioner/Shared/CocoaCoordinateManager.swift \
     MacAppPositioner/Shared/CocoaProfileManager.swift \
+    MacAppPositioner/Shared/AppUtils.swift \
     -framework AppKit \
+    -framework CoreGraphics \
     -framework SwiftUI
 
 if [ $? -eq 0 ]; then

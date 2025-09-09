@@ -21,9 +21,12 @@ mkdir -p dist
 swiftc -o dist/MacAppPositioner \
     MacAppPositioner/CLI/CocoaMain.swift \
     MacAppPositioner/Shared/ConfigManager.swift \
-    MacAppPositioner/Shared/CocoaProfileManager.swift \
+    MacAppPositioner/Shared/WindowManager.swift \
+    MacAppPositioner/Shared/CoordinateManager.swift \
     MacAppPositioner/Shared/CocoaCoordinateManager.swift \
-    -framework AppKit
+    MacAppPositioner/Shared/CocoaProfileManager.swift \
+    MacAppPositioner/Shared/AppUtils.swift \
+    -framework AppKit -framework CoreGraphics
 
 if [ $? -eq 0 ]; then
     echo "✅ Build successful!"
