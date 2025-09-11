@@ -188,6 +188,45 @@ class CocoaCoordinateManager {
         return CGPoint(x: baseX, y: baseY)
     }
     
+    /**
+     * Reliably find the built-in screen without relying on NSScreen.main which can change.
+     * This function uses multiple detection methods to identify the built-in display.
+     *
+     * @return The built-in NSScreen, or the first available screen as fallback.
+     */
+    func getBuiltinScreen() -> NSScreen {
+        // Method 1: Look for screens with built-in indicators in the name
+        if let builtinScreen = NSScreen.screens.first(where: { screen in
+            screen.localizedName.contains("Built-in") || 
+            screen.localizedName.contains("Liquid")
+        }) {
+            NSLog("getBuiltinScreen: Found builtin by name: \(builtinScreen.localizedName)")
+            return builtinScreen
+        }
+        
+        // Method 2: Look for screen at origin (0,0) - builtin is usually positioned there
+        if let originScreen = NSScreen.screens.first(where: { screen in
+            screen.frame.origin == CGPoint(x: 0, y: 0)
+        }) {
+            NSLog("getBuiltinScreen: Found builtin by origin: \(originScreen.localizedName)")
+            return originScreen
+        }
+        
+        // Method 3: Look for the smallest screen (builtin is typically smaller than externals)
+        if let smallestScreen = NSScreen.screens.min(by: { screen1, screen2 in
+            let area1 = screen1.frame.width * screen1.frame.height
+            let area2 = screen2.frame.width * screen2.frame.height
+            return area1 < area2
+        }) {
+            NSLog("getBuiltinScreen: Found builtin by smallest area: \(smallestScreen.localizedName)")
+            return smallestScreen
+        }
+        
+        // Fallback: Use the first screen (should never happen but provides safety)
+        NSLog("getBuiltinScreen: Using fallback first screen")
+        return NSScreen.screens.first!
+    }
+    
     // MARK: - Debug Utilities
     
     func debugDescription(rect: CGRect, label: String) -> String {

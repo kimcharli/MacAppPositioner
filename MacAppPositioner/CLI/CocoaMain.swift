@@ -49,6 +49,11 @@ func testNativeCocoaSystem() {
         print("  Visible Frame: \(mainScreen.visibleFrame) [Native Cocoa]")
     }
     
+    let builtinScreen = CocoaCoordinateManager.shared.getBuiltinScreen()
+    print("\n🖥️ Builtin Screen (Reliable Detection):")
+    print("  Frame: \(builtinScreen.frame) [Native Cocoa]")
+    print("  Visible Frame: \(builtinScreen.visibleFrame) [Native Cocoa]")
+    
     print("\n✅ Native Cocoa coordinate system test completed")
     print("Note: All coordinates use bottom-left origin, Y increases upward")
 }

@@ -71,6 +71,14 @@ class MenuBarManager: NSObject {
 
         menu.addItem(NSMenuItem.separator())
 
+        // About menu item
+        let aboutMenuItem = NSMenuItem(title: "About Mac App Positioner", action: #selector(showAbout), keyEquivalent: "")
+        aboutMenuItem.target = self
+        aboutMenuItem.image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: "About")
+        menu.addItem(aboutMenuItem)
+
+        menu.addItem(NSMenuItem.separator())
+
         let quitMenuItem = NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quitMenuItem)
 
@@ -144,6 +152,49 @@ class MenuBarManager: NSObject {
             profileManager.applyProfile(profileName)
             showNotification(title: "Profile Applied", message: "Applied profile: \(profileName)")
         }
+    }
+    
+    @objc func showAbout() {
+        let buildDate = getCurrentBuildDate()
+        let alert = NSAlert()
+        alert.messageText = "Mac App Positioner"
+        alert.informativeText = """
+        Version: 1.0
+        Build Date: \(buildDate)
+        
+        A native macOS application for intelligent window positioning across multiple monitors.
+        
+        Features:
+        • Automatic profile detection and application
+        • Multi-monitor workspace management
+        • Native Cocoa coordinate system
+        • Reliable builtin screen detection
+        
+        © 2025 Mac App Positioner
+        """
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+    
+    private func getCurrentBuildDate() -> String {
+        // Try to get the executable creation date (more accurate than bundle)
+        if let executablePath = Bundle.main.executablePath,
+           let attributes = try? FileManager.default.attributesOfItem(atPath: executablePath),
+           let creationDate = attributes[.creationDate] as? Date {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+            formatter.timeZone = TimeZone.current
+            return formatter.string(from: creationDate)
+        }
+        
+        // Fallback to current timestamp (this will be the build time since it's embedded at compile time)
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        formatter.timeZone = TimeZone.current
+        return formatter.string(from: Date())
     }
     
     private func showNotification(title: String, message: String) {

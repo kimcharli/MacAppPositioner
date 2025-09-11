@@ -181,12 +181,9 @@ struct SettingsView: View {
     }
     
     private func getMainDisplayInfo() -> String {
-        guard let mainScreen = NSScreen.main else {
-            return "Unknown"
-        }
-        
-        let frame = mainScreen.frame
-        let scale = mainScreen.backingScaleFactor
+        let builtinScreen = CocoaCoordinateManager.shared.getBuiltinScreen()
+        let frame = builtinScreen.frame
+        let scale = builtinScreen.backingScaleFactor
         return "\(Int(frame.width))x\(Int(frame.height)) @\(scale)x"
     }
 }

@@ -209,15 +209,9 @@ class CocoaProfileManager {
         
         NSLog("Processing \(layout.count) apps in workspace layout")
         
-        // Find the actual builtin monitor instead of relying on NSScreen.main which can change
-        let builtinScreen = NSScreen.screens.first { screen in
-            screen.localizedName.contains("Built-in") || 
-            screen.localizedName.contains("Liquid") ||
-            screen.frame.origin == CGPoint(x: 0, y: 0)  // Builtin is usually at origin
-        } ?? NSScreen.main
-        
-        let mainScreen = builtinScreen
-        NSLog("Using builtin screen as mainScreen: \(String(describing: mainScreen?.frame))")
+        // Use the reliable builtin screen detection instead of NSScreen.main which can change
+        let mainScreen = coordinateManager.getBuiltinScreen()
+        NSLog("Using builtin screen as mainScreen: \(mainScreen.frame)")
 
         // Position applications on the workspace monitor.
         for (bundleID, workspaceApp) in layout {

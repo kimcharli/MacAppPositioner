@@ -111,6 +111,189 @@ MacAppPositioner/Source/
 3. **Coordinate Awareness**: Properly handle macOS coordinate system differences
 4. **Modular Design**: Keep concerns separated in distinct classes
 
+## GUI Application Deployment
+
+This section covers the complete workflow for developing, testing, and deploying the GUI application to prevent common deployment mistakes.
+
+### Development Workflow
+
+#### 1. After Making GUI Changes
+
+Always follow this exact sequence after modifying any GUI-related code:
+
+```bash
+# Step 1: Build the application
+./Scripts/build-gui.sh
+
+# Step 2: Test the development version
+open ./dist/MacAppPositionerGUI
+
+# Step 3: Verify functionality
+# - Check that your changes work correctly
+# - Verify About menu shows current build date/time
+# - Test all critical functionality
+```
+
+#### 2. Deployment to /Applications/ (Optional)
+
+For permanent installation or testing the "production" version:
+
+**Method A: Manual (Recommended)**
+1. Quit any running GUI instances (menu bar → Quit)
+2. Delete old app: Drag `/Applications/MacAppPositionerGUI.app` to Trash
+3. Copy new app: Drag `./dist/MacAppPositionerGUI.app` to Applications folder
+4. Launch updated app: Double-click or `open /Applications/MacAppPositionerGUI.app`
+
+**Method B: Command Line (May Require Permissions)**
+```bash
+# Remove old version (may require permission)
+rm -rf /Applications/MacAppPositionerGUI.app
+
+# Copy new version  
+cp -r ./dist/MacAppPositionerGUI.app /Applications/
+
+# Launch updated app
+open /Applications/MacAppPositionerGUI.app
+```
+
+#### 3. Verification Steps
+
+After deployment, always verify:
+
+1. **Build Timestamp**: Menu bar → About → Build Date should show **current compile time**
+2. **Copyright Year**: Should show **© 2025** (not 2024)
+3. **Functionality**: Test key features (apply profile, detect profile, etc.)
+4. **Log Output**: Check console logs show expected behavior
+
+### Common Deployment Issues
+
+#### Issue 1: Wrong Build Date in About Menu
+**Symptom**: About menu shows old date (e.g., Sep 8 instead of current date)
+**Cause**: Testing old cached version or didn't rebuild
+**Solution**: 
+```bash
+rm -rf ./dist/MacAppPositionerGUI.app    # Clean build
+./Scripts/build-gui.sh                   # Fresh build
+open ./dist/MacAppPositionerGUI          # Test fresh version
+```
+
+#### Issue 2: Changes Not Reflected in GUI  
+**Symptom**: Code changes don't appear in running application
+**Cause**: Testing `/Applications/` version without updating it
+**Solution**:
+- Always test `./dist/` version first after building
+- Manually copy to `/Applications/` if needed
+- Verify About menu timestamp matches build time
+
+#### Issue 3: Permission Denied on /Applications/
+**Symptom**: `cp` command fails with permission errors
+**Cause**: macOS protecting Applications folder
+**Solution**: Use manual drag-and-drop method instead of command line
+
+#### Issue 4: GUI Positioning Still Broken
+**Symptom**: Apply function still has NSScreen.main issues
+**Cause**: Using old cached version
+**Solution**:
+- Verify About menu shows recent build date
+- Check logs for "getBuiltinScreen: Found builtin by name" message
+- Force quit all GUI instances and relaunch
+
+### Build Artifacts and Locations
+
+**Development Builds**: `./dist/MacAppPositionerGUI` (CLI-style executable)
+**App Bundle**: `./dist/MacAppPositionerGUI.app` (for /Applications/)
+**Production Install**: `/Applications/MacAppPositionerGUI.app`
+
+### Debugging Build Issues
+
+#### Check Executable Timestamp
+```bash
+ls -la ./dist/MacAppPositionerGUI.app/Contents/MacOS/MacAppPositionerGUI
+```
+
+#### Force Clean Build
+```bash
+rm -rf ./dist/MacAppPositionerGUI.app
+./Scripts/build-gui.sh
+```
+
+#### Monitor GUI Logs
+```bash
+./dist/MacAppPositionerGUI > gui_output.log 2>&1 &
+tail -f gui_output.log
+```
+
+### Cross-Reference
+📋 **Quick deployment checklist**: See `CLAUDE.md` in project root
+
+### Documentation Maintenance System
+
+This project uses an automated documentation maintenance system to keep deployment guides current and prevent recurring issues.
+
+#### Auto-Triggered Documentation Updates
+
+The documentation system automatically activates when certain patterns are detected:
+
+**Primary Triggers:**
+- "deployment docs need updating"
+- "documentation maintenance needed"
+- "add this to troubleshooting guide"  
+- "deployment process broken"
+- "GUI deployment issue"
+
+**Technical Issue Triggers:**
+- "NSScreen.main issue" 
+- "wrong build date in About"
+- "permission denied Applications"
+- "cached version problem"
+- "positioning still broken"
+
+#### Manual Documentation Commands
+
+Use these commands to manually trigger documentation maintenance:
+
+```bash
+# Comprehensive review and sync between CLAUDE.md ↔ DEVELOPMENT.md
+/task "Review and update deployment documentation consistency" --agent document-reviewer
+
+# Add specific new issue to troubleshooting
+/task "Add [specific issue description] to deployment troubleshooting guide" --agent document-reviewer  
+
+# Validate cross-references and consistency
+/task "Synchronize deployment docs between CLAUDE.md and DEVELOPMENT.md" --agent document-reviewer
+
+# Update after major GUI changes
+/task "Update deployment workflow documentation after GUI architecture changes" --agent document-reviewer
+```
+
+#### Documentation Update Process
+
+When triggered, the system:
+
+1. **Analyzes Current Issue** - Identifies the type of deployment problem
+2. **Determines Update Scope** - Quick fix (CLAUDE.md) vs comprehensive (DEVELOPMENT.md)
+3. **Updates Appropriate Sections** - Troubleshooting, workflows, or reference materials
+4. **Maintains Consistency** - Ensures cross-references remain accurate
+5. **Validates Solutions** - Confirms updated docs would prevent the issue
+
+#### Adding New Issues to Documentation
+
+When you encounter a new deployment issue:
+
+1. **Document the Problem** - Describe symptoms, cause, and solution
+2. **Use Trigger Phrases** - "add this to troubleshooting guide"  
+3. **Provide Context** - Include error messages, steps that failed
+4. **Verify the Fix** - Test that the documented solution works
+
+Example:
+```
+"I encountered a new issue where the GUI app shows a blank menu bar after copying to Applications. This happens when macOS quarantines the app. Add this to troubleshooting guide: 
+
+Issue: Blank menu bar in GUI app
+Cause: macOS quarantine on copied app
+Solution: Run 'xattr -dr com.apple.quarantine /Applications/MacAppPositionerGUI.app' 
+```
+
 ## Testing
 
 ### Manual Testing
