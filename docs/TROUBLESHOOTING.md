@@ -28,7 +28,47 @@ sqlite3 /Library/Application\ Support/com.apple.TCC/TCC.db \
 
 ## Common Issues and Solutions
 
-### 1. Accessibility Permissions Issues
+### 1. GUI and CLI Position Windows Differently (CRITICAL)
+
+#### Problem: Different Behavior Between CLI and GUI
+**Symptoms:**
+- CLI positions windows correctly to corners
+- GUI positions windows to wrong locations on external monitors
+- Same shared code produces different results
+
+**Root Cause:**
+`NSScreen.main` returns different monitors depending on app type:
+- **CLI apps**: Always returns the builtin monitor (at origin 0,0)
+- **GUI apps**: Returns whichever monitor has mouse focus when launched
+
+This causes incorrect coordinate conversion for external monitors in GUI apps.
+
+**Solution:**
+This has been fixed in the latest version. The code now explicitly finds the builtin monitor instead of relying on `NSScreen.main`:
+
+```swift
+// Find builtin monitor explicitly
+let builtinScreen = NSScreen.screens.first { screen in
+    screen.localizedName.contains("Built-in") || 
+    screen.localizedName.contains("Liquid") ||
+    screen.frame.origin == CGPoint(x: 0, y: 0)
+} ?? NSScreen.main
+```
+
+**Verification:**
+```bash
+# Test CLI positioning
+./dist/MacAppPositioner apply home
+
+# Test GUI positioning (should now match CLI)
+./dist/MacAppPositionerGUI
+# Click "Apply Auto" in menu bar
+```
+
+**Prevention:**
+Never rely on `NSScreen.main` being consistent across app types. Always explicitly find the specific monitor you need.
+
+### 2. Accessibility Permissions Issues
 
 #### Problem: Applications Don't Move
 **Symptoms:**

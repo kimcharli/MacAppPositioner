@@ -94,17 +94,50 @@ struct Config: Codable {
 
 class ConfigManager {
     func loadConfig() -> Config? {
-        let url = URL(fileURLWithPath: "config.json")
-
-        do {
-            let data = try Data(contentsOf: url)
-            let decoder = JSONDecoder()
-            let config = try decoder.decode(Config.self, from: data)
-            return config
-        } catch {
-            print("Error decoding config.json: \(error)")
-            return nil
+        // Try multiple locations for config.json
+        let configPaths = [
+            // 1. User's .config directory (standard location)
+            FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".config")
+                .appendingPathComponent("mac-app-positioner")
+                .appendingPathComponent("config.json"),
+            
+            // 2. Application Support directory
+            FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent("Library")
+                .appendingPathComponent("Application Support")
+                .appendingPathComponent("MacAppPositioner")
+                .appendingPathComponent("config.json"),
+            
+            // 3. Current directory (for CLI usage)
+            URL(fileURLWithPath: "config.json"),
+            
+            // 4. Home directory
+            FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".mac-app-positioner")
+                .appendingPathComponent("config.json")
+        ]
+        
+        for url in configPaths {
+            if FileManager.default.fileExists(atPath: url.path) {
+                do {
+                    let data = try Data(contentsOf: url)
+                    let decoder = JSONDecoder()
+                    let config = try decoder.decode(Config.self, from: data)
+                    print("Loaded config from: \(url.path)")
+                    return config
+                } catch {
+                    print("Error decoding config at \(url.path): \(error)")
+                }
+            }
         }
+        
+        print("Config not found in any standard location")
+        print("Searched paths:")
+        for path in configPaths {
+            print("  - \(path.path)")
+        }
+        return nil
     }
 
     func saveConfig(_ config: Config) -> Bool {

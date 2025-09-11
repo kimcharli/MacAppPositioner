@@ -2,9 +2,9 @@
 
 A native macOS application that automatically positions application windows according to predefined layouts across multiple monitors. Perfect for developers, designers, and power users who work with multiple applications and displays.
 
-**Available as both Command Line Interface (CLI) and Graphical User Interface (GUI) applications.**
+**Available as both Command Line Interface (CLI) and Menu Bar GUI application.**
 
-![macOS](https://img.shields.io/badge/macOS-10.15+-blue)
+![macOS](https://img.shields.io/badge/macOS-11.0+-blue)
 ![Swift](https://img.shields.io/badge/Swift-5.0+-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -123,18 +123,18 @@ Your workspace monitor is divided into quadrants:
 git clone <repository-url>
 cd MacAppPositioner
 
-# Option 1: Build CLI (recommended)
+# Option 1: Build everything (recommended)
+./Scripts/build-all.sh
+
+# Option 2: Build CLI only
 ./Scripts/build.sh
 
-# Option 2: Build GUI
+# Option 3: Build GUI only
 ./Scripts/build-gui.sh
-
-# Option 3: Build both
-./Scripts/build.sh && ./Scripts/build-gui.sh
 
 # Binaries will be created in dist/ folder:
 # - dist/MacAppPositioner (CLI)
-# - dist/MacAppPositionerGUI (GUI)
+# - dist/MacAppPositionerGUI.app (GUI app bundle)
 ```
 
 ### Finding Application Bundle IDs

@@ -104,6 +104,8 @@ class CocoaCoordinateManager {
      * No conversion - pass coordinates directly to Accessibility API
      */
     func setWindowPosition(pid: pid_t, position: CGPoint, size: CGSize? = nil, mainScreen: NSScreen?) {
+        NSLog("setWindowPosition called: pid=\(pid), position=\(position), mainScreen=\(String(describing: mainScreen?.frame))")
+        
         let app = AXUIElementCreateApplication(pid)
         
         var windows: CFTypeRef?
@@ -113,6 +115,7 @@ class CocoaCoordinateManager {
               let windowArray = windows as? [AXUIElement],
               let window = windowArray.first else {
             print("❌ Failed to get windows for PID \(pid)")
+            NSLog("❌ Failed to get windows for PID \(pid)")
             return
         }
         
@@ -132,7 +135,9 @@ class CocoaCoordinateManager {
         }
         
         var accessPos = accessibilityPosition
+        NSLog("Sending to Accessibility API: position=\(accessibilityPosition)")
         let positionResult = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, AXValueCreate(.cgPoint, &accessPos)!)
+        NSLog("Position result: \(positionResult == .success ? "SUCCESS" : "FAILED with \(positionResult.rawValue)")")
         
         if let size = size {
             var cocoaSize = size

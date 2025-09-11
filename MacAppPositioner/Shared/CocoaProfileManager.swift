@@ -62,10 +62,15 @@ class CocoaProfileManager {
                             appSettings: AppSettings?,
                             mainScreen: NSScreen?) {
         
+        NSLog("positionApp called for \(bundleID) with position: \(position)")
+        
         guard let pid = getAppPID(bundleID: bundleID) else {
             print("  ❌ App not running: \(bundleID)")
+            NSLog("  ❌ App not running: \(bundleID)")
             return
         }
+        
+        NSLog("Found PID \(pid) for \(bundleID)")
         
         // Check if position is set to "keep"
         if position == "keep" {
@@ -128,9 +133,11 @@ class CocoaProfileManager {
         }
         
         print("  Calculated Position: \(calculatedPosition) [Native Cocoa]")
+        NSLog("  Setting \(bundleID) to position: \(calculatedPosition) on monitor \(targetMonitor.resolution)")
         
         // Set window position
         coordinateManager.setWindowPosition(pid: pid, position: calculatedPosition, size: nil, mainScreen: mainScreen)
+        NSLog("  Position set for \(bundleID)")
         
         // Verify final position
         if let finalPosition = getCurrentWindowPosition(pid: pid) {
@@ -148,18 +155,27 @@ class CocoaProfileManager {
      */
     func applyProfile(_ profileName: String) {
         print("🎯 COCOA ProfileManager: applyProfile called")
+        NSLog("🎯 COCOA ProfileManager: applyProfile called with profile: \(profileName)")
         
         guard let config = configManager.loadConfig() else {
             print("Failed to load config")
+            NSLog("Failed to load config")
             return
         }
+        
+        NSLog("Config loaded successfully, profiles: \(config.profiles.keys)")
         
         guard let profile = config.profiles[profileName] else {
             print("Profile \(profileName) not found")
+            NSLog("Profile \(profileName) not found in config")
             return
         }
         
+        NSLog("Profile \(profileName) found, continuing with application")
+        
+        NSLog("About to call getAllMonitors for profile: \(profileName)")
         let allMonitors = coordinateManager.getAllMonitors(for: profileName)
+        NSLog("getAllMonitors returned \(allMonitors.count) monitors")
         print("=== All Monitors in Native Cocoa ===")
         for (index, monitor) in allMonitors.enumerated() {
             print("Monitor \(index + 1): \(monitor.resolution)")
@@ -175,9 +191,11 @@ class CocoaProfileManager {
         
         guard let workspaceMonitor = coordinateManager.findWorkspaceMonitor(resolution: workspaceMonitorConfig.resolution) else {
             print("Workspace monitor with resolution \(workspaceMonitorConfig.resolution) not found")
+            NSLog("Workspace monitor with resolution \(workspaceMonitorConfig.resolution) not found")
             return
         }
         
+        NSLog("Found workspace monitor: \(workspaceMonitor.resolution), frame: \(workspaceMonitor.frame)")
         print("=== Native Cocoa Coordinate System Debug ===")
         print("Workspace Monitor (Native Cocoa coordinates):")
         print("  Frame: \(coordinateManager.debugDescription(rect: workspaceMonitor.frame, label: "Frame"))")
@@ -185,17 +203,30 @@ class CocoaProfileManager {
         
         guard let layout = config.layout?.workspace else {
             print("No workspace layout defined")
+            NSLog("No workspace layout defined")
             return
         }
         
-        let mainScreen = NSScreen.main
+        NSLog("Processing \(layout.count) apps in workspace layout")
+        
+        // Find the actual builtin monitor instead of relying on NSScreen.main which can change
+        let builtinScreen = NSScreen.screens.first { screen in
+            screen.localizedName.contains("Built-in") || 
+            screen.localizedName.contains("Liquid") ||
+            screen.frame.origin == CGPoint(x: 0, y: 0)  // Builtin is usually at origin
+        } ?? NSScreen.main
+        
+        let mainScreen = builtinScreen
+        NSLog("Using builtin screen as mainScreen: \(String(describing: mainScreen?.frame))")
 
         // Position applications on the workspace monitor.
         for (bundleID, workspaceApp) in layout {
+            NSLog("Processing app: \(bundleID) for position: \(workspaceApp.position)")
             print("\nProcessing \(bundleID) for workspace position '\(workspaceApp.position)':")
             
             let appSettings = config.applications[bundleID]
             
+            NSLog("About to call positionApp for \(bundleID)")
             positionApp(
                 bundleID: bundleID,
                 position: workspaceApp.position,
