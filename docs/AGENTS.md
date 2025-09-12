@@ -1,148 +1,155 @@
-# AI Agents Guide for Mac App Positioner
+# AI Agent Guide for Mac App Positioner
 
-This document provides guidelines for AI agents working with the Mac App Positioner codebase.
+This document provides guidelines and quick reference material for AI agents working with the Mac App Positioner codebase.
 
-## Quick Reference - Common Commands
+## 1. Core Principles
 
-⚠️ **Important**: Always use the compiled binaries in the `dist/` folder, not the source files.
+-   **Dynamic Over Static:** Always favor dynamic detection of the monitor setup over hardcoded values. See [ARCHITECTURE.md](ARCHITECTURE.md) for details.
+-   **Terminology Consistency:** Refer to [TERMINOLOGY.md](TERMINOLOGY.md) for precise definitions of terms like "Primary Monitor" and "Main Display."
+-   **Coordinate System Awareness:** The application uses native Cocoa coordinates (bottom-left origin, Y increases upward). See [COORDINATE_SYSTEM_GUIDE.md](COORDINATE_SYSTEM_GUIDE.md) for a detailed explanation.
+-   **DRY Principles:** Use shared utilities like `AppUtils` for common operations like resolution normalization and profile loading.
 
-```bash
-# ✅ CORRECT - Use compiled binaries
-./dist/MacAppPositioner detect
-./dist/MacAppPositioner apply office
-./dist/MacAppPositionerGUI
+## 2. Quick Reference: Commands & Paths
 
-# ❌ WRONG - Don't run source files directly
-./MacAppPositioner/CLI/main.swift
-./MacAppPositioner detect
-```
+⚠️ **Important**: Always use the compiled binaries in the `dist/` folder for execution.
 
 ### Build Commands
 
-**Recommended: Use provided build scripts**
+**Recommended: Use provided build scripts.** They are kept up-to-date with all necessary source files and flags.
+
 ```bash
 # Build CLI only
 ./Scripts/build.sh
 
-# Build GUI only  
+# Build GUI only
 ./Scripts/build-gui.sh
 
-# Build both
-./Scripts/build.sh && ./Scripts/build-gui.sh
+# Build both CLI and GUI
+./Scripts/build-all.sh
+
+# Run all tests
+./Scripts/test_all.sh
 ```
 
-**Manual build commands (if needed):**
+<details>
+<summary>Manual Build Commands (for reference only)</summary>
+
 ```bash
-# Build CLI only (exclude obsolete ProfileManager.swift)
+# Build CLI only
 swiftc -o dist/MacAppPositioner MacAppPositioner/CLI/CocoaMain.swift \
-  MacAppPositioner/Shared/ConfigManager.swift \
-  MacAppPositioner/Shared/WindowManager.swift \
-  MacAppPositioner/Shared/CoordinateManager.swift \
-  MacAppPositioner/Shared/CocoaCoordinateManager.swift \
-  MacAppPositioner/Shared/CocoaProfileManager.swift \
-  MacAppPositioner/Shared/AppUtils.swift \
+  MacAppPositioner/Shared/*.swift \
   -framework Cocoa -framework CoreGraphics
 
 # Build GUI only
 swiftc -o dist/MacAppPositionerGUI MacAppPositioner/GUI/*.swift \
-  MacAppPositioner/Shared/ConfigManager.swift \
-  MacAppPositioner/Shared/WindowManager.swift \
-  MacAppPositioner/Shared/CoordinateManager.swift \
-  MacAppPositioner/Shared/CocoaCoordinateManager.swift \
-  MacAppPositioner/Shared/CocoaProfileManager.swift \
-  MacAppPositioner/Shared/AppUtils.swift \
+  MacAppPositioner/Shared/*.swift \
   -framework Cocoa -framework CoreGraphics -framework SwiftUI
 ```
+</details>
 
-✅ **Recommended**: The build scripts are up-to-date and include all current files.
+### Execution Commands
 
-## Core Principles
-
--   **Dynamic Over Static:** Always favor dynamic detection of the monitor setup over hardcoded values. See the [Architecture](ARCHITECTURE.md) document for details.
--   **Terminology Consistency:** Refer to the [Terminology](TERMINOLOGY.md) document for precise definitions of terms like "Primary Monitor" and "Main Display."
--   **Coordinate System Awareness:** The application uses native Cocoa coordinates (bottom-left origin, Y increases upward). See the [Architecture](ARCHITECTURE.md) document for a detailed explanation.
--   **DRY Principles:** Use shared utilities like `AppUtils` for common operations like resolution normalization and profile loading.
-
-## Code Architecture
-
-The application is structured as a **native Swift macOS application** with a modular design:
-
-### Core Components
-- **CLI**: `MacAppPositioner/CLI/CocoaMain.swift` - Command-line interface
-- **GUI**: `MacAppPositioner/GUI/*.swift` - SwiftUI-based graphical interface  
-- **Shared**: `MacAppPositioner/Shared/*.swift` - Core logic shared between CLI and GUI
-
-### Key Classes
-- **`CocoaProfileManager`** - Profile detection and application (use this, not obsolete `ProfileManager`)
-- **`CocoaCoordinateManager`** - Monitor detection and coordinate handling
-- **`AppUtils`** - Shared utilities for resolution normalization and profile loading
-- **`ConfigManager`** - JSON configuration loading
-
-For a detailed explanation of the architecture, see the [Architecture](ARCHITECTURE.md) document.
-
-## Common Pitfalls for AI Agents
-
-### ❌ Don't Do This
 ```bash
-# Wrong executable path
-./MacAppPositioner detect
-
-# Using obsolete classes (removed)
-ProfileManager() 
-
-# Hardcoded resolution formats
-"3440.0x1440.0" 
-
-# Duplicate utility functions
-private func normalizeResolution()
-```
-
-### ✅ Do This Instead  
-```bash
-# Correct executable path
+# --- CLI Usage ---
+# Detect current setup
 ./dist/MacAppPositioner detect
 
-# Use current classes
-CocoaProfileManager()
+# Auto-detect and apply the matching profile
+./dist/MacAppPositioner apply
 
-# Use user-friendly format
-"3440x1440"
-
-# Use shared utilities
-AppUtils.normalizeResolution()
-```
-
-### File Management
-- **Active Files**: All files in `MacAppPositioner/Shared/` except removed obsolete ones
-- **Removed Files**: `ProfileManager.swift` (replaced by `CocoaProfileManager.swift`)
-- **Renamed Files**: `ResolutionUtils.swift` → `AppUtils.swift` (expanded functionality)
-
-## Development
-
-For instructions on how to set up the development environment, run the tests, and contribute to the project, see the [Development Guide](DEVELOPMENT.md).
-
-## Usage
-
-For detailed instructions on how to use the command-line interface and configure the application, see the [Usage Guide](USAGE.md).
-
-## Troubleshooting
-
-For solutions to common problems, see the [Troubleshooting Guide](TROUBLESHOOTING.md).
-
-## Testing Changes
-
-Always test both interfaces after making changes:
-```bash
-# Test CLI
-./dist/MacAppPositioner detect
+# Apply a specific profile by name
 ./dist/MacAppPositioner apply office
 
-# Test GUI (launches in background)
-./dist/MacAppPositionerGUI &
+# Test and display coordinate system information
+./dist/MacAppPositioner test-coordinates
+
+# --- GUI Usage ---
+# Launch GUI app for development testing
+./dist/MacAppPositionerGUI
+
+# Launch installed GUI app
+open /Applications/MacAppPositionerGUI.app
 ```
 
-## Configuration Notes
+## 3. GUI Deployment Checklist
 
-- **Resolution Format**: Use user-friendly `"3440x1440"` format, not `"3440.0x1440.0"`
-- **Profile Structure**: Workspace monitor uses quadrant layout (top_left, top_right, bottom_left, bottom_right)
-- **Bundle IDs**: Find with `osascript -e 'id of app "AppName"'`
+**After any GUI changes, ALWAYS follow this sequence:**
+
+1.  `./Scripts/build-gui.sh` - Build the application first.
+2.  `open ./dist/MacAppPositionerGUI` - **Test the build from the `dist/` directory.**
+3.  Manually copy the app from `dist/` to `/Applications/`. **Drag-and-drop is recommended** to handle permissions correctly.
+4.  Verify the "About" menu in the running app shows the current build timestamp to confirm it's the updated version.
+
+### Common Deployment Mistakes
+-   Testing the `/Applications/` version without copying the newly built app from `dist/`.
+-   Forgetting to rebuild after code changes.
+-   Using `cp` or `mv` commands, which can cause permission issues. Use drag-and-drop.
+-   Not checking the build timestamp in the "About" menu to confirm the update.
+
+## 4. Code Architecture
+
+The application is a native Swift macOS app with a modular design.
+
+-   **CLI**: `MacAppPositioner/CLI/CocoaMain.swift` - Command-line interface.
+-   **GUI**: `MacAppPositioner/GUI/*.swift` - SwiftUI-based graphical interface.
+-   **Shared**: `MacAppPositioner/Shared/*.swift` - Core logic shared between CLI and GUI.
+
+### Key Classes
+-   **`CocoaProfileManager`**: Handles profile detection and application logic.
+-   **`CocoaCoordinateManager`**: Manages monitor detection and coordinate handling.
+-   **`WindowManager`**: Contains the core window positioning logic.
+-   **`ConfigManager`**: Handles loading and parsing of the JSON configuration.
+-   **`AppUtils`**: Provides shared utilities for resolution normalization, etc.
+-   **`MenuBarManager`**: Manages the GUI's menu bar interface.
+
+## 5. Common Pitfalls & Best Practices
+
+| ❌ Don't Do This                                       | ✅ Do This Instead                                           |
+| ------------------------------------------------------ | ------------------------------------------------------------ |
+| `./MacAppPositioner detect` (Wrong path)               | `./dist/MacAppPositioner detect` (Correct path)              |
+| Use obsolete classes like `ProfileManager`             | Use current classes like `CocoaProfileManager`               |
+| Hardcode resolution formats like `"3440.0x1440.0"`     | Use user-friendly format `"3440x1440"` and `AppUtils`          |
+| Write duplicate utility functions                      | Use shared utilities from `AppUtils`                         |
+
+### File Management Notes
+-   **Active Files**: All files in `MacAppPositioner/Shared/` are actively used.
+-   **Obsolete Files**: `ProfileManager.swift` was removed and replaced by `CocoaProfileManager.swift`.
+
+## 6. Auto-Documentation System
+
+This project uses an AI-assisted documentation system. When you mention the following trigger phrases, I will automatically review and update relevant documentation.
+
+```yaml
+Primary Triggers:
+  - "deployment docs need updating"
+  - "documentation maintenance needed"
+  - "add this to troubleshooting guide"
+  - "deployment process broken"
+  - "GUI deployment issue"
+  - "docs are outdated"
+
+Technical Triggers:
+  - "NSScreen.main issue"
+  - "wrong build date in About"
+  - "permission denied Applications"
+  - "cached version problem"
+  - "positioning still broken"
+```
+
+### Manual Documentation Tasks
+You can also invoke documentation tasks manually:
+```bash
+# Invoke a comprehensive documentation review
+/task "Review and update all documentation for consistency" --agent document-reviewer
+
+# Sync this guide with DEVELOPMENT.md
+/task "Synchronize deployment docs between AGENTS.md and DEVELOPMENT.md" --agent document-reviewer
+```
+
+## 7. Further Reading
+
+-   **Architecture**: [ARCHITECTURE.md](ARCHITECTURE.md)
+-   **Development Guide**: [DEVELOPMENT.md](DEVELOPMENT.md)
+-   **Usage Guide**: [USAGE.md](USAGE.md)
+-   **Troubleshooting**: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+-   **Terminology**: [TERMINOLOGY.md](TERMINOLOGY.md)

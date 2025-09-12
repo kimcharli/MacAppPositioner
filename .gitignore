@@ -29,3 +29,7 @@ DerivedData/
 # Package.pins
 # Package.resolved
 .build/
+
+## Log files
+*.log
+gui_output.log
