@@ -83,7 +83,14 @@ struct MacAppPositioner {
                     print("❌ No matching profile detected.")
                 }
             case "plan":
-                if let plan = profileManager.generatePlan() {
+                let profileToPlan: String?
+                if arguments.count > 2 {
+                    profileToPlan = arguments[2]
+                } else {
+                    profileToPlan = profileManager.detectProfile()
+                }
+
+                if let profileName = profileToPlan, let plan = profileManager.generatePlan(for: profileName) {
                     print("✅ Execution Plan for Profile: \(plan.profileName)")
                     print("\nMonitors:")
                     for monitor in plan.monitors {
@@ -94,14 +101,14 @@ struct MacAppPositioner {
                         print("  - \(action.appName):")
                         print("    Action: \(action.action.rawValue)")
                         if let current = action.currentPosition {
-                            print("    Current: \(coordinateManager.debugDescription(rect: current, label: ""))")
+                            print("    Current: \(coordinateManager.debugDescription(rect: current, label: "", system: "Accessibility"))")
                         } else {
                             print("    Current: Not running or window not found")
                         }
-                        print("    Target: \(coordinateManager.debugDescription(rect: action.targetPosition, label: ""))")
+                        print("    Target: \(coordinateManager.debugDescription(rect: action.targetPosition, label: "", system: "Accessibility"))")
                     }
                 } else {
-                    print("❌ Could not generate a plan.")
+                    print("❌ Could not generate a plan. No matching profile detected or profile not found.")
                 }
             case "apply":
             if arguments.count > 2 {

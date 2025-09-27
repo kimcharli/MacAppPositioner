@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed a bug in the GUI build script that was causing it to fail.
+- Corrected the coordinate system conversion logic to ensure windows are positioned correctly on external monitors.
+
 ### Added
 
+- Implemented a "Plan" feature in the GUI to allow users to preview window positions before applying a layout.
+- The plan is now displayed in a separate window with standard macOS controls for a more native feel.
 - `plan` command to the CLI to show the execution plan without applying it.
 - `generatePlan()` function to `CocoaProfileManager` to generate the execution plan.
 - `PlanModels.swift` to the shared module to define the data structures for the execution plan.
@@ -17,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The `plan` command in the CLI can now accept an optional profile name.
+- Refactored the plan generation logic to be more flexible and reusable.
 - Updated the GUI to use the modern `UserNotifications` framework for notifications.
 
 ## [1.0.0] - 2025-09-27

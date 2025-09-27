@@ -119,6 +119,9 @@ struct MainDashboardView: View {
                             isDetected: profileName == viewModel.detectedProfile,
                             onApply: {
                                 viewModel.applyProfile(profileName)
+                            },
+                            onPlan: {
+                                viewModel.generateAndShowPlan(for: profileName)
                             }
                         )
                     }
@@ -161,6 +164,7 @@ struct ProfileRowView: View {
     let profileName: String
     let isDetected: Bool
     let onApply: () -> Void
+    let onPlan: () -> Void
     
     var body: some View {
         HStack {
@@ -184,6 +188,12 @@ struct ProfileRowView: View {
             
             Spacer()
             
+            Button("Plan") {
+                onPlan()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            
             Button("Apply Layout") {
                 onApply()
             }
@@ -196,6 +206,48 @@ struct ProfileRowView: View {
         .cornerRadius(6)
     }
 }
+
+struct ExecutionPlanView: View {
+    let plan: ExecutionPlan
+    private let coordinateManager = CocoaCoordinateManager.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Execution Plan for \(plan.profileName)")
+                .font(.title)
+                .fontWeight(.bold)
+
+            Text("Monitors:")
+                .font(.headline)
+            ForEach(plan.monitors, id: \.resolution) { monitor in
+                Text("  - \(monitor.resolution) (Workspace: \(monitor.isWorkspace ? "Yes" : "No"), Built-in: \(monitor.isBuiltIn ? "Yes" : "No"))")
+            }
+
+            Text("App Actions:")
+                .font(.headline)
+            
+            ScrollView {
+                ForEach(plan.actions, id: \.bundleID) { action in
+                    VStack(alignment: .leading) {
+                        Text("  - \(action.appName):")
+                            .fontWeight(.medium)
+                        Text("    Action: \(action.action.rawValue)")
+                        if let current = action.currentPosition {
+                            Text("    Current: \(coordinateManager.debugDescription(rect: current, label: "", system: "Accessibility"))")
+                        }
+                        Text("    Target:  \(coordinateManager.debugDescription(rect: action.targetPosition, label: "", system: "Accessibility"))")
+                    }
+                    .padding(.bottom, 8)
+                }
+            }
+            
+            Spacer()
+        }
+        .padding()
+        .frame(minWidth: 400, minHeight: 400)
+    }
+}
+
 
 // MARK: - Preview
 

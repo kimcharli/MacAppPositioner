@@ -30,6 +30,23 @@ Create or edit `config.json` in the project directory with your monitor configur
 ./MacAppPositioner generate-config
 ```
 
+## GUI Usage
+
+The Mac App Positioner also provides a graphical user interface for easier interaction.
+
+### Opening the Dashboard
+
+The GUI can be opened by clicking the monitor icon (🖥️) in the menu bar and selecting "Open Dashboard".
+
+### Dashboard Features
+
+The dashboard provides the following features:
+
+-   **Profile Detection:** Shows the currently detected profile based on your monitor setup. You can refresh the detection at any time.
+-   **Available Profiles:** Lists all the profiles defined in your `config.json`.
+-   **Apply Layout:** For each profile, you can click the "Apply Layout" button to position your applications according to that profile's layout.
+-   **Plan Layout:** Before applying a layout, you can click the "Plan" button. This will open a new window showing a detailed execution plan, including the current and target positions for each application. This is useful for previewing changes and debugging positioning issues.
+
 ## Command Reference
 
 ### `detect` - Profile Detection

@@ -97,6 +97,31 @@ class CocoaCoordinateManager {
         }
     }
     
+    // MARK: - Coordinate Conversion
+    
+    /**
+     * Converts a CGPoint from Cocoa's bottom-left origin system to the Accessibility API's top-left origin system.
+     */
+    func convertCocoaToAccessibility(_ cocoaPoint: CGPoint, mainScreen: NSScreen?) -> CGPoint {
+        let mainScreenHeight = mainScreen?.frame.height ?? 0
+        
+        NSLog("Coordinate Conversion: Cocoa Y = \(cocoaPoint.y), Main Screen Height = \(mainScreenHeight)")
+
+        let accessibilityPoint: CGPoint
+        if cocoaPoint.y >= mainScreenHeight { // If on workspace monitor
+            // Convert: AccessibilityY = -(CocoaY - mainScreenHeight)
+            accessibilityPoint = CGPoint(
+                x: cocoaPoint.x,
+                y: -(cocoaPoint.y - mainScreenHeight)
+            )
+        } else { // If on builtin monitor
+            accessibilityPoint = cocoaPoint
+        }
+        
+        NSLog("Coordinate Conversion: Final Accessibility Y = \(accessibilityPoint.y)")
+        return accessibilityPoint
+    }
+
     // MARK: - Window Positioning (Native Cocoa)
     
     /**
@@ -124,6 +149,8 @@ class CocoaCoordinateManager {
         let accessibilityPosition: CGPoint
         let mainScreenHeight = mainScreen?.frame.height ?? 0
         
+        NSLog("Coordinate Conversion: Cocoa Y = \(position.y), Main Screen Height = \(mainScreenHeight)")
+
         if position.y >= mainScreenHeight { // If on workspace monitor
             // Convert: AccessibilityY = -(CocoaY - mainScreenHeight)
             accessibilityPosition = CGPoint(
@@ -134,6 +161,8 @@ class CocoaCoordinateManager {
             accessibilityPosition = position
         }
         
+        NSLog("Coordinate Conversion: Final Accessibility Y = \(accessibilityPosition.y)")
+
         var accessPos = accessibilityPosition
         NSLog("Sending to Accessibility API: position=\(accessibilityPosition)")
         let positionResult = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, AXValueCreate(.cgPoint, &accessPos)!)
@@ -229,7 +258,7 @@ class CocoaCoordinateManager {
     
     // MARK: - Debug Utilities
     
-    func debugDescription(rect: CGRect, label: String) -> String {
-        return "\(label): (\(rect.origin.x), \(rect.origin.y), \(rect.width), \(rect.height)) [Native Cocoa]"
+    func debugDescription(rect: CGRect, label: String, system: String = "Native Cocoa") -> String {
+        return "\(label): (\(rect.origin.x), \(rect.origin.y), \(rect.width), \(rect.height)) [\(system)]"
     }
 }
