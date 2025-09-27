@@ -73,29 +73,19 @@ sudo cp dist/MacAppPositioner /usr/local/bin/
 
 ## Installing the Menu Bar App
 
-1. **Create the app bundle:**
-   ```bash
-   # Create app bundle structure
-   mkdir -p dist/MacAppPositionerGUI.app/Contents/MacOS
-   
-   # Copy the binary
-   cp dist/MacAppPositionerGUI dist/MacAppPositionerGUI.app/Contents/MacOS/
-   
-   # Copy Info.plist (if not already present)
-   cp Info.plist dist/MacAppPositionerGUI.app/Contents/
-   ```
+After running the `./Scripts/build-all.sh` script, the `MacAppPositionerGUI.app` bundle will be created in the `dist` directory.
 
-2. **Install to Applications:**
-   - Drag `dist/MacAppPositionerGUI.app` to your `/Applications` folder
+1. **Install to Applications:**
+   - Drag `dist/MacAppPositionerGUI.app` to your `/Applications` folder.
    - Or use the command line:
      ```bash
      cp -r dist/MacAppPositionerGUI.app /Applications/
      ```
 
-3. **First Launch:**
-   - Open Mac App Positioner from Applications
-   - You'll see a monitor icon (🖥️) appear in your menu bar
-   - macOS will prompt for Accessibility permissions - click "Open System Settings"
+2. **First Launch:**
+   - Open Mac App Positioner from your Applications folder.
+   - You'll see a monitor icon (🖥️) appear in your menu bar.
+   - macOS will prompt for Accessibility permissions. Click "Open System Settings" and grant the permissions.
 
 ## Granting Accessibility Permissions
 

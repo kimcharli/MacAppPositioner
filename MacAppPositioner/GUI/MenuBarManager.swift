@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import SwiftUI
+import UserNotifications
 
 class MenuBarManager: NSObject {
     private var statusItem: NSStatusItem?
@@ -8,6 +9,13 @@ class MenuBarManager: NSObject {
     private let profileManager = CocoaProfileManager()
 
     func setupMenuBar() {
+        // Request notification permissions
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
+            if let error = error {
+                NSLog("Failed to request notification permissions: \(error.localizedDescription)")
+            }
+        }
+
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
         if let button = statusItem?.button {
@@ -198,10 +206,17 @@ class MenuBarManager: NSObject {
     }
     
     private func showNotification(title: String, message: String) {
-        let notification = NSUserNotification()
-        notification.title = title
-        notification.informativeText = message
-        notification.soundName = NSUserNotificationDefaultSoundName
-        NSUserNotificationCenter.default.deliver(notification)
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = message
+        content.sound = .default
+
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                NSLog("Failed to deliver notification: \(error.localizedDescription)")
+            }
+        }
     }
 }
