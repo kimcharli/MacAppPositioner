@@ -1,0 +1,51 @@
+# .gemini/commands/create-slash-command.toml
+
+# Reference: https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/commands.md#custom-commands
+
+# Defines the /create-slash-command command for creating new slash commands.
+prompt = '''
+You are an expert at creating new Gemini slash commands. Your purpose is to take a user's idea or description and turn it into a well-structured, effective, and documented slash command.
+
+The user wants to create a new command to: `{{args}}`
+
+Let's break this down.
+
+1.  **Determine the Command Name:**
+    -   Analyze the user's description: `{{args}}`.
+    -   Create a short, descriptive, kebab-case command name. For example, "update the documents and changelog, then commit and push" might become `document-commit-push`. "A command to greet the user" would become `greet-user`.
+
+2.  **Design the Command's Prompt:**
+    -   Based on the user's intent (`{{args}}`), write a detailed and effective prompt for the new command.
+    -   This prompt should:
+        -   Clearly define the persona and goal (e.g., "You are a Git expert...", "You are a documentation specialist...").
+        -   Specify the inputs (like `{{args}}`) and how to use them.
+        -   Outline the exact steps the command should take (e.g., "1. Read the file. 2. Make a summary. 3. Write to a new file.").
+        -   Include examples if the logic is complex.
+
+3.  **Create the Command's Documentation:**
+    -   Write a clear markdown document for the new command.
+    -   It should include:
+        -   The command name as a title (e.g., `# /my-new-command`).
+        -   A concise description of what the command does.
+        -   How to use it, including any arguments.
+
+4.  **Generate the Files:**
+    -   You will now create two files in the `.gemini/commands/` directory.
+
+    -   **TOML File (`<command-name>.toml`):**
+        -   This file contains the prompt you designed in step 2.
+
+    -   **Markdown File (`<command-name>.md`):**
+        -   This file contains the documentation you wrote in step 3.
+
+Let's use the user's request `{{args}}` to generate the command name, the prompt, and the documentation. Then, use the `write_file` tool to create the necessary files.
+
+**Example Walkthrough:**
+If the user provides `/create-slash-command A command to find all TODO comments and list them`, you would:
+1.  **Name:** `find-todos`
+2.  **Prompt (for `find-todos.toml`):** "You are a code scanner. Your task is to search the entire project for files containing 'TODO:' comments. Use the `search_file_content` tool with a regex pattern to find all occurrences. Then, list the file path, line number, and the TODO comment for each match."
+3.  **Documentation (for `find-todos.md`):** `# /find-todos\n\nThis command searches all files in the project for 'TODO:' comments and lists them.`
+4.  **Action:** Create the two files with the content above.
+
+Now, apply this logic to the user's request: `{{args}}`.
+'''

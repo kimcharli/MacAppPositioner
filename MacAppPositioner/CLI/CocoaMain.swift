@@ -73,23 +73,37 @@ struct MacAppPositioner {
         let command = arguments[1]
         let profileManager = CocoaProfileManager()
         let configManager = ConfigManager()
+        let coordinateManager = CocoaCoordinateManager.shared
 
         switch command {
-        case "detect":
-            if let profile = profileManager.detectProfile() {
-                print("✅ Detected profile: \(profile)")
-            } else {
-                print("❌ No matching profile found for the current monitor setup.")
-                if let config = configManager.loadConfig() {
-                    let profiles = Array(config.profiles.keys)
-                    if !profiles.isEmpty {
-                        print("💡 Available profiles: \(profiles.joined(separator: ", "))")
-                    }
+            case "detect":
+                if let profile = profileManager.detectProfile() {
+                    print("✅ Detected profile: \(profile)")
+                } else {
+                    print("❌ No matching profile detected.")
                 }
-                print("Run 'generate-config' to create a configuration for your current setup.")
-            }
-            
-        case "apply":
+            case "plan":
+                if let plan = profileManager.generatePlan() {
+                    print("✅ Execution Plan for Profile: \(plan.profileName)")
+                    print("\nMonitors:")
+                    for monitor in plan.monitors {
+                        print("  - \(monitor.resolution) (Workspace: \(monitor.isWorkspace), Built-in: \(monitor.isBuiltIn))")
+                    }
+                    print("\nApp Actions:")
+                    for action in plan.actions {
+                        print("  - \(action.appName):")
+                        print("    Action: \(action.action.rawValue)")
+                        if let current = action.currentPosition {
+                            print("    Current: \(coordinateManager.debugDescription(rect: current, label: ""))")
+                        } else {
+                            print("    Current: Not running or window not found")
+                        }
+                        print("    Target: \(coordinateManager.debugDescription(rect: action.targetPosition, label: ""))")
+                    }
+                } else {
+                    print("❌ Could not generate a plan.")
+                }
+            case "apply":
             if arguments.count > 2 {
                 // Force apply specified profile
                 let profileName = arguments[2]

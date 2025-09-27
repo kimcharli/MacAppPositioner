@@ -53,6 +53,38 @@ No matching profile detected.
 - Troubleshoot configuration issues
 - Confirm monitor detection is working properly
 
+### `plan` - Display Execution Plan
+Shows a detailed execution plan for a detected profile without applying it.
+
+```bash
+./MacAppPositioner plan
+```
+
+**Output Examples:**
+```
+✅ Execution Plan for Profile: office
+
+Monitors:
+  - 3440x1440 (Workspace: true, Built-in: false)
+  - 2560x1440 (Workspace: false, Built-in: false)
+  - 1440x900 (Workspace: false, Built-in: true)
+
+App Actions:
+  - Google Chrome:
+    Action: MOVE
+    Current: (100.0, 200.0, 1200.0, 800.0)
+    Target: (0.0, 0.0, 1200.0, 800.0)
+  - Slack:
+    Action: KEEP
+    Current: (1920.0, 0.0, 1280.0, 800.0)
+    Target: (1920.0, 0.0, 1280.0, 800.0)
+```
+
+**Use Cases:**
+- Preview the changes before applying a profile.
+- Debug positioning issues by inspecting the current and target positions.
+- Verify that the correct profile and applications are being targeted.
+
 ### `apply` - Apply Layout
 Positions running applications according to a profile's layout configuration.
 

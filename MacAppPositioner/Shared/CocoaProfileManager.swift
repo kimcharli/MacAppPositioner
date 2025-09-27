@@ -145,6 +145,79 @@ class CocoaProfileManager {
         }
     }
     
+    // MARK: - Plan Generation
+    
+    func generatePlan() -> ExecutionPlan? {
+        guard let profileName = detectProfile() else {
+            print("No matching profile detected.")
+            return nil
+        }
+
+        guard let config = configManager.loadConfig(), let profile = config.profiles[profileName] else {
+            print("Failed to load config or profile.")
+            return nil
+        }
+
+        let allMonitors = coordinateManager.getAllMonitors(for: profileName)
+        var actions: [AppAction] = []
+
+        // Process workspace apps
+        if let workspaceMonitorConfig = profile.monitors.first(where: { $0.position == "workspace" }),
+           let workspaceMonitor = coordinateManager.findWorkspaceMonitor(resolution: workspaceMonitorConfig.resolution),
+           let layout = config.layout?.workspace {
+            for (bundleID, workspaceApp) in layout {
+                let action = createAppAction(bundleID: bundleID, position: workspaceApp.position, sizing: workspaceApp.sizing, targetMonitor: workspaceMonitor, appSettings: config.applications[bundleID])
+                actions.append(action)
+            }
+        }
+
+        // Process builtin apps
+        if let builtinApps = config.layout?.builtin,
+           let builtinMonitor = allMonitors.first(where: { $0.isBuiltIn }) {
+            for (bundleID, builtinApp) in builtinApps {
+                let action = createAppAction(bundleID: bundleID, position: builtinApp.position ?? "center", sizing: builtinApp.sizing, targetMonitor: builtinMonitor, appSettings: config.applications[bundleID])
+                actions.append(action)
+            }
+        }
+
+        return ExecutionPlan(profileName: profileName, monitors: allMonitors, actions: actions)
+    }
+
+    private func createAppAction(bundleID: String, position: String, sizing: String?, targetMonitor: CocoaMonitorInfo, appSettings: AppSettings?) -> AppAction {
+        let currentPosition = getAppPID(bundleID: bundleID).flatMap { getCurrentWindowPosition(pid: $0) }
+        var actualWindowSize = currentPosition?.size ?? CGSize(width: 1200, height: 800)
+
+        if sizing == "keep" || appSettings?.sizing == "keep" {
+            if let currentSize = currentPosition?.size {
+                actualWindowSize = currentSize
+            }
+        }
+
+        let calculatedPosition = coordinateManager.calculateQuadrantPosition(quadrant: position, windowSize: actualWindowSize, visibleFrame: targetMonitor.visibleFrame)
+        let targetRect = CGRect(origin: calculatedPosition, size: actualWindowSize)
+        
+        var actionType: ActionType = .move
+        if position == "keep" {
+            actionType = .keep
+        } else if let current = currentPosition {
+            // Add a tolerance for position comparison
+            let tolerance: CGFloat = 1.0
+            if abs(current.origin.x - targetRect.origin.x) < tolerance && abs(current.origin.y - targetRect.origin.y) < tolerance {
+                actionType = .keep
+            }
+        }
+
+        let appName = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleID })?.localizedName ?? bundleID
+
+        return AppAction(
+            bundleID: bundleID,
+            appName: appName,
+            currentPosition: currentPosition,
+            targetPosition: targetRect,
+            action: actionType
+        )
+    }
+    
     // MARK: - Profile Application
     
     /**

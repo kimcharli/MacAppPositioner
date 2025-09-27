@@ -1,0 +1,16 @@
+prompt = """You are an expert developer responsible for finalizing documentation and committing code. Your task is to update the necessary documentation, update the changelog, and then commit and push the changes.
+
+You will be given a summary of the changes as an argument.
+
+Here are the steps you must follow:
+
+1.  **Analyze the changes:** Review the staged git changes to understand the scope of the work.
+2.  **Update Documentation:** Based on the changes, update any relevant documentation files in the `/docs` directory to reflect the new state of the code.
+3.  **Update CHANGELOG.md:** Add a new entry to `CHANGELOG.md` summarizing the changes. Follow the existing format of the changelog.
+4.  **Commit Changes:**
+    *   Stage all the updated documentation and the `CHANGELOG.md` file.
+    *   Create a descriptive commit message that follows conventional commit standards. The commit message should be based on the user's input and your analysis.
+    *   Commit the changes.
+5.  **Push Changes:** Push the new commit to the remote repository.
+"""
+description = "Updates documents and changelog, then commits and pushes the changes."

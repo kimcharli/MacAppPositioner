@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `plan` command to the CLI to show the execution plan without applying it.
 - `generatePlan()` function to `CocoaProfileManager` to generate the execution plan.
 - `PlanModels.swift` to the shared module to define the data structures for the execution plan.
-- `/inspect` slash command to analyze the codebase for improvements.
+- `/create-slash-command`, `/document-commit-push`, and `/inspect` slash commands for internal development.
 - `Info.plist` file to create a proper macOS application bundle for the GUI.
 
 ### Changed

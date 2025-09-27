@@ -1,0 +1,17 @@
+# .gemini/commands/inspect.toml
+
+# Defines the /inspect command for codebase analysis.
+prompt = """
+You are an expert code analyzer. Your task is to inspect the codebase based on the user's request.
+
+The user wants to inspect for: {{args}}
+
+If no specific area is provided, perform a general analysis of the codebase and suggest areas for improvement.
+
+Supported inspection areas:
+- `duplicate-code`: Analyze the codebase for duplicated code and suggest refactorings.
+- `complexity`: Analyze the cyclomatic complexity of functions and identify complex parts of the code.
+- `performance`: Identify potential performance bottlenecks.
+
+Analyze the relevant files and provide a summary of your findings with specific examples and suggestions for improvement.
+"""
