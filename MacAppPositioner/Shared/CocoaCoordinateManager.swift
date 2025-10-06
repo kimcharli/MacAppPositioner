@@ -2,40 +2,26 @@ import Foundation
 import AppKit
 
 /**
- * Native Cocoa Coordinate System Manager
+ * Coordinate System Manager
  * 
  * ARCHITECTURE PRINCIPLE: 
- * - Uses ONLY native Cocoa coordinates (NSScreen.frame)
- * - Bottom-left origin, Y increases upward (native macOS behavior)
- * - NO coordinate conversions or custom systems
- * - Direct NSScreen API usage throughout
- * 
- * REFERENCE: https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/CocoaDrawingGuide/Transforms/Transforms.html
- * 
- * NATIVE COCOA SYSTEM: 
- * - NSScreen.frame provides native Cocoa coordinates
- * - Contiguous coordinate space across all monitors
- * - Y-axis increases upward (bottom-left origin)
- * - Use directly without any conversion
+ * - Uses a consistent internal coordinate system (top-left origin, Y-down).
+ * - Converts from Cocoa coordinates at the API boundary.
+ * - All internal calculations are performed in this consistent system.
  */
 
-/**
- * Monitor information using native Cocoa coordinates
- * Direct from NSScreen with no modifications
- */
 struct CocoaMonitorInfo {
-    let frame: CGRect           // Native Cocoa coordinates from NSScreen.frame
-    let visibleFrame: CGRect    // Native Cocoa coordinates from NSScreen.visibleFrame
+    let frame: CGRect           // Internal (top-left origin)
+    let visibleFrame: CGRect    // Internal (top-left origin)
     let resolution: String
     let scale: CGFloat
-    let isMain: Bool            // True if this is NSScreen.main
+    let isMain: Bool
     let isBuiltIn: Bool
-    let isWorkspace: Bool       // True if this is the config-defined workspace monitor
+    let isWorkspace: Bool
     
-    init(from nsScreen: NSScreen, isWorkspace: Bool = false) {
-        // Use native Cocoa coordinates directly - no conversion
-        self.frame = nsScreen.frame
-        self.visibleFrame = nsScreen.visibleFrame
+    init(from nsScreen: NSScreen, isWorkspace: Bool = false, mainScreenHeight: CGFloat) {
+        self.frame = CocoaCoordinateManager.shared.convertCocoaToInternal(cocoaRect: nsScreen.frame, mainScreenHeight: mainScreenHeight)
+        self.visibleFrame = CocoaCoordinateManager.shared.convertCocoaToInternal(cocoaRect: nsScreen.visibleFrame, mainScreenHeight: mainScreenHeight)
         self.resolution = "\(nsScreen.frame.width)x\(nsScreen.frame.height)"
         self.scale = nsScreen.backingScaleFactor
         self.isMain = nsScreen == NSScreen.main
@@ -49,216 +35,103 @@ class CocoaCoordinateManager {
     
     private init() {}
     
-    // MARK: - Helper Functions
+    // MARK: - Coordinate Conversion
     
-    // MARK: - Monitor Detection (Native Cocoa)
+    func convertCocoaToInternal(cocoaRect: CGRect, mainScreenHeight: CGFloat) -> CGRect {
+        let internalY = mainScreenHeight - cocoaRect.maxY
+        return CGRect(x: cocoaRect.origin.x, y: internalY, width: cocoaRect.width, height: cocoaRect.height)
+    }
+
+    // MARK: - Monitor Detection
     
-    /**
-     * Get all monitors using native Cocoa coordinates
-     * Uses NSScreen.screens directly - no conversion
-     */
     func getAllMonitors(for profileName: String? = nil) -> [CocoaMonitorInfo] {
         let configManager = ConfigManager()
         let config = configManager.loadConfig()
+        let mainScreenHeight = NSScreen.main?.frame.height ?? 0
         
-        // Find workspace monitor resolution from the specified profile or detect current profile
         var workspaceMonitorResolution: String?
-        
-        if let profileName = profileName,
-           let profile = config?.profiles[profileName] {
-            // Use specified profile
+        if let profileName = profileName, let profile = config?.profiles[profileName] {
             workspaceMonitorResolution = profile.monitors.first(where: { $0.position == "workspace" })?.resolution
-            print("🔍 Using workspace monitor from profile '\(profileName)': \(workspaceMonitorResolution ?? "nil")")
-        } else {
-            // Fallback: no workspace detection for auto-detect calls to avoid circular dependency
-            print("🔍 No profile specified, workspace detection disabled")
         }
         
         return NSScreen.screens.map { screen in
             let screenResolution = "\(screen.frame.width)x\(screen.frame.height)"
-            let isWorkspace = if let workspaceRes = workspaceMonitorResolution {
-                AppUtils.normalizeResolution(screenResolution) == AppUtils.normalizeResolution(workspaceRes)
-            } else {
-                false
-            }
-            
-            print("🔍 Screen \(screenResolution): isWorkspace=\(isWorkspace), isMain=\(screen == NSScreen.main)")
-            
-            return CocoaMonitorInfo(from: screen, isWorkspace: isWorkspace)
+            let isWorkspace = workspaceMonitorResolution.map { AppUtils.normalizeResolution(screenResolution) == AppUtils.normalizeResolution($0) } ?? false
+            return CocoaMonitorInfo(from: screen, isWorkspace: isWorkspace, mainScreenHeight: mainScreenHeight)
         }
     }
     
-    /**
-     * Find workspace monitor using native Cocoa coordinates
-     */
     func findWorkspaceMonitor(resolution: String) -> CocoaMonitorInfo? {
         return getAllMonitors().first { monitor in
             AppUtils.normalizeResolution(monitor.resolution) == AppUtils.normalizeResolution(resolution)
         }
     }
     
-    // MARK: - Coordinate Conversion
+    // MARK: - Window Positioning
     
-    /**
-     * Converts a CGPoint from Cocoa's bottom-left origin system to the Accessibility API's top-left origin system.
-     */
-    func convertCocoaToAccessibility(_ cocoaPoint: CGPoint, mainScreen: NSScreen?) -> CGPoint {
-        let mainScreenHeight = mainScreen?.frame.height ?? 0
-        
-        NSLog("Coordinate Conversion: Cocoa Y = \(cocoaPoint.y), Main Screen Height = \(mainScreenHeight)")
-
-        let accessibilityPoint: CGPoint
-        if cocoaPoint.y >= mainScreenHeight { // If on workspace monitor
-            // Convert: AccessibilityY = -(CocoaY - mainScreenHeight)
-            accessibilityPoint = CGPoint(
-                x: cocoaPoint.x,
-                y: -(cocoaPoint.y - mainScreenHeight)
-            )
-        } else { // If on builtin monitor
-            accessibilityPoint = cocoaPoint
-        }
-        
-        NSLog("Coordinate Conversion: Final Accessibility Y = \(accessibilityPoint.y)")
-        return accessibilityPoint
-    }
-
-    // MARK: - Window Positioning (Native Cocoa)
-    
-    /**
-     * Set window position using native Cocoa coordinates
-     * No conversion - pass coordinates directly to Accessibility API
-     */
-    func setWindowPosition(pid: pid_t, position: CGPoint, size: CGSize? = nil, mainScreen: NSScreen?) {
-        NSLog("setWindowPosition called: pid=\(pid), position=\(position), mainScreen=\(String(describing: mainScreen?.frame))")
-        
+    func setWindowPosition(pid: pid_t, position: CGPoint, size: CGSize? = nil) {
         let app = AXUIElementCreateApplication(pid)
-        
         var windows: CFTypeRef?
-        let result = AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windows)
-        
-        guard result == .success,
+        guard AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windows) == .success,
               let windowArray = windows as? [AXUIElement],
               let window = windowArray.first else {
             print("❌ Failed to get windows for PID \(pid)")
-            NSLog("❌ Failed to get windows for PID \(pid)")
             return
         }
         
-        // Convert from Cocoa coordinates to Accessibility API coordinates
-        // Workspace monitor is above builtin, so it uses negative Y values in Accessibility API
-        let accessibilityPosition: CGPoint
-        let mainScreenHeight = mainScreen?.frame.height ?? 0
-        
-        NSLog("Coordinate Conversion: Cocoa Y = \(position.y), Main Screen Height = \(mainScreenHeight)")
-
-        if position.y >= mainScreenHeight { // If on workspace monitor
-            // Convert: AccessibilityY = -(CocoaY - mainScreenHeight)
-            accessibilityPosition = CGPoint(
-                x: position.x,
-                y: -(position.y - mainScreenHeight)
-            )
-        } else { // If on builtin monitor
-            accessibilityPosition = position
-        }
-        
-        NSLog("Coordinate Conversion: Final Accessibility Y = \(accessibilityPosition.y)")
-
-        var accessPos = accessibilityPosition
-        NSLog("Sending to Accessibility API: position=\(accessibilityPosition)")
-        let positionResult = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, AXValueCreate(.cgPoint, &accessPos)!)
-        NSLog("Position result: \(positionResult == .success ? "SUCCESS" : "FAILED with \(positionResult.rawValue)")")
+        var mutablePosition = position
+        let positionResult = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, AXValueCreate(.cgPoint, &mutablePosition)!)
         
         if let size = size {
-            var cocoaSize = size
-            let sizeResult = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, AXValueCreate(.cgSize, &cocoaSize)!)
-            print("  📏 Size result: \(sizeResult == .success ? "SUCCESS" : "FAILED")")
+            var mutableSize = size
+            AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, AXValueCreate(.cgSize, &mutableSize)!)
         }
         
         print("  🎯 Position result: \(positionResult == .success ? "SUCCESS" : "FAILED")")
-        print("  📍 Native Cocoa position: \(position)")
+        print("  📍 Final position: \(position)")
     }
     
-    /**
-     * Calculate the target position for a window within a specific quadrant of a monitor.
-     * All calculations are performed in the native Cocoa coordinate system.
-     * 
-     * @param quadrant The target quadrant (e.g., "top_left", "bottom_right").
-     * @param windowSize The size of the window to be positioned.
-     * @param visibleFrame The visible frame of the target monitor in Cocoa coordinates.
-     * @return The calculated top-left point of the window in Cocoa coordinates.
-     */
     func calculateQuadrantPosition(quadrant: String, windowSize: CGSize, visibleFrame: CGRect) -> CGPoint {
         let baseX: CGFloat
         let baseY: CGFloat
         
         switch quadrant {
         case "top_left":
-            // Position at the top-left corner of the visible frame.
             baseX = visibleFrame.minX
-            baseY = visibleFrame.maxY
+            baseY = visibleFrame.minY
         case "top_right":
-            // Position at the top-right corner, accounting for the window's width.
             baseX = visibleFrame.maxX - windowSize.width
-            baseY = visibleFrame.maxY
+            baseY = visibleFrame.minY
         case "bottom_left":
-            // Position at the bottom-left corner, accounting for the window's height.
             baseX = visibleFrame.minX
-            baseY = visibleFrame.minY + windowSize.height
+            baseY = visibleFrame.maxY - windowSize.height
         case "bottom_right":
-            // Position at the bottom-right corner, accounting for both width and height.
             baseX = visibleFrame.maxX - windowSize.width
-            baseY = visibleFrame.minY + windowSize.height
+            baseY = visibleFrame.maxY - windowSize.height
         default:
-            // Default to the top-left corner if the quadrant is unknown.
             baseX = visibleFrame.minX
-            baseY = visibleFrame.maxY
+            baseY = visibleFrame.minY
         }
         
         return CGPoint(x: baseX, y: baseY)
     }
     
-    /**
-     * Reliably find the built-in screen without relying on NSScreen.main which can change.
-     * This function uses multiple detection methods to identify the built-in display.
-     *
-     * @return The built-in NSScreen, or the first available screen as fallback.
-     */
     func getBuiltinScreen() -> NSScreen {
-        // Method 1: Look for screens with built-in indicators in the name
-        if let builtinScreen = NSScreen.screens.first(where: { screen in
-            screen.localizedName.contains("Built-in") || 
-            screen.localizedName.contains("Liquid")
-        }) {
-            NSLog("getBuiltinScreen: Found builtin by name: \(builtinScreen.localizedName)")
+        if let builtinScreen = NSScreen.screens.first(where: { $0.localizedName.contains("Built-in") || $0.localizedName.contains("Liquid") }) {
             return builtinScreen
         }
-        
-        // Method 2: Look for screen at origin (0,0) - builtin is usually positioned there
-        if let originScreen = NSScreen.screens.first(where: { screen in
-            screen.frame.origin == CGPoint(x: 0, y: 0)
-        }) {
-            NSLog("getBuiltinScreen: Found builtin by origin: \(originScreen.localizedName)")
+        if let originScreen = NSScreen.screens.first(where: { $0.frame.origin == .zero }) {
             return originScreen
         }
-        
-        // Method 3: Look for the smallest screen (builtin is typically smaller than externals)
-        if let smallestScreen = NSScreen.screens.min(by: { screen1, screen2 in
-            let area1 = screen1.frame.width * screen1.frame.height
-            let area2 = screen2.frame.width * screen2.frame.height
-            return area1 < area2
-        }) {
-            NSLog("getBuiltinScreen: Found builtin by smallest area: \(smallestScreen.localizedName)")
+        if let smallestScreen = NSScreen.screens.min(by: { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height }) {
             return smallestScreen
         }
-        
-        // Fallback: Use the first screen (should never happen but provides safety)
-        NSLog("getBuiltinScreen: Using fallback first screen")
         return NSScreen.screens.first!
     }
     
     // MARK: - Debug Utilities
     
-    func debugDescription(rect: CGRect, label: String, system: String = "Native Cocoa") -> String {
+    func debugDescription(rect: CGRect, label: String, system: String = "Global") -> String {
         return "\(label): (\(rect.origin.x), \(rect.origin.y), \(rect.width), \(rect.height)) [\(system)]"
     }
 }
