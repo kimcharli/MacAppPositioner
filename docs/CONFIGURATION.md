@@ -1,97 +1,206 @@
 # Configuration Guide
 
-## Configuration Structure
+This is the single reference for the `config.json` format used by Mac App Positioner.
 
-The `config.json` file has a clear and consistent structure:
+## Config File Locations
 
-### 1. Profiles Section
-Defines monitor configurations for different environments (home, office, etc.)
+`ConfigManager` searches these paths in order and uses the first one found:
 
-### 2. Layout Section
-**Defines application positions and positioning behavior:**
+1. `~/.config/mac-app-positioner/config.json` (recommended)
+2. `~/Library/Application Support/MacAppPositioner/config.json`
+3. `./config.json` (current directory, useful for CLI)
+4. `~/.mac-app-positioner/config.json` (legacy)
 
-#### Workspace Layout
-Each app in workspace has:
-- `position`: Where the app should be placed (`"top_left"`, `"top_right"`, `"bottom_left"`, `"bottom_right"`)
-- `positioning`: Optional override (`"keep"` to prevent repositioning)
-- `sizing`: Optional override (`"keep"` is default - preserves window size)
-
-#### Builtin Layout
-Each app in builtin has:
-- `positioning`: Optional (`"keep"` to prevent repositioning, default is to move to builtin screen)
-- `sizing`: Optional (`"keep"` is default - preserves window size)
-
-### 3. Applications Section
-**Defines special behaviors only:**
-- `positioning_strategy`: Special positioning logic (e.g., `"chrome"` for Chrome-specific handling)
-- Other app-specific settings that don't fit in the layout
-
-## How It Works
-
-1. Apps in `layout.workspace` are positioned according to their `position` value
-2. Apps in `layout.builtin` are moved to the built-in display
-3. Both can have `position: "keep"` to prevent repositioning
-4. The `applications` section is only for special behaviors
-
-## Position Values
-
-### Workspace Apps
-- `"top_left"`, `"top_right"`, `"bottom_left"`, `"bottom_right"` - Quadrant positions
-- `"keep"` - Don't reposition (stays in current location)
-
-### Builtin Apps
-- `"center"` - Center on builtin display (default)
-- `"keep"` - Don't reposition (stays in current location)
-
-## Example
+## Top-Level Structure
 
 ```json
 {
+  "profiles": { ... },
+  "layout": { ... },
+  "applications": { ... }
+}
+```
+
+| Section | Required | Purpose |
+| ------- | -------- | ------- |
+| `profiles` | Yes | Monitor configurations for different environments |
+| `layout` | Yes | Application-to-position assignments |
+| `applications` | No | App-specific behaviors (e.g., Chrome workaround) |
+
+## Profiles
+
+Each profile defines a monitor setup identified by resolutions.
+
+```json
+"profiles": {
+  "office": {
+    "monitors": [
+      { "resolution": "3440x1440", "position": "workspace" },
+      { "resolution": "2560x1440", "position": "left" },
+      { "resolution": "macbook", "position": "builtin" }
+    ]
+  },
+  "home": {
+    "monitors": [
+      { "resolution": "3840x2160", "position": "workspace" },
+      { "resolution": "macbook", "position": "builtin" }
+    ]
+  }
+}
+```
+
+### Monitor Position Types
+
+| Position | Meaning |
+| -------- | ------- |
+| `workspace` | Target monitor for quadrant-based app positioning |
+| `builtin` | MacBook's built-in display |
+| `left`, `right` | Physical position descriptors for additional monitors |
+| `secondary` | Additional monitor without specific role |
+
+### Resolution Format
+
+- External monitors: `"3440x1440"`, `"3840x2160"`, etc.
+- Built-in display: `"macbook"` (shorthand) or exact dimensions like `"2056x1329"`
+
+Use `./dist/MacAppPositioner detect` or `generate-config` to see your actual resolutions.
+
+## Layout
+
+Defines where applications are positioned. Layout has two sections: `workspace` (external monitor quadrants) and `builtin` (MacBook screen).
+
+```json
+"layout": {
+  "workspace": {
+    "com.google.Chrome": { "position": "top_left" },
+    "com.microsoft.Outlook": { "position": "bottom_left" },
+    "com.microsoft.teams2": { "position": "top_right" },
+    "com.kakao.KakaoTalkMac": { "position": "bottom_right" }
+  },
+  "builtin": {
+    "md.obsidian": { "position": "keep" }
+  }
+}
+```
+
+### Workspace Position Values
+
+| Position | Description |
+| -------- | ----------- |
+| `top_left` | Top-left quadrant of workspace monitor |
+| `top_right` | Top-right quadrant |
+| `bottom_left` | Bottom-left quadrant |
+| `bottom_right` | Bottom-right quadrant |
+| `keep` | Do not reposition |
+
+### Builtin Position Values
+
+| Position | Description |
+| -------- | ----------- |
+| `center` | Center on built-in display (default) |
+| `keep` | Do not reposition |
+
+### Workspace Quadrant Diagram
+
+```text
++-------------------+-------------------+
+|    top_left       |    top_right      |
+|                   |                   |
++-------------------+-------------------+
+|   bottom_left     |   bottom_right    |
+|                   |                   |
++-------------------+-------------------+
+```
+
+### Optional Properties
+
+Each app entry supports:
+
+- `position` (required): Where to place the window
+- `sizing`: `"keep"` (default) preserves current window size
+
+## Applications
+
+Defines special behaviors. Only needed for apps that require workarounds.
+
+```json
+"applications": {
+  "com.google.Chrome": {
+    "positioning_strategy": "chrome"
+  }
+}
+```
+
+| Property | Values | Purpose |
+| -------- | ------ | ------- |
+| `positioning_strategy` | `"chrome"`, `"default"` | Special window handling logic |
+| `positioning` | `"keep"` | Override to prevent repositioning |
+| `sizing` | `"keep"` | Override to prevent resizing |
+
+## Complete Example
+
+```json
+{
+  "profiles": {
+    "office": {
+      "monitors": [
+        { "resolution": "3440x1440", "position": "workspace" },
+        { "resolution": "macbook", "position": "builtin" }
+      ]
+    }
+  },
   "layout": {
     "workspace": {
-      "com.google.Chrome": {
-        "position": "top_left"
-      },
-      "com.microsoft.Outlook": {
-        "position": "bottom_left"
-      }
+      "com.google.Chrome": { "position": "top_left" },
+      "com.microsoft.Outlook": { "position": "bottom_left" },
+      "com.microsoft.teams2": { "position": "top_right" },
+      "com.kakao.KakaoTalkMac": { "position": "bottom_right" }
     },
     "builtin": {
-      "md.obsidian": {
-        "position": "keep"  // Stays where it is
-      }
+      "md.obsidian": { "position": "keep" }
     }
   },
   "applications": {
     "com.google.Chrome": {
-      "positioning_strategy": "chrome"  // Special Chrome window handling
+      "positioning_strategy": "chrome"
     }
   }
 }
 ```
 
 In this example:
-- Chrome: Positioned at top_left with special Chrome handling
-- Outlook: Positioned at bottom_left on workspace monitor
-- Obsidian: Listed for builtin but won't move due to "keep"
 
-## Usage Commands
+- Chrome goes to top-left of the 3440x1440 workspace monitor with special Chrome handling
+- Outlook goes to bottom-left, Teams top-right, KakaoTalk bottom-right
+- Obsidian stays wherever it is on the built-in display
 
-The MacAppPositioner supports intelligent profile application:
+## Finding Bundle IDs
 
-### Auto-Detection Mode
 ```bash
-MacAppPositioner apply
-```
-- Automatically detects current monitor configuration
-- Applies the matching profile
-- No need to specify profile name
+# Detect a specific app's bundle ID
+osascript -e 'id of app "Chrome"'
+# Output: com.google.Chrome
 
-### Force Mode
-```bash
-MacAppPositioner apply office
-MacAppPositioner apply home
+# List all running foreground apps
+osascript -e 'tell application "System Events" to get bundle identifier of every process whose background only is false'
 ```
-- Forces application of specific profile
-- Bypasses auto-detection
-- Useful for testing or manual override
+
+### Common Bundle IDs
+
+**Browsers**: `com.google.Chrome`, `com.apple.Safari`, `org.mozilla.firefox`
+
+**Communication**: `com.tinyspeck.slackmacgap` (Slack), `com.microsoft.teams2`, `com.hnc.Discord`, `us.zoom.xos`
+
+**Development**: `com.microsoft.VSCode`, `com.apple.dt.Xcode`, `com.apple.Terminal`, `com.googlecode.iterm2`
+
+**Productivity**: `com.microsoft.Outlook`, `notion.id`, `md.obsidian`
+
+## Finding Monitor Resolutions
+
+```bash
+# Auto-detect current monitor setup
+./dist/MacAppPositioner detect
+
+# Generate a config template from current setup
+./dist/MacAppPositioner generate-config
+```

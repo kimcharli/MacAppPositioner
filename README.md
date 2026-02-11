@@ -1,4 +1,4 @@
-> **Note for AI Agents:** Before performing any actions, please read and adhere to the guidelines in the **[AI Agent Guide](docs/AGENTS.md)**. This document contains critical instructions for interacting with this codebase and should be kept updated.
+> **Note for AI Agents:** Before performing any actions, please read the **[AI Agent Guide](docs/AGENTS.md)**.
 
 # Mac App Positioner
 
@@ -12,68 +12,59 @@ A native macOS application that automatically positions application windows acco
 
 ## Features
 
-✅ **Dual Interface** - Available as both CLI and GUI applications
-✅ **Multi-Monitor Support** - Works seamlessly across multiple displays with different resolutions
-✅ **Native Cocoa Coordinate System** - Uses Apple's official coordinate system for precise positioning
-✅ **Exact Corner Positioning** - Zero padding, pixel-perfect window placement
-✅ **Quadrant Positioning** - Divide your workspace monitor into four zones for systematic app organization
-✅ **Profile System** - Create different layouts for home, office, or travel setups
-✅ **Dynamic Detection** - Automatically detects your current monitor configuration
-✅ **Application-Specific Rules** - Handle apps that resist positioning (like Chrome)
-✅ **Native Swift Implementation** - Fast, efficient, and follows macOS conventions
+- **Dual Interface** - CLI and GUI applications sharing the same core logic
+- **Multi-Monitor Support** - Works across multiple displays with different resolutions
+- **Quadrant Positioning** - Divide workspace monitor into four zones for systematic app organization
+- **Profile System** - Different layouts for home, office, or travel setups
+- **Dynamic Detection** - Automatically detects current monitor configuration
+- **Plan Preview** - See what will change before applying a layout
+- **Application-Specific Rules** - Handle apps that resist positioning (like Chrome)
+- **Native Swift** - Fast, efficient, follows macOS conventions
 
 ## Quick Start
 
-1.  **Build the application** from source:
+1. **Build**:
+
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/kimcharli/MacAppPositioner.git
     cd MacAppPositioner
     ./Scripts/build-all.sh
     ```
-2.  **Configure your layouts** by creating a `config.json` file.
-3.  **Grant Accessibility Permissions** when prompted or in System Settings.
 
-For detailed steps, see the **[Installation Guide](docs/INSTALLATION.md)** and the **[Configuration Guide](docs/CONFIGURATION.md)**.
+2. **Configure** your layouts in `config.json` (see [Configuration Guide](docs/CONFIGURATION.md))
+3. **Grant Accessibility Permissions** when prompted
+4. **Apply**:
+
+    ```bash
+    ./dist/MacAppPositioner apply
+    ```
 
 ## Documentation
 
-This project has comprehensive documentation for both users and developers.
+### For Users
 
--   📖 **[Installation Guide](docs/INSTALLATION.md)** - Step-by-step instructions to get up and running.
--   ⚙️ **[Configuration Guide](docs/CONFIGURATION.md)** - Detailed explanation of the `config.json` file.
--   🚀 **[Usage Guide](docs/USAGE.md)** - Comprehensive user guide with examples and workflows.
--   🔧 **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Solutions for common issues.
+- [Installation Guide](docs/INSTALLATION.md) - Build, install, and set up permissions
+- [Configuration Guide](docs/CONFIGURATION.md) - Config file format, profiles, layouts, bundle IDs
+- [Usage Guide](docs/USAGE.md) - CLI commands, GUI usage, workflows
+- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
 
-## For Developers
+### For Developers
 
-Developers should start with the main development guide and pay special attention to the architectural documents to prevent common, critical bugs.
-
-🚨 **[Development Guide](docs/DEVELOPMENT.md)** - **START HERE.** Covers setup, building, testing, and contribution guidelines.
-
-### ⚠️ Critical Architecture Documents
-These documents exist because positioning and coordinate system issues have occurred multiple times. Following these guidelines prevents them from recurring.
-
-1.  **[COORDINATE_SYSTEM_GUIDE.md](docs/COORDINATE_SYSTEM_GUIDE.md)** - Explains the native Cocoa coordinate system. **Reading this is mandatory to prevent positioning failures.**
-2.  **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - A deep dive into the system architecture and component design.
-3.  **[TERMINOLOGY.md](docs/TERMINOLOGY.md)** - A reference for key terms like "Primary Monitor" vs. "Main Display" to avoid confusion.
-4.  **[AI_AGENT_GUIDE.md](docs/AGENTS.md)** - Guidelines for AI-assisted development.
+- [Development Guide](docs/DEVELOPMENT.md) - Setup, building, testing, coordinate system rules, terminology
+- [Architecture](docs/ARCHITECTURE.md) - System design, components, data flow
+- [AI Agent Guide](docs/AGENTS.md) - Quick reference for AI-assisted development
 
 ## Roadmap
 
-✅ **Completed:** Native Cocoa Coordinate System & Dual Interface (CLI + GUI)
-🚧 **Current Phase:** Advanced Features & Polish (Profile Management, Layout Snapshots)
-📋 **Next:** Menu Bar App Integration
-🎯 **Future:** Intelligence & Automation, Polish & Distribution
-
 See [TODO.md](TODO.md) for the detailed development roadmap.
+
+**Current state**: Dual-interface app (CLI + GUI) with native coordinate system, multi-monitor support, and profile-based layouts.
+
+**Next**: Enhanced profile management, layout snapshots, menu bar integration improvements.
 
 ## Contributing
 
-We welcome contributions! Please start by reading the **[Development Guide](docs/DEVELOPMENT.md)** to learn about:
-- Setting up the development environment
-- Code style guidelines
-- Testing procedures
-- The pull request process
+See the [Development Guide](docs/DEVELOPMENT.md) for setup, code style, testing, and PR process.
 
 ## License
 

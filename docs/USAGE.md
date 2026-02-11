@@ -1,89 +1,51 @@
 # Usage Guide
 
-This guide explains how to use Mac App Positioner to manage window layouts across multiple monitors.
+How to use Mac App Positioner to manage window layouts across multiple monitors.
 
-## Quick Start
+## Prerequisites
 
-### 1. Enable Accessibility Permissions
-Before using Mac App Positioner, you must grant accessibility permissions:
+1. **Accessibility permissions** must be granted (see [Installation Guide](INSTALLATION.md))
+2. **config.json** must be set up (see [Configuration Guide](CONFIGURATION.md))
+3. **Applications** you want to position must be running
 
-1. Open **System Preferences** → **Security & Privacy** → **Privacy** → **Accessibility**
-2. Click the lock icon and enter your password
-3. Add the MacAppPositioner executable or Terminal.app
-4. Ensure the checkbox is enabled
+## CLI Commands
 
-### 2. Configure Your Setup
-Create or edit `config.json` in the project directory with your monitor configuration and desired layout.
+All commands use the binary in `dist/`:
 
-### 3. Basic Commands
 ```bash
-# Detect current monitor setup and find matching profile
-./MacAppPositioner detect
-
-# Apply a specific profile layout
-./MacAppPositioner apply office
-
-# Update profile with current monitor configuration
-./MacAppPositioner update office
-
-# Generate configuration template for current setup
-./MacAppPositioner generate-config
+./dist/MacAppPositioner <command> [arguments]
 ```
-
-## GUI Usage
-
-The Mac App Positioner also provides a graphical user interface for easier interaction.
-
-### Opening the Dashboard
-
-The GUI can be opened by clicking the monitor icon (🖥️) in the menu bar and selecting "Open Dashboard".
-
-### Dashboard Features
-
-The dashboard provides the following features:
-
--   **Profile Detection:** Shows the currently detected profile based on your monitor setup. You can refresh the detection at any time.
--   **Available Profiles:** Lists all the profiles defined in your `config.json`.
--   **Apply Layout:** For each profile, you can click the "Apply Layout" button to position your applications according to that profile's layout.
--   **Plan Layout:** Before applying a layout, you can click the "Plan" button. This will open a new window showing a detailed execution plan, including the current and target positions for each application. This is useful for previewing changes and debugging positioning issues.
-
-## Command Reference
 
 ### `detect` - Profile Detection
-Automatically detects your current monitor configuration and finds a matching profile.
+
+Detects your current monitor configuration and finds a matching profile.
 
 ```bash
-./MacAppPositioner detect
+./dist/MacAppPositioner detect
 ```
 
-**Output Examples:**
-```
+Output:
+
+```text
 Detected profile: office
-# Profile found matching current monitor setup
-
-No matching profile detected.
-# No profile matches current configuration
 ```
 
-**Use Cases:**
-- Verify your current setup matches a configured profile
-- Troubleshoot configuration issues
-- Confirm monitor detection is working properly
+### `plan` - Preview Execution Plan
 
-### `plan` - Display Execution Plan
-Shows a detailed execution plan for a detected profile without applying it.
+Shows what would happen without actually moving windows.
 
 ```bash
-./MacAppPositioner plan
+./dist/MacAppPositioner plan
+./dist/MacAppPositioner plan office    # Specific profile
 ```
 
-**Output Examples:**
-```
-✅ Execution Plan for Profile: office
+Output:
+
+```text
+Execution Plan for Profile: office
 
 Monitors:
   - 3440x1440 (Workspace: true, Built-in: false)
-  - 2560x1440 (Workspace: false, Built-in: false)
   - 1440x900 (Workspace: false, Built-in: true)
 
 App Actions:
@@ -93,334 +55,89 @@ App Actions:
     Target: (0.0, 0.0, 1200.0, 800.0)
   - Slack:
     Action: KEEP
-    Current: (1920.0, 0.0, 1280.0, 800.0)
-    Target: (1920.0, 0.0, 1280.0, 800.0)
 ```
-
-**Use Cases:**
-- Preview the changes before applying a profile.
-- Debug positioning issues by inspecting the current and target positions.
-- Verify that the correct profile and applications are being targeted.
 
 ### `apply` - Apply Layout
-Positions running applications according to a profile's layout configuration.
+
+Positions running applications according to a profile's layout.
 
 ```bash
-./MacAppPositioner apply <profile_name>
+./dist/MacAppPositioner apply          # Auto-detect profile
+./dist/MacAppPositioner apply office   # Force specific profile
 ```
 
-**Examples:**
-```bash
-# Apply the "office" profile layout
-./MacAppPositioner apply office
+### `update` - Update Profile
 
-# Apply the "home" profile layout  
-./MacAppPositioner apply home
-```
-
-**Output Examples:**
-```
-Initial position of com.google.Chrome: (100, 200)
-Moving com.google.Chrome to (0, 0)
-  ✅ Successfully moved com.google.Chrome
-  Final position of com.google.Chrome: (0, 0)
-
-  ❌ Failed to move com.microsoft.Outlook
-```
-
-**Requirements:**
-- Target applications must be running
-- Applications must be identifiable by bundle identifier
-- Accessibility permissions must be enabled
-
-### `update` - Update Profile Configuration
-Updates an existing profile with the current monitor configuration.
+Updates an existing profile with your current monitor configuration.
 
 ```bash
-./MacAppPositioner update <profile_name>
+./dist/MacAppPositioner update office
 ```
 
-**Example:**
-```bash
-# Update the "office" profile with current monitor setup
-./MacAppPositioner update office
-```
+### `generate-config` - Generate Config Template
 
-**Use Cases:**
-- Monitor arrangement changed in System Preferences
-- Added or removed monitors
-- Want to save current physical setup to existing profile
-
-### `generate-config` - Configuration Template
-Generates JSON configuration template based on current monitor setup.
+Outputs a JSON configuration template based on your current monitors.
 
 ```bash
-./MacAppPositioner generate-config
+./dist/MacAppPositioner generate-config
 ```
 
-**Output Example:**
-```json
-"monitors": [
-  {
-    "resolution": "macbook",
-    "position": "secondary"
-  },
-  {
-    "resolution": "3440x1440", 
-    "position": "left"
-  }
-]
-```
+## GUI Usage
 
-**Use Cases:**
-- Creating new profile configurations
-- Understanding current monitor detection
-- Troubleshooting monitor resolution matching
+### Menu Bar
 
-## Configuration Guide
+The GUI runs as a menu bar app. Click the monitor icon in the menu bar for:
 
-### Understanding config.json Structure
+- **Detect Current Setup** - Identify which profile matches
+- **Apply Auto** - Auto-detect and apply the matching profile
+- **Open Dashboard** - Open the full management window
 
-```json
-{
-  "profiles": {
-    "office": {
-      "monitors": [
-        {
-          "resolution": "3440x1440",
-          "position": "workspace"
-        },
-        {
-          "resolution": "2560x1440", 
-          "position": "left"
-        },
-        {
-          "resolution": "macbook",
-          "position": "builtin"
-        }
-      ]
-    }
-  },
-  "layout": {
-    "workspace": {
-      "top_left": "com.google.Chrome",
-      "top_right": "com.microsoft.teams2", 
-      "bottom_left": "com.microsoft.Outlook",
-      "bottom_right": "com.kakao.KakaoTalkMac"
-    },
-    "builtin": [
-      "md.obsidian"
-    ]
-  },
-  "applications": {
-    "com.google.Chrome": {
-      "positioning_strategy": "chrome"
-    }
-  }
-}
-```
+### Dashboard
 
-### Profile Configuration
+The dashboard provides:
 
-#### Monitor Definitions
-Each monitor is defined by:
-- **resolution**: Screen dimensions (e.g., "3440x1440") or "macbook" for built-in display
-- **position**: Role in layout - "workspace", "left", "right", "secondary", "builtin"
-
-#### Monitor Position Types
-- **workspace**: Target monitor for quadrant layout (where apps will be positioned)
-- **left/right**: Physical position relative to main display
-- **secondary**: Additional monitor without specific positioning
-- **builtin**: MacBook's built-in display
-
-#### Finding Monitor Resolutions
-Use the `generate-config` command to see detected resolutions:
-```bash
-./MacAppPositioner generate-config
-```
-
-### Layout Configuration
-
-#### Primary Monitor Layout (Quadrant System)
-The workspace monitor is divided into four equal quadrants:
-
-```
-┌─────────────────┬─────────────────┐
-│   top_left      │   top_right     │
-│                 │                 │
-├─────────────────┼─────────────────┤
-│  bottom_left    │  bottom_right   │
-│                 │                 │
-└─────────────────┴─────────────────┘
-```
-
-#### Application Layout Assignment
-Map applications to quadrants using bundle identifiers:
-
-```json
-"workspace": {
-  "top_left": "com.google.Chrome",
-  "top_right": "com.microsoft.teams2",
-  "bottom_left": "com.microsoft.Outlook", 
-  "bottom_right": "com.kakao.KakaoTalkMac"
-}
-```
-
-#### Finding Bundle Identifiers
-**Method 1: Using Terminal**
-```bash
-# Find bundle ID for running app
-osascript -e 'id of app "Chrome"'
-# Output: com.google.Chrome
-
-# List all running applications with bundle IDs
-osascript -e 'tell application "System Events" to name of every application process whose background only is false'
-```
-
-**Method 2: Using System Information**
-1. Hold Option key and click Apple menu
-2. Select "System Information"
-3. Navigate to "Software" → "Applications"
-4. Find app and note "Bundle Identifier"
-
-### Application-Specific Settings
-
-Some applications may require special handling:
-
-```json
-"applications": {
-  "com.google.Chrome": {
-    "positioning_strategy": "chrome"
-  }
-}
-```
-
-**Positioning Strategies:**
-- **chrome**: Special handling for Chrome's window positioning resistance
-- **default**: Standard positioning (default if not specified)
+- **Profile Detection**: Shows the currently detected profile. Refresh at any time.
+- **Available Profiles**: Lists all profiles from your config.
+- **Apply Layout**: Click to position apps per that profile.
+- **Plan Layout**: Preview the execution plan before applying (shows current vs target positions).
 
 ## Common Workflows
 
+### Daily Usage
+
+1. Connect your monitors
+2. Launch your apps
+3. Run `./dist/MacAppPositioner apply` (or click Apply Auto in menu bar)
+
 ### Setting Up a New Profile
 
-1. **Arrange monitors** in System Preferences as desired
-2. **Generate configuration** to see current setup:
-   ```bash
-   ./MacAppPositioner generate-config
-   ```
-3. **Add profile** to config.json with detected monitor configurations
-4. **Configure layout** with desired application positions
-5. **Test profile** detection:
-   ```bash
-   ./MacAppPositioner detect
-   ```
+1. Arrange monitors in System Settings > Displays
+2. Run `./dist/MacAppPositioner generate-config` to see detected resolutions
+3. Add the profile to your `config.json` (see [Configuration Guide](CONFIGURATION.md))
+4. Test: `./dist/MacAppPositioner detect`
+5. Apply: `./dist/MacAppPositioner apply`
 
-### Daily Usage Workflow
+### Switching Between Setups
 
-1. **Connect external monitors** and arrange in System Preferences
-2. **Launch applications** you want to position
-3. **Detect profile** to confirm setup:
-   ```bash
-   ./MacAppPositioner detect
-   ```
-4. **Apply layout** to position all applications:
-   ```bash
-   ./MacAppPositioner apply office
-   ```
-
-### Switching Between Configurations
-
-**Office to Home:**
 ```bash
-# Disconnect office monitors, connect home setup
-./MacAppPositioner detect        # Should show "home"
-./MacAppPositioner apply home    # Apply home layout
+# Arrived at office - disconnect home monitor, connect office monitors
+./dist/MacAppPositioner detect         # Should show "office"
+./dist/MacAppPositioner apply office
 ```
-
-**Updating Configurations:**
-```bash
-# Changed monitor arrangement in System Preferences
-./MacAppPositioner update office  # Update office profile
-./MacAppPositioner apply office   # Apply updated layout
-```
-
-## Tips and Best Practices
-
-### Monitor Setup
-- **Consistent Arrangements**: Keep monitor arrangements consistent for reliable profile detection
-- **Workspace vs Main**: Remember that "workspace" (where apps are positioned) is independent from macOS "main" display
-- **Resolution Matching**: Profile detection matches by exact resolution strings
-
-### Application Management
-- **Launch First**: Start applications before applying layout
-- **Bundle Identifiers**: Use exact bundle identifiers in configuration
-- **Test Individually**: Test positioning with one app before configuring multiple
-
-### Troubleshooting Commands
-```bash
-# Check current monitor setup
-./MacAppPositioner generate-config
-
-# Verify profile exists
-./MacAppPositioner detect
-
-# Test with single application running
-# (easier to debug than multiple apps)
-```
-
-### Performance Tips
-- **Close unnecessary apps** before applying layouts (faster execution)
-- **Use specific profiles** rather than always detecting
-- **Keep config.json** in the same directory as executable
-
-## Integration and Automation
 
 ### Shell Aliases
-Add to your shell profile (.bashrc, .zshrc):
+
+Add to `~/.zshrc`:
+
 ```bash
-alias layout-office='~/path/to/MacAppPositioner apply office'
-alias layout-home='~/path/to/MacAppPositioner apply home'  
-alias layout-detect='~/path/to/MacAppPositioner detect'
+alias layout-office='~/path/to/dist/MacAppPositioner apply office'
+alias layout-home='~/path/to/dist/MacAppPositioner apply home'
+alias layout-detect='~/path/to/dist/MacAppPositioner detect'
 ```
 
-### Automated Execution
-**Launch at Login:**
-Create a launch daemon or use automation tools to apply layouts automatically.
+## Tips
 
-**Monitor Change Detection:**
-Use system events or third-party tools to trigger layout application when monitors change.
-
-### Keyboard Shortcuts
-Set up system-wide keyboard shortcuts using:
-- **Automator** with shell script actions
-- **BetterTouchTool** or similar utilities
-- **Custom AppleScript** applications
-
-## Advanced Usage
-
-### Multiple Profiles for Same Setup
-```json
-"profiles": {
-  "office-dev": { /* same monitors, development layout */ },
-  "office-meeting": { /* same monitors, meeting layout */ }
-}
-```
-
-### Conditional Application Positioning
-Position different apps based on context:
-- Development vs meeting layouts
-- Personal vs work application sets
-- Time-of-day specific configurations
-
-### Scripted Workflows
-```bash
-#!/bin/bash
-# Smart layout application
-PROFILE=$(./MacAppPositioner detect)
-if [ "$PROFILE" != "No matching profile detected." ]; then
-    echo "Applying layout: $PROFILE"
-    ./MacAppPositioner apply "$PROFILE"
-else
-    echo "No profile found for current setup"
-fi
-```
+- **Launch apps first**: Windows must exist before they can be positioned
+- **Use `plan` to debug**: Preview before applying to see what will change
+- **Test one app first**: When setting up a new profile, test with a single app before configuring many
+- **Monitor arrangement matters**: Profile detection matches by resolution set, not physical arrangement
