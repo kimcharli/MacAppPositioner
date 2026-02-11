@@ -141,14 +141,16 @@ After conversion, all internal calculations (quadrant positioning, window placem
 
 2. **Convert Cocoa→internal at the boundary only.** `CocoaMonitorInfo.init(from:)` handles this. Do not convert inside business logic.
 
-3. **Use actual window dimensions** for positioning. Never hardcode default sizes — get the real size from `getCurrentWindowPosition()`.
+3. **Use actual window dimensions** for positioning. Never hardcode default sizes — get the real size from `getWindowRect()`.
 
-4. **Verify positioning visually.** Debug output alone is insufficient. Use AppleScript or visual confirmation:
+4. **Restore focus after positioning.** `applyProfile()` activates each app to position it via the Accessibility API. Always save `NSWorkspace.shared.frontmostApplication` before the loop and call `previousApp.activate()` after all positioning completes, so the user's original window regains focus.
+
+5. **Verify positioning visually.** Debug output alone is insufficient. Use AppleScript or visual confirmation:
    ```bash
    osascript -e 'tell application "Chrome" to get bounds of front window'
    ```
 
-5. **Always specify the correct profile** when detecting monitors. The workspace monitor comes from the profile config, not from `NSScreen.screens` order.
+6. **Always specify the correct profile** when detecting monitors. The workspace monitor comes from the profile config, not from `NSScreen.screens` order.
 
 ### Historical Bugs to Avoid
 

@@ -179,7 +179,10 @@ class CocoaProfileManager {
             print("Failed to load config or profile.")
             return
         }
-        
+
+        // Remember which app had focus so we can restore it after positioning
+        let previousApp = NSWorkspace.shared.frontmostApplication
+
         let allMonitors = coordinateManager.getAllMonitors(for: profileName)
         
         guard let workspaceMonitorConfig = profile.monitors.first(where: { $0.position == "workspace" }) else {
@@ -219,8 +222,13 @@ class CocoaProfileManager {
                 )
             }
         }
+
+        // Restore focus to the app that was active before positioning
+        if let previousApp = previousApp {
+            previousApp.activate()
+        }
     }
-    
+
     // MARK: - Utility Functions
     
     private func getAppPID(bundleID: String) -> pid_t? {
