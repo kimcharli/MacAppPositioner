@@ -9,10 +9,12 @@ class MenuBarManager: NSObject {
     private let profileManager = CocoaProfileManager()
 
     func setupMenuBar() {
-        // Request notification permissions
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
-            if let error = error {
-                NSLog("Failed to request notification permissions: \(error.localizedDescription)")
+        // Request notification permissions (requires valid app bundle)
+        if Bundle.main.bundleIdentifier != nil {
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
+                if let error = error {
+                    NSLog("Failed to request notification permissions: \(error.localizedDescription)")
+                }
             }
         }
 
@@ -206,6 +208,10 @@ class MenuBarManager: NSObject {
     }
     
     private func showNotification(title: String, message: String) {
+        guard Bundle.main.bundleIdentifier != nil else {
+            NSLog("\(title): \(message)")
+            return
+        }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = message

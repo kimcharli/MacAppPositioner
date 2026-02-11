@@ -34,15 +34,20 @@ If permissions were recently changed, restart the terminal or app.
 tccutil reset Accessibility
 ```
 
-### 2. GUI and CLI Position Windows Differently
+### 2. GUI Menu Bar Apply Positions Windows Wrong (or Does Nothing)
 
-**Symptoms**: CLI puts windows in the right place, but GUI puts them somewhere wrong.
+**Symptoms**: Clicking "Apply Auto" from the menu bar either does nothing visible, or moves windows to wrong positions. The CLI works correctly with the same profile.
 
 **Root Cause**: `NSScreen.main` returns different screens depending on app type:
-- **CLI**: Returns the builtin monitor (at origin 0,0)
-- **GUI**: Returns whichever monitor has mouse focus at launch time
 
-**Solution**: This is fixed in the current code. The app uses `getBuiltinScreen()` instead of `NSScreen.main`. If you see this behavior, rebuild:
+- **CLI**: Returns the menu bar screen (Cocoa origin 0,0)
+- **GUI**: Returns whichever monitor has mouse focus
+
+The coordinate conversion in `getAllMonitors()` used `NSScreen.main?.frame.height` to compute the Cocoa→internal Y flip. With the wrong screen height, all monitor coordinates shift, causing windows to land on the wrong position or wrong monitor entirely.
+
+**Fix**: `getAllMonitors()` now uses `NSScreen.screens.first?.frame.height`. Per Apple docs, `NSScreen.screens.first` always returns the menu bar screen regardless of app type. This was fixed in `CocoaCoordinateManager.swift`.
+
+If you see this behavior on an older build, rebuild:
 
 ```bash
 ./Scripts/build-all.sh

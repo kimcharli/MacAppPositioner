@@ -137,7 +137,7 @@ After conversion, all internal calculations (quadrant positioning, window placem
 
 ### Critical Rules
 
-1. **Do NOT use `NSScreen.main` for monitor identification.** It returns different screens for CLI vs GUI apps (whichever monitor has mouse focus in GUI). Use `getBuiltinScreen()` instead.
+1. **Do NOT use `NSScreen.main` for coordinate reference height or monitor identification.** It returns different screens for CLI vs GUI apps (whichever monitor has mouse focus in GUI). Use `NSScreen.screens.first` for the menu bar screen (Cocoa origin), and `getBuiltinScreen()` for built-in display identification.
 
 2. **Convert Cocoa→internal at the boundary only.** `CocoaMonitorInfo.init(from:)` handles this. Do not convert inside business logic.
 
@@ -154,8 +154,8 @@ After conversion, all internal calculations (quadrant positioning, window placem
 
 | Bug | Root Cause | Prevention |
 |-----|-----------|-----------|
+| GUI menu bar Apply does nothing visible / positions to wrong location | `getAllMonitors()` used `NSScreen.main?.frame.height` for Cocoa→internal conversion. In GUI apps, `NSScreen.main` returns the screen with mouse focus (not the menu bar screen), producing wrong `mainScreenHeight` and therefore wrong Y coordinates for all monitors | Use `NSScreen.screens.first?.frame.height` — `screens.first` always returns the menu bar screen regardless of app type |
 | Chrome on wrong monitor | `getAllMonitors()` used first profile instead of specified profile | Always pass profile name to `getAllMonitors(for:)` |
-| Wrong Y coordinates | `NSScreen.main` returned different screens in CLI vs GUI | Use `getBuiltinScreen()` instead |
 | Incorrect bottom-left position | Used default window size instead of actual | Always read actual window dimensions |
 
 ## 7. Terminology

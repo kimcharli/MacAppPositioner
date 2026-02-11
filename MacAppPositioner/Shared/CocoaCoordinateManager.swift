@@ -45,9 +45,11 @@ class CocoaCoordinateManager {
     // MARK: - Monitor Detection
     
     func getAllMonitors(for profileName: String? = nil) -> [CocoaMonitorInfo] {
-        let configManager = ConfigManager()
+        let configManager = ConfigManager.shared
         let config = configManager.loadConfig()
-        let mainScreenHeight = NSScreen.main?.frame.height ?? 0
+        // NSScreen.screens.first is always the menu bar screen (Cocoa origin 0,0).
+        // Do NOT use NSScreen.main here — it returns different screens in CLI vs GUI contexts.
+        let mainScreenHeight = NSScreen.screens.first?.frame.height ?? 0
         
         var workspaceMonitorResolution: String?
         if let profileName = profileName, let profile = config?.profiles[profileName] {
@@ -69,19 +71,71 @@ class CocoaCoordinateManager {
     
     // MARK: - Window Positioning
     
+    /**
+     * Retrieves the current frame (position and size) of an application's main window.
+     *
+     * This method uses the Accessibility API to query window attributes from a running application.
+     * The position returned is in the system's default coordinate system (top-left origin).
+     *
+     * @param pid: Process ID of the target application
+     * @return: Tuple containing (position: CGPoint, size: CGSize) if successful, nil if failed
+     */
+    func getWindowFrame(pid: pid_t) -> (position: CGPoint, size: CGSize)? {
+        let app = AXUIElementCreateApplication(pid)
+        var window: AnyObject?
+        
+        let result = AXUIElementCopyAttributeValue(app, kAXMainWindowAttribute as CFString, &window)
+
+        if result == .success, let window = window {
+            var positionRef: AnyObject?
+            var sizeRef: AnyObject?
+            
+            let positionResult = AXUIElementCopyAttributeValue(window as! AXUIElement, kAXPositionAttribute as CFString, &positionRef)
+            let sizeResult = AXUIElementCopyAttributeValue(window as! AXUIElement, kAXSizeAttribute as CFString, &sizeRef)
+
+            if positionResult == .success && sizeResult == .success,
+               let positionRef = positionRef, let sizeRef = sizeRef {
+                
+                var position = CGPoint.zero
+                var size = CGSize.zero
+                
+                let positionSuccess = AXValueGetValue(positionRef as! AXValue, AXValueType.cgPoint, &position)
+                let sizeSuccess = AXValueGetValue(sizeRef as! AXValue, AXValueType.cgSize, &size)
+                
+                if positionSuccess && sizeSuccess {
+                    return (position, size)
+                }
+            }
+        }
+        
+        return nil
+    }
+    
     func setWindowPosition(pid: pid_t, position: CGPoint, size: CGSize? = nil) {
         let app = AXUIElementCreateApplication(pid)
+        
+        // Attempt to activate the application to bring it to the front and give it focus
+        if let runningApp = NSRunningApplication(processIdentifier: pid) {
+            runningApp.activate(options: .activateIgnoringOtherApps)
+        }
+        
         var windows: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windows) == .success,
+        guard AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windows) == .success, 
               let windowArray = windows as? [AXUIElement],
               let window = windowArray.first else {
-            print("❌ Failed to get windows for PID \(pid)")
+            let error = AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windows)
+            print("❌ Failed to get windows for PID \(pid). Error: \(accessibilityErrorDescription(error))")
             return
         }
         
         var mutablePosition = position
-        let positionResult = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, AXValueCreate(.cgPoint, &mutablePosition)!)
+        var positionResult = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, AXValueCreate(.cgPoint, &mutablePosition)!)
         
+        // If initial positioning fails or is not successful, try again after a short delay
+        if positionResult != .success {
+            Thread.sleep(forTimeInterval: 0.1) // Small delay
+            positionResult = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, AXValueCreate(.cgPoint, &mutablePosition)!)
+        }
         if let size = size {
             var mutableSize = size
             AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, AXValueCreate(.cgSize, &mutableSize)!)
@@ -89,6 +143,18 @@ class CocoaCoordinateManager {
         
         print("  🎯 Position result: \(positionResult == .success ? "SUCCESS" : "FAILED")")
         print("  📍 Final position: \(position)")
+        
+        // Verify the position after setting it
+        if let actualFrame = getWindowFrame(pid: pid) {
+            let tolerance: CGFloat = 1.0 // Allow for minor discrepancies
+            if abs(actualFrame.position.x - position.x) > tolerance || abs(actualFrame.position.y - position.y) > tolerance {
+                print("❌ Window did not move to the exact calculated position. Actual: \(actualFrame.position)")
+            } else {
+                print("✅ Window moved to the calculated position.")
+            }
+        } else {
+            print("⚠️ Could not retrieve actual window position after setting.")
+        }
     }
     
     func calculateQuadrantPosition(quadrant: String, windowSize: CGSize, visibleFrame: CGRect) -> CGPoint {
@@ -133,5 +199,50 @@ class CocoaCoordinateManager {
     
     func debugDescription(rect: CGRect, label: String, system: String = "Global") -> String {
         return "\(label): (\(rect.origin.x), \(rect.origin.y), \(rect.width), \(rect.height)) [\(system)]"
+    }
+    
+    /**
+     * Provides human-readable descriptions for Accessibility API error codes.
+     *
+     * @param error: AXError code from Accessibility API
+     * @return: String description of the error
+     */
+    private func accessibilityErrorDescription(_ error: AXError) -> String {
+        switch error {
+        case .success:
+            return "Success"
+        case .failure:
+            return "Generic failure"
+        case .illegalArgument:
+            return "Illegal argument"
+        case .invalidUIElement:
+            return "Invalid UI element"
+        case .invalidUIElementObserver:
+            return "Invalid UI element observer"
+        case .cannotComplete:
+            return "Cannot complete operation"
+        case .attributeUnsupported:
+            return "Attribute unsupported"
+        case .actionUnsupported:
+            return "Action unsupported"
+        case .notificationUnsupported:
+            return "Notification unsupported"
+        case .notImplemented:
+            return "Not implemented"
+        case .notificationAlreadyRegistered:
+            return "Notification already registered"
+        case .notificationNotRegistered:
+            return "Notification not registered"
+        case .apiDisabled:
+            return "Accessibility API disabled"
+        case .noValue:
+            return "No value"
+        case .parameterizedAttributeUnsupported:
+            return "Parameterized attribute unsupported"
+        case .notEnoughPrecision:
+            return "Not enough precision"
+        @unknown default:
+            return "Unknown error (\\(error.rawValue))"
+        }
     }
 }
