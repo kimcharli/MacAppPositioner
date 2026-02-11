@@ -12,13 +12,13 @@ import AppKit
  */
 
 struct ProfileManagerView: View {
-    @State private var profiles: [String: Profile] = [:]
+    @State private var profiles: [String: Profile] = [: ]
     @State private var showingCreateProfile = false
     @State private var showingEditProfile: String? = nil
     @State private var showingDeleteConfirmation: String? = nil
     @State private var statusMessage: String = ""
     
-    private let configManager = ConfigManager()
+    private let configManager = ConfigManager.shared
     private let profileManager = CocoaProfileManager()
     
     var body: some View {
@@ -82,7 +82,7 @@ struct ProfileManagerView: View {
             loadProfiles()
         }
         .sheet(isPresented: $showingCreateProfile) {
-            CreateProfileView(onProfileCreated: { name in
+            CreateProfileView(configManager: self.configManager, onProfileCreated: { name in
                 statusMessage = "Created profile: \(name)"
                 loadProfiles()
             })
@@ -93,6 +93,7 @@ struct ProfileManagerView: View {
         )) { wrapper in
             if let profile = profiles[wrapper.profileName] {
                 EditProfileView(
+                    configManager: self.configManager,
                     profileName: wrapper.profileName,
                     profile: profile,
                     onProfileUpdated: { name in
@@ -220,11 +221,11 @@ struct MonitorBadgeView: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 3)
         .background(
-            monitor.position == "primary" ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1)
+            monitor.position == "workspace" ? Color.purple.opacity(0.1) : Color.gray.opacity(0.1)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 4)
-                .stroke(monitor.position == "primary" ? Color.blue : Color.gray, lineWidth: 1)
+                .stroke(monitor.position == "workspace" ? Color.purple : Color.gray, lineWidth: 1)
         )
         .cornerRadius(4)
     }
@@ -246,6 +247,7 @@ struct CreateProfileView: View {
     @State private var profileName: String = ""
     @State private var statusMessage: String = ""
     
+    let configManager: ConfigManager
     let onProfileCreated: (String) -> Void
     
     var body: some View {
@@ -300,7 +302,7 @@ struct CreateProfileView: View {
             return
         }
         
-        guard var config = ConfigManager().loadConfig() else {
+        guard var config = configManager.loadConfig() else {
             statusMessage = "Error: could not load config.json"
             return
         }
@@ -325,7 +327,7 @@ struct CreateProfileView: View {
         let newProfile = Profile(monitors: monitors)
         config.profiles[trimmedName] = newProfile
         
-        if ConfigManager().saveConfig(config) {
+        if configManager.saveConfig(config) {
             onProfileCreated(trimmedName)
             dismiss()
         } else {
@@ -344,8 +346,10 @@ struct EditProfileView: View {
     let originalProfileName: String
     let profile: Profile
     let onProfileUpdated: (String) -> Void
+    let configManager: ConfigManager
     
-    init(profileName: String, profile: Profile, onProfileUpdated: @escaping (String) -> Void) {
+    init(configManager: ConfigManager, profileName: String, profile: Profile, onProfileUpdated: @escaping (String) -> Void) {
+        self.configManager = configManager
         self.originalProfileName = profileName
         self._newProfileName = State(initialValue: profileName)
         self.profile = profile
@@ -391,15 +395,13 @@ struct EditProfileView: View {
             return
         }
         
-        guard var config = ConfigManager().loadConfig() else {
+        guard var config = configManager.loadConfig() else {
             // Handle error
             return
         }
         
         config.profiles.removeValue(forKey: originalProfileName)
-        config.profiles[trimmedName] = profile
-        
-        if ConfigManager().saveConfig(config) {
+        if configManager.saveConfig(config) {
             onProfileUpdated(trimmedName)
             dismiss()
         } else {

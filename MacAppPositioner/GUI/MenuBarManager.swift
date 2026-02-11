@@ -134,25 +134,12 @@ class MenuBarManager: NSObject {
     }
     
     @objc func autoApplyProfile() {
-        NSLog("MenuBarManager: autoApplyProfile called")
-        print("MenuBarManager: autoApplyProfile called (print)")
-        
         if let detectedProfile = profileManager.detectProfile() {
-            NSLog("MenuBarManager: Detected profile: \(detectedProfile)")
-            print("MenuBarManager: Detected profile: \(detectedProfile) (print)")
-            
-            NSLog("MenuBarManager: About to call applyProfile")
-            print("MenuBarManager: About to call applyProfile (print)")
-            
+            NSLog("MenuBarManager: Applying detected profile: \(detectedProfile)")
             profileManager.applyProfile(detectedProfile)
-            
-            NSLog("MenuBarManager: applyProfile completed")
-            print("MenuBarManager: applyProfile completed (print)")
-            
             showNotification(title: "Profile Applied", message: "Applied profile: \(detectedProfile)")
         } else {
             NSLog("MenuBarManager: No profile detected")
-            print("MenuBarManager: No profile detected (print)")
             showNotification(title: "Auto Apply Failed", message: "No matching profile found for current setup.")
         }
     }

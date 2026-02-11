@@ -27,7 +27,6 @@ swiftc -o dist/MacAppPositionerGUI \
     MacAppPositioner/GUI/DashboardViewModel.swift \
     MacAppPositioner/GUI/MenuBarManager.swift \
     MacAppPositioner/Shared/ConfigManager.swift \
-    MacAppPositioner/Shared/WindowManager.swift \
     MacAppPositioner/Shared/CocoaCoordinateManager.swift \
     MacAppPositioner/Shared/CocoaProfileManager.swift \
     MacAppPositioner/Shared/AppUtils.swift \

@@ -69,25 +69,20 @@ struct MonitorCardView: View {
                     .frame(width: 80, height: 50)
                     .overlay(
                         Rectangle()
-                            .stroke(monitor.isWorkspace ? Color.purple : (monitor.isPrimary ? Color.blue : Color.gray), lineWidth: monitor.isWorkspace ? 3 : 2)
+                            .stroke(monitor.isWorkspace ? Color.purple : Color.gray, lineWidth: monitor.isWorkspace ? 3 : 2)
                     )
                     .cornerRadius(6)
                 
                 VStack(spacing: 2) {
                     Image(systemName: monitor.isBuiltIn ? "laptopcomputer" : "display")
                         .font(.title3)
-                        .foregroundColor(monitor.isWorkspace ? .purple : (monitor.isPrimary ? .blue : .secondary))
-                    
+                        .foregroundColor(monitor.isWorkspace ? .purple : .secondary)
+
                     if monitor.isWorkspace {
                         Text("Workspace")
                             .font(.caption2)
                             .fontWeight(.bold)
                             .foregroundColor(.purple)
-                    } else if monitor.isPrimary {
-                        Text("Primary")
-                            .font(.caption2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.blue)
                     }
                 }
             }
@@ -144,7 +139,6 @@ struct MonitorInfo {
     let originX: CGFloat
     let originY: CGFloat
     let isBuiltIn: Bool
-    let isPrimary: Bool
     let isWorkspace: Bool
     let backingScaleFactor: CGFloat
 }

@@ -60,7 +60,7 @@ class AppUtils {
      * @returns: Result with sorted profile names or error
      */
     static func loadProfileNames() -> Result<[String], AppError> {
-        let configManager = ConfigManager()
+        let configManager = ConfigManager.shared
         guard let config = configManager.loadConfig() else {
             return .failure(.configLoadFailed("Failed to load config.json"))
         }
@@ -75,7 +75,7 @@ class AppUtils {
      * @returns: Result with profiles dictionary or error
      */
     static func loadProfiles() -> Result<[String: Profile], AppError> {
-        let configManager = ConfigManager()
+        let configManager = ConfigManager.shared
         guard let config = configManager.loadConfig() else {
             return .failure(.configLoadFailed("Failed to load configuration"))
         }

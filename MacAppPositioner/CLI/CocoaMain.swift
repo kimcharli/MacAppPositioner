@@ -72,7 +72,7 @@ struct MacAppPositioner {
         
         let command = arguments[1]
         let profileManager = CocoaProfileManager()
-        let configManager = ConfigManager()
+        let configManager = ConfigManager.shared
         let coordinateManager = CocoaCoordinateManager.shared
 
         switch command {
@@ -111,42 +111,41 @@ struct MacAppPositioner {
                     print("❌ Could not generate a plan. No matching profile detected or profile not found.")
                 }
             case "apply":
-            if arguments.count > 2 {
-                // Force apply specified profile
-                let profileName = arguments[2]
-                if let config = configManager.loadConfig(), config.profiles[profileName] != nil {
-                    print("📌 Force applying profile: \(profileName)")
-                    profileManager.applyProfile(profileName)
-                } else {
-                    print("❌ Profile '\(profileName)' not found in config.json.")
-                    if let config = configManager.loadConfig() {
-                        let profiles = Array(config.profiles.keys)
-                        if !profiles.isEmpty {
-                            print("💡 Available profiles: \(profiles.joined(separator: ", "))")
+                if arguments.count > 2 {
+                    // Force apply specified profile
+                    let profileName = arguments[2]
+                    if let config = ConfigManager.shared.loadConfig(), config.profiles[profileName] != nil {
+                        print("📌 Force applying profile: \(profileName)")
+                        profileManager.applyProfile(profileName)
+                    } else {
+                        if let config = ConfigManager.shared.loadConfig() {
+                            let profiles = Array(config.profiles.keys)
+                            if !profiles.isEmpty {
+                                print("💡 Available profiles: \(profiles.joined(separator: ", "))")
+                            }
                         }
+                        exit(1)
                     }
-                    exit(1)
-                }
-            } else {
-                // Auto-detect and apply
-                if let detectedProfile = profileManager.detectProfile() {
-                    print("✅ Auto-detected profile: \(detectedProfile)")
-                    print("🎯 Applying detected profile...")
-                    profileManager.applyProfile(detectedProfile)
                 } else {
-                    print("❌ No matching profile detected for current monitor configuration.")
-                    if let config = configManager.loadConfig() {
-                        let profiles = Array(config.profiles.keys)
-                        if !profiles.isEmpty {
-                            print("💡 Available profiles can be forced with: apply <profile_name>")
-                            print("💡 Available profiles: \(profiles.joined(separator: ", "))")
+                    // Auto-detect and apply
+                    if let detectedProfile = profileManager.detectProfile() {
+                        print("✅ Auto-detected profile: \(detectedProfile)")
+                        print("🎯 Applying detected profile...")
+                        profileManager.applyProfile(detectedProfile)
+                    } else {
+                        print("❌ No matching profile detected for current monitor configuration.")
+                        if let config = ConfigManager.shared.loadConfig() {
+                            let profiles = Array(config.profiles.keys)
+                            if !profiles.isEmpty {
+                                print("💡 Available profiles can be forced with: apply <profile_name>")
+                                print("💡 Available profiles: \(profiles.joined(separator: ", "))")
+                            }
                         }
+                        exit(1)
                     }
-                    exit(1)
                 }
-            }
-            
-        case "update":
+
+            case "update":
             guard arguments.count > 2 else {
                 print("Usage: MacAppPositioner update <profile-name>")
                 exit(1)

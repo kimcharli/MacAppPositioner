@@ -9,8 +9,10 @@ import AppKit
  */
 
 class CocoaProfileManager {
-    
-    private let configManager = ConfigManager()
+
+    private static let defaultWindowSize = CGSize(width: 1200, height: 800)
+
+    private let configManager = ConfigManager.shared
     private let coordinateManager = CocoaCoordinateManager.shared
     
     // MARK: - Profile Detection
@@ -64,8 +66,8 @@ class CocoaProfileManager {
             return
         }
         
-        var actualWindowSize = CGSize(width: 1200, height: 800) // Default fallback
-        if let currentPosition = getCurrentWindowPosition(pid: pid) {
+        var actualWindowSize = Self.defaultWindowSize
+        if let currentPosition = coordinateManager.getWindowRect(pid: pid) {
             print("  Current position: \(coordinateManager.debugDescription(rect: currentPosition, label: "Current"))")
             
             if position == "center" {
@@ -100,7 +102,7 @@ class CocoaProfileManager {
         
         coordinateManager.setWindowPosition(pid: pid, position: calculatedPosition, size: nil)
         
-        if let finalPosition = getCurrentWindowPosition(pid: pid) {
+        if let finalPosition = coordinateManager.getWindowRect(pid: pid) {
             print("  Final position: \(coordinateManager.debugDescription(rect: finalPosition, label: "Final"))")
         }
     }
@@ -108,7 +110,7 @@ class CocoaProfileManager {
     // MARK: - Plan Generation
     
     func generatePlan(for profileName: String) -> ExecutionPlan? {
-        guard let config = configManager.loadConfig(), let profile = config.profiles[profileName] else {
+        guard let config = ConfigManager.shared.loadConfig(), let profile = config.profiles[profileName] else {
             print("Failed to load config or profile.")
             return nil
         }
@@ -137,8 +139,8 @@ class CocoaProfileManager {
     }
 
     private func createAppAction(bundleID: String, position: String, sizing: String?, targetMonitor: CocoaMonitorInfo, appSettings: AppSettings?) -> AppAction {
-        let currentPosition = getAppPID(bundleID: bundleID).flatMap { getCurrentWindowPosition(pid: $0) }
-        var actualWindowSize = currentPosition?.size ?? CGSize(width: 1200, height: 800)
+        let currentPosition = getAppPID(bundleID: bundleID).flatMap { coordinateManager.getWindowRect(pid: $0) }
+        var actualWindowSize = currentPosition?.size ?? Self.defaultWindowSize
 
         if sizing == "keep" || appSettings?.sizing == "keep" {
             if let currentSize = currentPosition?.size {
@@ -225,39 +227,10 @@ class CocoaProfileManager {
         return NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleID })?.processIdentifier
     }
     
-    private func getCurrentWindowPosition(pid: pid_t) -> CGRect? {
-        let app = AXUIElementCreateApplication(pid)
-        var windows: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windows) == .success,
-              let windowArray = windows as? [AXUIElement],
-              let window = windowArray.first else {
-            return nil
-        }
-        
-        var position: CFTypeRef?
-        var size: CFTypeRef?
-        
-        AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &position)
-        AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &size)
-        
-        var positionValue = CGPoint.zero
-        var sizeValue = CGSize.zero
-        
-        if let position = position {
-            AXValueGetValue(position as! AXValue, .cgPoint, &positionValue)
-        }
-        
-        if let size = size {
-            AXValueGetValue(size as! AXValue, .cgSize, &sizeValue)
-        }
-        
-        return CGRect(origin: positionValue, size: sizeValue)
-    }
-    
     // MARK: - Profile Generation
     
     func updateProfile(name: String) {
-        guard var config = configManager.loadConfig() else {
+        guard var config = ConfigManager.shared.loadConfig() else {
             print("Failed to load config.json")
             return
         }
@@ -334,15 +307,16 @@ class CocoaProfileManager {
   },
   "layout": {
     "workspace": {
-      "top_left": "com.google.Chrome",
-      "top_right": "com.microsoft.teams2",
-      "bottom_left": "com.microsoft.Outlook",
-      "bottom_right": "com.slack.Slack"
+      "com.google.Chrome": { "position": "top_left" },
+      "com.microsoft.teams2": { "position": "top_right" },
+      "com.microsoft.Outlook": { "position": "bottom_left" },
+      "com.slack.Slack": { "position": "bottom_right" }
     },
-    "builtin": [
-      "md.obsidian"
-    ]
-  }
+    "builtin": {
+      "md.obsidian": { "position": "center" }
+    }
+  },
+  "applications": {}
 }
 """
         

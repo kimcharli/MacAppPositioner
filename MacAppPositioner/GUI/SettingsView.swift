@@ -12,13 +12,10 @@ import AppKit
  */
 
 struct SettingsView: View {
-    @State private var launchAtLogin = false
-    @State private var showNotifications = true
     @State private var defaultProfile = "Auto-detect"
     @State private var statusMessage = ""
-    
-    private let availableProfiles = ["Auto-detect", "home", "office"] // This would be loaded from config
-    
+    @State private var availableProfiles: [String] = ["Auto-detect"]
+
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             // Header
@@ -29,10 +26,6 @@ struct SettingsView: View {
             // General Settings
             GroupBox("General") {
                 VStack(alignment: .leading, spacing: 12) {
-                    Toggle("Launch at login", isOn: $launchAtLogin)
-                    
-                    Toggle("Show notifications", isOn: $showNotifications)
-                    
                     HStack {
                         Text("Default profile:")
                         Spacer()
@@ -122,8 +115,13 @@ struct SettingsView: View {
         }
         .padding()
         .frame(maxWidth: 600)
+        .onAppear {
+            if case .success(let names) = AppUtils.loadProfileNames() {
+                availableProfiles = ["Auto-detect"] + names
+            }
+        }
     }
-    
+
     // MARK: - Actions
     
     private func openAccessibilityPreferences() {

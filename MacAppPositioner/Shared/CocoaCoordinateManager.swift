@@ -111,6 +111,11 @@ class CocoaCoordinateManager {
         return nil
     }
     
+    func getWindowRect(pid: pid_t) -> CGRect? {
+        guard let frame = getWindowFrame(pid: pid) else { return nil }
+        return CGRect(origin: frame.position, size: frame.size)
+    }
+
     func setWindowPosition(pid: pid_t, position: CGPoint, size: CGSize? = nil) {
         let app = AXUIElementCreateApplication(pid)
         

@@ -12,7 +12,7 @@ class DashboardViewModel: ObservableObject {
     private var planWindow: NSWindow?
 
     private let profileManager = CocoaProfileManager()
-    private let configManager = ConfigManager()
+    private let configManager = ConfigManager.shared
 
     func loadProfiles() {
         guard let config = configManager.loadConfig() else {
@@ -114,27 +114,15 @@ class DashboardViewModel: ObservableObject {
     private func detectCurrentMonitors() -> [MonitorInfo] {
         var monitorInfos: [MonitorInfo] = []
         let cocoaCoordinateManager = CocoaCoordinateManager.shared
-        let configManager = ConfigManager()
         let profileManager = CocoaProfileManager()
         
         let currentProfile = profileManager.detectProfile()
         
         let cocoaMonitors = cocoaCoordinateManager.getAllMonitors(for: currentProfile)
         
-        let config = configManager.loadConfig()
-        var primaryResolution: String? = nil
-        
-        if let profile = currentProfile,
-           let profileConfig = config?.profiles[profile] {
-            primaryResolution = profileConfig.monitors.first(where: { $0.position == "primary" })?.resolution
-        }
-        
         for (index, cocoaMonitor) in cocoaMonitors.enumerated() {
             let displayName = cocoaMonitor.isBuiltIn ? "Built-in Display" : "External Display"
-            
-            let isWorkspace = cocoaMonitor.isWorkspace
-            let isPrimary = primaryResolution != nil && AppUtils.normalizeResolution(cocoaMonitor.resolution) == AppUtils.normalizeResolution(primaryResolution!)
-            
+
             let monitor = MonitorInfo(
                 id: index,
                 name: displayName,
@@ -144,8 +132,7 @@ class DashboardViewModel: ObservableObject {
                 originX: cocoaMonitor.frame.origin.x,
                 originY: cocoaMonitor.frame.origin.y,
                 isBuiltIn: cocoaMonitor.isBuiltIn,
-                isPrimary: isPrimary,
-                isWorkspace: isWorkspace,
+                isWorkspace: cocoaMonitor.isWorkspace,
                 backingScaleFactor: cocoaMonitor.scale
             )
             

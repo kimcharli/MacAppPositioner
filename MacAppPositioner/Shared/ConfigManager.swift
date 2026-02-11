@@ -93,7 +93,17 @@ struct Config: Codable {
 }
 
 class ConfigManager {
+    static let shared = ConfigManager() // Singleton instance
+    private var cachedConfig: Config? // Cache for the loaded configuration
+
+    private init() {} // Private initializer to enforce singleton pattern
+
     func loadConfig() -> Config? {
+        if let config = cachedConfig {
+            // print("Returning cached config.") // Optional: for debugging
+            return config
+        }
+
         // Try multiple locations for config.json
         let configPaths = [
             // 1. User's .config directory (standard location)
@@ -125,6 +135,7 @@ class ConfigManager {
                     let decoder = JSONDecoder()
                     let config = try decoder.decode(Config.self, from: data)
                     print("Loaded config from: \(url.path)")
+                    cachedConfig = config // Cache the loaded config
                     return config
                 } catch {
                     print("Error decoding config at \(url.path): \(error)")
@@ -141,6 +152,9 @@ class ConfigManager {
     }
 
     func saveConfig(_ config: Config) -> Bool {
+        // When saving, also update the cache
+        cachedConfig = config
+        
         let url = URL(fileURLWithPath: "config.json")
         let encoder = JSONEncoder()
         encoder.outputFormatting = .prettyPrinted
