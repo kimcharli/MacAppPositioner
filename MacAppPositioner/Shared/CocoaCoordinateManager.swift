@@ -82,29 +82,28 @@ class CocoaCoordinateManager {
      */
     func getWindowFrame(pid: pid_t) -> (position: CGPoint, size: CGSize)? {
         let app = AXUIElementCreateApplication(pid)
-        var window: AnyObject?
         
-        let result = AXUIElementCopyAttributeValue(app, kAXMainWindowAttribute as CFString, &window)
+        guard let window = getBestWindow(app: app) else {
+            return nil
+        }
+        
+        var positionRef: AnyObject?
+        var sizeRef: AnyObject?
+        
+        let positionResult = AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &positionRef)
+        let sizeResult = AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &sizeRef)
 
-        if result == .success, let window = window {
-            var positionRef: AnyObject?
-            var sizeRef: AnyObject?
+        if positionResult == .success && sizeResult == .success,
+           let positionRef = positionRef, let sizeRef = sizeRef {
             
-            let positionResult = AXUIElementCopyAttributeValue(window as! AXUIElement, kAXPositionAttribute as CFString, &positionRef)
-            let sizeResult = AXUIElementCopyAttributeValue(window as! AXUIElement, kAXSizeAttribute as CFString, &sizeRef)
-
-            if positionResult == .success && sizeResult == .success,
-               let positionRef = positionRef, let sizeRef = sizeRef {
-                
-                var position = CGPoint.zero
-                var size = CGSize.zero
-                
-                let positionSuccess = AXValueGetValue(positionRef as! AXValue, AXValueType.cgPoint, &position)
-                let sizeSuccess = AXValueGetValue(sizeRef as! AXValue, AXValueType.cgSize, &size)
-                
-                if positionSuccess && sizeSuccess {
-                    return (position, size)
-                }
+            var position = CGPoint.zero
+            var size = CGSize.zero
+            
+            let positionSuccess = AXValueGetValue(positionRef as! AXValue, AXValueType.cgPoint, &position)
+            let sizeSuccess = AXValueGetValue(sizeRef as! AXValue, AXValueType.cgSize, &size)
+            
+            if positionSuccess && sizeSuccess {
+                return (position, size)
             }
         }
         
@@ -124,12 +123,8 @@ class CocoaCoordinateManager {
             runningApp.activate(options: .activateIgnoringOtherApps)
         }
         
-        var windows: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windows) == .success, 
-              let windowArray = windows as? [AXUIElement],
-              let window = windowArray.first else {
-            let error = AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windows)
-            print("❌ Failed to get windows for PID \(pid). Error: \(accessibilityErrorDescription(error))")
+        guard let window = getBestWindow(app: app) else {
+            print("❌ Failed to find a suitable window for PID \(pid).")
             return
         }
         
@@ -160,6 +155,52 @@ class CocoaCoordinateManager {
         } else {
             print("⚠️ Could not retrieve actual window position after setting.")
         }
+    }
+
+    /**
+     * Identifies the best window to move for an application.
+     * Prioritizes the Main Window, then falls back to the first standard window found.
+     */
+    private func getBestWindow(app: AXUIElement) -> AXUIElement? {
+        // 1. Try to get the Main Window attribute directly
+        var mainWindow: CFTypeRef?
+        if AXUIElementCopyAttributeValue(app, kAXMainWindowAttribute as CFString, &mainWindow) == .success {
+            return (mainWindow as! AXUIElement)
+        }
+        
+        // 2. Fallback: Query all windows and filter for standard windows
+        var windows: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windows) == .success,
+              let windowArray = windows as? [AXUIElement] else {
+            return nil
+        }
+        
+        // Filter for standard windows that have a title
+        for window in windowArray {
+            var role: CFTypeRef?
+            var subrole: CFTypeRef?
+            var title: CFTypeRef?
+            
+            AXUIElementCopyAttributeValue(window, kAXRoleAttribute as CFString, &role)
+            AXUIElementCopyAttributeValue(window, kAXSubroleAttribute as CFString, &subrole)
+            AXUIElementCopyAttributeValue(window, kAXTitleAttribute as CFString, &title)
+            
+            let roleString = role as? String ?? ""
+            let subroleString = subrole as? String ?? ""
+            let titleString = title as? String ?? ""
+            
+            // Prioritize standard windows with titles (avoiding toolbars, drawers, etc.)
+            if roleString == kAXWindowRole && subroleString == kAXStandardWindowSubrole && !titleString.isEmpty {
+                // Special check for Outlook: avoid "Reminders" window if possible
+                if titleString.contains("Reminders") && windowArray.count > 1 {
+                    continue
+                }
+                return window
+            }
+        }
+        
+        // 3. Last resort: return the first window if any exist
+        return windowArray.first
     }
     
     func calculateQuadrantPosition(quadrant: String, windowSize: CGSize, visibleFrame: CGRect) -> CGPoint {

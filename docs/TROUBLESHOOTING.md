@@ -150,6 +150,11 @@ Common JSON mistakes: missing commas, trailing commas, unmatched brackets, comme
 - App uses non-standard window management (Electron apps, sandboxed apps)
 - Bundle ID in config doesn't match the running app
 
+**Multi-window apps (e.g., Outlook, Teams)**:
+If an app has multiple windows (like Outlook's "Reminders" window), MacAppPositioner might target the wrong one. We've improved the detection logic to prioritize the "Main Window," but if it still fails:
+- Ensure the main window is active/focused when applying.
+- Check if there are persistent secondary windows that might be confusing the Accessibility API.
+
 **For Chrome specifically**, add to your config:
 
 ```json

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed Outlook window positioning by improving window selection logic to prioritize the main application window and filter out secondary windows like "Reminders".
 - Fixed a bug in the GUI build script that was causing it to fail.
 - Corrected the coordinate system conversion logic to ensure windows are positioned correctly on external monitors.
 
