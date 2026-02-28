@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Code Review (2026-02-27)
+
+**Findings documented in `TODO.md` under "Code Review Findings & Fix Plan".** Summary:
+
+- 🔴 **2 bugs identified**: profile rename silently deletes the profile data; `saveConfig()` always writes to `./config.json` regardless of the path `loadConfig()` used.
+- 🟡 **4 duplication issues**: monitor→position label mapping copy-pasted in 3 places; redundant `CocoaProfileManager` instance in `DashboardViewModel`; `generatePlan()` bypasses `self.configManager`; `BuiltinApp`/`WorkspaceApp` are near-identical structs.
+- 🟠 **3 modularity issues**: redundant `MonitorInfo` mirror of `CocoaMonitorInfo`; `ConfigManager` injection without a protocol; no public cache-invalidation API on `ConfigManager`.
+- 🔵 **5 best-practice issues**: `NSScreen.main` use in `CocoaMonitorInfo.init` (forbidden per AGENTS.md); dead `accessibilityErrorDescription` method; raw string literals for positions/roles instead of enums; unpersisted settings picker; magic numbers not centralised.
+
 ### Fixed
 
 - Fixed Outlook window positioning by improving window selection logic to prioritize the main application window and filter out secondary windows like "Reminders".
