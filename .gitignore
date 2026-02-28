@@ -33,3 +33,6 @@ DerivedData/
 ## Log files
 *.log
 gui_output.log
+
+## IDE / Editor
+.vscode/
