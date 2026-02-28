@@ -9,6 +9,20 @@ import Foundation
  * - Common operations across GUI components
  */
 
+// MARK: - Constants
+
+/// Application-wide constants. Add new shared magic numbers here instead of
+/// scattering literals across files.
+enum AppConstants {
+    /// Fallback window size used when the current size cannot be determined.
+    static let defaultWindowSize = CGSize(width: 1200, height: 800)
+
+    /// Tolerance (in points) when comparing window positions for equality.
+    static let positioningTolerance: CGFloat = 1.0
+}
+
+// MARK: - Errors
+
 enum AppError: Error {
     case configLoadFailed(String)
     

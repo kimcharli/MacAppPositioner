@@ -12,7 +12,7 @@ import AppKit
  */
 
 struct SettingsView: View {
-    @State private var defaultProfile = "Auto-detect"
+    @AppStorage("defaultProfile") private var defaultProfile = "Auto-detect"
     @State private var statusMessage = ""
     @State private var availableProfiles: [String] = ["Auto-detect"]
 

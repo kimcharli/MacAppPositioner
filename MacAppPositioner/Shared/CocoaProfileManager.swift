@@ -10,8 +10,6 @@ import AppKit
 
 class CocoaProfileManager {
 
-    private static let defaultWindowSize = CGSize(width: 1200, height: 800)
-
     private let configManager = ConfigManager.shared
     private let coordinateManager = CocoaCoordinateManager.shared
     
@@ -51,7 +49,7 @@ class CocoaProfileManager {
     // MARK: - Unified Positioning
     
     private func positionApp(bundleID: String,
-                            position: String,
+                            position: WindowPosition,
                             sizing: String?,
                             targetMonitor: CocoaMonitorInfo,
                             appSettings: AppSettings?) {
@@ -61,16 +59,16 @@ class CocoaProfileManager {
             return
         }
         
-        if position == "keep" {
+        if position == .keep {
             print("  🔒 \(bundleID) has 'keep' position - skipping repositioning")
             return
         }
         
-        var actualWindowSize = Self.defaultWindowSize
+        var actualWindowSize = AppConstants.defaultWindowSize
         if let currentPosition = coordinateManager.getWindowRect(pid: pid) {
             print("  Current position: \(coordinateManager.debugDescription(rect: currentPosition, label: "Current"))")
             
-            if position == "center" {
+            if position == .center {
                 let windowCenter = CGPoint(x: currentPosition.midX, y: currentPosition.midY)
                 if targetMonitor.frame.contains(windowCenter) {
                     print("  📱 \(bundleID) is already on target screen, skipping repositioning")
@@ -85,12 +83,14 @@ class CocoaProfileManager {
         
         let calculatedPosition: CGPoint
         switch position {
-        case "center":
+        case .center:
             calculatedPosition = CGPoint(
                 x: targetMonitor.visibleFrame.midX - actualWindowSize.width / 2,
                 y: targetMonitor.visibleFrame.midY - actualWindowSize.height / 2
             )
-        default:
+        case .keep:
+            return // already handled above; satisfies exhaustive switch
+        case .topLeft, .topRight, .bottomLeft, .bottomRight:
             calculatedPosition = coordinateManager.calculateQuadrantPosition(
                 quadrant: position,
                 windowSize: actualWindowSize,
@@ -110,7 +110,7 @@ class CocoaProfileManager {
     // MARK: - Plan Generation
     
     func generatePlan(for profileName: String) -> ExecutionPlan? {
-        guard let config = ConfigManager.shared.loadConfig(), let profile = config.profiles[profileName] else {
+        guard let config = configManager.loadConfig(), let profile = config.profiles[profileName] else {
             print("Failed to load config or profile.")
             return nil
         }
@@ -118,7 +118,7 @@ class CocoaProfileManager {
         let allMonitors = coordinateManager.getAllMonitors(for: profileName)
         var actions: [AppAction] = []
 
-        if let workspaceMonitorConfig = profile.monitors.first(where: { $0.position == "workspace" }),
+        if let workspaceMonitorConfig = profile.monitors.first(where: { $0.position == .workspace }),
            let workspaceMonitor = coordinateManager.findWorkspaceMonitor(resolution: workspaceMonitorConfig.resolution),
            let layout = config.layout?.workspace {
             for (bundleID, workspaceApp) in layout {
@@ -130,7 +130,7 @@ class CocoaProfileManager {
         if let builtinApps = config.layout?.builtin,
            let builtinMonitor = allMonitors.first(where: { $0.isBuiltIn }) {
             for (bundleID, builtinApp) in builtinApps {
-                let action = createAppAction(bundleID: bundleID, position: builtinApp.position ?? "center", sizing: builtinApp.sizing, targetMonitor: builtinMonitor, appSettings: config.applications[bundleID])
+                let action = createAppAction(bundleID: bundleID, position: builtinApp.position, sizing: builtinApp.sizing, targetMonitor: builtinMonitor, appSettings: config.applications[bundleID])
                 actions.append(action)
             }
         }
@@ -138,9 +138,9 @@ class CocoaProfileManager {
         return ExecutionPlan(profileName: profileName, monitors: allMonitors, actions: actions)
     }
 
-    private func createAppAction(bundleID: String, position: String, sizing: String?, targetMonitor: CocoaMonitorInfo, appSettings: AppSettings?) -> AppAction {
+    private func createAppAction(bundleID: String, position: WindowPosition, sizing: String?, targetMonitor: CocoaMonitorInfo, appSettings: AppSettings?) -> AppAction {
         let currentPosition = getAppPID(bundleID: bundleID).flatMap { coordinateManager.getWindowRect(pid: $0) }
-        var actualWindowSize = currentPosition?.size ?? Self.defaultWindowSize
+        var actualWindowSize = currentPosition?.size ?? AppConstants.defaultWindowSize
 
         if sizing == "keep" || appSettings?.sizing == "keep" {
             if let currentSize = currentPosition?.size {
@@ -152,10 +152,10 @@ class CocoaProfileManager {
         let targetRect = CGRect(origin: calculatedPosition, size: actualWindowSize)
         
         var actionType: ActionType = .move
-        if position == "keep" {
+        if position == .keep {
             actionType = .keep
         } else if let current = currentPosition {
-            let tolerance: CGFloat = 1.0
+            let tolerance = AppConstants.positioningTolerance
             if abs(current.origin.x - targetRect.origin.x) < tolerance && abs(current.origin.y - targetRect.origin.y) < tolerance {
                 actionType = .keep
             }
@@ -185,7 +185,7 @@ class CocoaProfileManager {
 
         let allMonitors = coordinateManager.getAllMonitors(for: profileName)
         
-        guard let workspaceMonitorConfig = profile.monitors.first(where: { $0.position == "workspace" }) else {
+        guard let workspaceMonitorConfig = profile.monitors.first(where: { $0.position == .workspace }) else {
             print("No workspace monitor found in profile")
             return
         }
@@ -211,11 +211,10 @@ class CocoaProfileManager {
         if let builtinApps = config.layout?.builtin,
            let builtinMonitor = allMonitors.first(where: { $0.isBuiltIn }) {
             for (bundleID, builtinApp) in builtinApps {
-                let displayPosition = builtinApp.position ?? "center"
-                print("\n📱 Processing \(bundleID) for builtin screen (position: \(displayPosition)):")
+                print("\n📱 Processing \(bundleID) for builtin screen (position: \(builtinApp.position.rawValue)):")
                 positionApp(
                     bundleID: bundleID,
-                    position: builtinApp.position ?? "center",
+                    position: builtinApp.position,
                     sizing: builtinApp.sizing,
                     targetMonitor: builtinMonitor,
                     appSettings: config.applications[bundleID]
@@ -249,16 +248,9 @@ class CocoaProfileManager {
         }
 
         let monitors = coordinateManager.getAllMonitors()
-        let newMonitors = monitors.map { monitor -> Monitor in
-            let position: String
-            if monitor.isBuiltIn {
-                position = "builtin"
-            } else if monitor.isWorkspace {
-                position = "workspace"
-            } else {
-                position = "secondary"
-            }
-            return Monitor(resolution: monitor.resolution, position: position)
+        let newMonitors = monitors.map { monitor in
+            Monitor(resolution: monitor.resolution,
+                    position: CocoaCoordinateManager.positionLabel(for: monitor))
         }
 
         let newProfile = Profile(monitors: newMonitors)
@@ -287,19 +279,19 @@ class CocoaProfileManager {
 """
         
         for (index, monitor) in monitors.enumerated() {
-            let position: String
+            let role: MonitorRole
             if monitor.isBuiltIn {
-                position = "builtin"
-            } else if index == 0 && !monitor.isBuiltIn {
-                position = "workspace"
+                role = .builtin
+            } else if index == 0 {
+                role = .workspace
             } else {
-                position = "left"
+                role = .left
             }
             
             generatedConfig += """
         {
           "resolution": "\(monitor.resolution)",
-          "position": "\(position)"
+          "position": "\(role.rawValue)"
         }
 """
             

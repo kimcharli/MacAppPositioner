@@ -1,60 +1,60 @@
 import Foundation
 
-struct BuiltinApp: Codable {
-    var position: String? = "center"  // "center" (default), "keep", or specific position
-    var sizing: String? = "keep"      // "keep" (default) or specific size
-    
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        if (try? container.decode(String.self)) != nil {
-            // Handle legacy string format (just bundle ID)
-            position = "center"
-            sizing = "keep"
-        } else {
-            // Handle new dictionary format
-            let dictContainer = try decoder.container(keyedBy: CodingKeys.self)
-            position = try dictContainer.decodeIfPresent(String.self, forKey: .position) ?? "center"
-            sizing = try dictContainer.decodeIfPresent(String.self, forKey: .sizing) ?? "keep"
-        }
-    }
-    
-    enum CodingKeys: String, CodingKey {
-        case position = "position"
-        case sizing = "sizing"
-    }
+// MARK: - Enums
+
+/// Typed window positions used in layout configuration.
+enum WindowPosition: String, Codable {
+    case topLeft     = "top_left"
+    case topRight    = "top_right"
+    case bottomLeft  = "bottom_left"
+    case bottomRight = "bottom_right"
+    case center      = "center"
+    case keep        = "keep"
 }
 
-struct WorkspaceApp: Codable {
-    var position: String  // "top_left", "top_right", "bottom_left", "bottom_right", or "keep"
-    var sizing: String? = "keep"    // "keep" (default) or specific size
-    
+/// The role a physical monitor plays within a profile.
+enum MonitorRole: String, Codable {
+    case workspace = "workspace"
+    case builtin   = "builtin"
+    case secondary = "secondary"
+    case left      = "left"
+    case right     = "right"
+}
+
+// MARK: - Layout Entry
+
+/// Unified layout entry for both workspace and built-in monitor apps.
+/// Replaces the former `BuiltinApp` / `WorkspaceApp` split.
+struct AppLayoutEntry: Codable {
+    var position: WindowPosition = .center
+    var sizing: String? = "keep"
+
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if let stringValue = try? container.decode(String.self) {
-            // Handle legacy string format (just position like "top_left")
-            position = stringValue
+            // Legacy string format: value is the position string
+            position = WindowPosition(rawValue: stringValue) ?? .center
             sizing = "keep"
         } else {
-            // Handle new dictionary format
             let dictContainer = try decoder.container(keyedBy: CodingKeys.self)
-            position = try dictContainer.decode(String.self, forKey: .position)
-            sizing = try dictContainer.decodeIfPresent(String.self, forKey: .sizing) ?? "keep"
+            position = try dictContainer.decodeIfPresent(WindowPosition.self, forKey: .position) ?? .center
+            sizing   = try dictContainer.decodeIfPresent(String.self, forKey: .sizing) ?? "keep"
         }
     }
-    
+
     enum CodingKeys: String, CodingKey {
-        case position = "position"
-        case sizing = "sizing"
+        case position
+        case sizing
     }
 }
 
 struct Layout: Codable {
-    var workspace: [String: WorkspaceApp]?
-    var builtin: [String: BuiltinApp]?
-    
+    var workspace: [String: AppLayoutEntry]?
+    var builtin: [String: AppLayoutEntry]?
+
     enum CodingKeys: String, CodingKey {
         case workspace = "workspace"
-        case builtin = "builtin"
+        case builtin   = "builtin"
     }
 }
 
@@ -79,7 +79,7 @@ struct AppSettings: Codable {
 
 struct Monitor: Codable {
     var resolution: String
-    var position: String
+    var position: MonitorRole
 }
 
 struct Profile: Codable {
@@ -92,9 +92,20 @@ struct Config: Codable {
     var profiles: [String: Profile]
 }
 
-class ConfigManager {
+// MARK: - Protocol
+
+protocol ConfigManaging: AnyObject {
+    func loadConfig() -> Config?
+    @discardableResult func saveConfig(_ config: Config) -> Bool
+    func invalidateCache()
+}
+
+// MARK: - ConfigManager
+
+class ConfigManager: ConfigManaging {
     static let shared = ConfigManager() // Singleton instance
-    private var cachedConfig: Config? // Cache for the loaded configuration
+    private var cachedConfig: Config?   // Cache for the loaded configuration
+    private var loadedConfigURL: URL?   // URL that was successfully loaded
 
     private init() {} // Private initializer to enforce singleton pattern
 
@@ -135,7 +146,8 @@ class ConfigManager {
                     let decoder = JSONDecoder()
                     let config = try decoder.decode(Config.self, from: data)
                     print("Loaded config from: \(url.path)")
-                    cachedConfig = config // Cache the loaded config
+                    cachedConfig = config      // Cache the loaded config
+                    loadedConfigURL = url      // Remember where we loaded from
                     return config
                 } catch {
                     print("Error decoding config at \(url.path): \(error)")
@@ -151,11 +163,16 @@ class ConfigManager {
         return nil
     }
 
+    func invalidateCache() {
+        cachedConfig = nil
+    }
+
     func saveConfig(_ config: Config) -> Bool {
         // When saving, also update the cache
         cachedConfig = config
-        
-        let url = URL(fileURLWithPath: "config.json")
+
+        // Write back to the same location we loaded from; fall back to cwd.
+        let url = loadedConfigURL ?? URL(fileURLWithPath: "config.json")
         let encoder = JSONEncoder()
         encoder.outputFormatting = .prettyPrinted
 

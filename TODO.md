@@ -154,69 +154,69 @@ This section lists tasks focused on improving the codebase's architecture, adher
 
 ### 🔴 Bugs (Data Loss / Incorrect Behaviour)
 
-- [ ] **[BUG] Profile rename silently deletes the profile** (`ProfileManagerView.swift` — `EditProfileView.updateProfileName()`)
+- [x] **[BUG] Profile rename silently deletes the profile** (`ProfileManagerView.swift` — `EditProfileView.updateProfileName()`)
     - `config.profiles.removeValue(forKey: originalProfileName)` is called but the new key is never inserted before `saveConfig()`.
     - Fix: add `config.profiles[trimmedName] = profile` before saving.
 
-- [ ] **[BUG] `saveConfig()` always writes to `./config.json`** (`ConfigManager.swift`)
+- [x] **[BUG] `saveConfig()` always writes to `./config.json`** (`ConfigManager.swift`)
     - `loadConfig()` searches 4 locations and loads whichever exists; `saveConfig()` always writes to the current working directory regardless.
     - Fix: store the URL used during a successful load in `private var loadedConfigURL: URL?` and write back to it in `saveConfig()`.
 
 ### 🟡 Duplication (DRY Violations)
 
-- [ ] **[DEDUP] Monitor → position label mapping copy-pasted in 3 files**
+- [x] **[DEDUP] Monitor → position label mapping copy-pasted in 3 files**
     - Same `builtin` / `workspace` / `secondary` string mapping appears in:
         1. `CocoaProfileManager.updateProfile()`
         2. `CocoaProfileManager.generateConfigForCurrentSetup()` (slightly different: uses index instead of `isWorkspace`)
         3. `ProfileManagerView.CreateProfileView.createProfile()`
     - Fix: extract a single `positionLabel(for monitor: CocoaMonitorInfo) -> String` free function or static method on `CocoaCoordinateManager`.
 
-- [ ] **[DEDUP] `DashboardViewModel.detectCurrentMonitors()` creates a redundant `CocoaProfileManager` instance**
+- [x] **[DEDUP] `DashboardViewModel.detectCurrentMonitors()` creates a redundant `CocoaProfileManager` instance**
     - `let profileManager = CocoaProfileManager()` is declared inside a private method while `self.profileManager` already exists on the class.
     - Fix: replace the local instance with `self.profileManager`.
 
-- [ ] **[DEDUP] `CocoaProfileManager.generatePlan()` accesses `ConfigManager.shared` directly**
+- [x] **[DEDUP] `CocoaProfileManager.generatePlan()` accesses `ConfigManager.shared` directly**
     - All other methods in the class use `self.configManager`; `generatePlan()` bypasses it with `ConfigManager.shared.loadConfig()`.
     - Fix: replace with `configManager.loadConfig()`.
 
-- [ ] **[DEDUP] `BuiltinApp` and `WorkspaceApp` are near-identical structs**
+- [x] **[DEDUP] `BuiltinApp` and `WorkspaceApp` are near-identical structs**
     - Both have `position`, `sizing`, an identical legacy-string decode branch, and identical `CodingKeys`.
     - Fix: consolidate into a single `AppLayoutEntry` struct (making `position` optional with a default) or extract a shared `AppLayoutCodable` protocol with a default `init(from:)`.
 
 ### 🟠 Modularity
 
-- [ ] **[MODULAR] Dual monitor model: `CocoaMonitorInfo` (Shared) vs `MonitorInfo` (GUI)**
+- [x] **[MODULAR] Dual monitor model: `CocoaMonitorInfo` (Shared) vs `MonitorInfo` (GUI)**
     - `DashboardViewModel.detectCurrentMonitors()` manually copies every field from `CocoaMonitorInfo` into `MonitorInfo`. `MonitorInfo` provides no additional semantics — it is a flattened mirror.
     - Fix: make `CocoaMonitorInfo` conform to `Identifiable` and use it directly in `MonitorVisualizationView`, deleting `MonitorInfo` and the conversion loop.
 
-- [ ] **[MODULAR] `ConfigManager` injected into sub-views without a protocol**
+- [x] **[MODULAR] `ConfigManager` injected into sub-views without a protocol**
     - `CreateProfileView` and `EditProfileView` receive `configManager: ConfigManager` but since `ConfigManager` is a concrete singleton, injection adds parameter noise without testability.
     - Fix: introduce a `ConfigManaging` protocol (with `loadConfig()` / `saveConfig(_:)`) that `ConfigManager` conforms to, and use the protocol type for injection — or remove the injection and access `.shared` directly in those small views.
 
-- [ ] **[MODULAR] `ConfigManager` cache cannot be invalidated externally**
+- [x] **[MODULAR] `ConfigManager` cache cannot be invalidated externally**
     - There is no public `invalidateCache()` / `reload()` method. External file changes (or future sync features) cannot force a reload.
     - Fix: add `func invalidateCache()` that sets `cachedConfig = nil`.
 
 ### 🔵 Best Practices
 
-- [ ] **[PRACTICE] `CocoaMonitorInfo.init` uses `NSScreen.main`** (`CocoaCoordinateManager.swift`)
+- [x] **[PRACTICE] `CocoaMonitorInfo.init` uses `NSScreen.main`** (`CocoaCoordinateManager.swift`)
     - `self.isMain = nsScreen == NSScreen.main` violates the rule in `AGENTS.md`: "Avoid `NSScreen.main`".
     - `isMain` is never consumed anywhere in the codebase.
     - Fix: remove the `isMain` property entirely, or replace with `isBuiltIn`-based logic.
 
-- [ ] **[PRACTICE] `accessibilityErrorDescription(_:)` is dead code** (`CocoaCoordinateManager.swift`)
+- [x] **[PRACTICE] `accessibilityErrorDescription(_:)` is dead code** (`CocoaCoordinateManager.swift`)
     - The `private` method is never called.
     - Fix: either wire it into `setWindowPosition()` for better error logging, or delete it.
 
-- [ ] **[PRACTICE] Position and monitor-role values are untyped raw strings**
+- [x] **[PRACTICE] Position and monitor-role values are untyped raw strings**
     - `"top_left"`, `"top_right"`, `"center"`, `"keep"`, `"builtin"`, `"workspace"` appear as string literals in conditionals, decoders, and generated config templates across multiple files.
     - Fix: introduce a `WindowPosition` enum and a `MonitorRole` enum; make the `switch` in `calculateQuadrantPosition()` exhaustive.
 
-- [ ] **[PRACTICE] `SettingsView.defaultProfile` picker is not persisted**
+- [x] **[PRACTICE] `SettingsView.defaultProfile` picker is not persisted**
     - The picker updates an `@State` variable but nothing writes it to `UserDefaults` or config; the selected value is discarded on next launch.
     - Fix: persist the selection via `@AppStorage("defaultProfile")` or write it to `Config`.
 
-- [ ] **[PRACTICE] Magic numbers not centralised as named constants**
+- [x] **[PRACTICE] Magic numbers not centralised as named constants**
     - `defaultWindowSize = CGSize(width: 1200, height: 800)` lives in `CocoaProfileManager`.
     - Placement tolerance `1.0` appears independently in both `setWindowPosition()` and `createAppAction()`.
     - Fix: move shared constants to a `Constants.swift` or a dedicated `enum Constants` namespace in `AppUtils.swift`.

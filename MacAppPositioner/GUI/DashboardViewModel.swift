@@ -6,7 +6,7 @@ class DashboardViewModel: ObservableObject {
     @Published var detectedProfile: String? = nil
     @Published var statusMessage: String = ""
     @Published var isLoading: Bool = false
-    @Published var monitors: [MonitorInfo] = []
+    @Published var monitors: [CocoaMonitorInfo] = []
     @Published var planToShow: ExecutionPlan? = nil
     
     private var planWindow: NSWindow?
@@ -102,43 +102,13 @@ class DashboardViewModel: ObservableObject {
         isLoading = true
 
         DispatchQueue.global(qos: .userInitiated).async {
-            let detectedMonitors = self.detectCurrentMonitors()
+            let currentProfile = self.profileManager.detectProfile()
+            let detectedMonitors = CocoaCoordinateManager.shared.getAllMonitors(for: currentProfile)
 
             DispatchQueue.main.async {
                 self.monitors = detectedMonitors
                 self.isLoading = false
             }
         }
-    }
-
-    private func detectCurrentMonitors() -> [MonitorInfo] {
-        var monitorInfos: [MonitorInfo] = []
-        let cocoaCoordinateManager = CocoaCoordinateManager.shared
-        let profileManager = CocoaProfileManager()
-        
-        let currentProfile = profileManager.detectProfile()
-        
-        let cocoaMonitors = cocoaCoordinateManager.getAllMonitors(for: currentProfile)
-        
-        for (index, cocoaMonitor) in cocoaMonitors.enumerated() {
-            let displayName = cocoaMonitor.isBuiltIn ? "Built-in Display" : "External Display"
-
-            let monitor = MonitorInfo(
-                id: index,
-                name: displayName,
-                resolution: cocoaMonitor.resolution,
-                width: cocoaMonitor.frame.width,
-                height: cocoaMonitor.frame.height,
-                originX: cocoaMonitor.frame.origin.x,
-                originY: cocoaMonitor.frame.origin.y,
-                isBuiltIn: cocoaMonitor.isBuiltIn,
-                isWorkspace: cocoaMonitor.isWorkspace,
-                backingScaleFactor: cocoaMonitor.scale
-            )
-            
-            monitorInfos.append(monitor)
-        }
-        
-        return monitorInfos
     }
 }

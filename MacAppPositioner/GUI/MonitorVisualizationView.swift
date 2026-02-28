@@ -34,7 +34,7 @@ struct MonitorVisualizationView: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 16) {
-                        ForEach(viewModel.monitors, id: \.id) { monitor in
+                        ForEach(viewModel.monitors) { monitor in
                             MonitorCardView(monitor: monitor)
                         }
                     }
@@ -58,8 +58,12 @@ struct MonitorVisualizationView: View {
  * Individual monitor card component
  */
 struct MonitorCardView: View {
-    let monitor: MonitorInfo
-    
+    let monitor: CocoaMonitorInfo
+
+    private var displayName: String {
+        monitor.isBuiltIn ? "Built-in Display" : "External Display"
+    }
+
     var body: some View {
         VStack(spacing: 8) {
             // Monitor visual representation
@@ -89,7 +93,7 @@ struct MonitorCardView: View {
             
             // Monitor details
             VStack(spacing: 2) {
-                Text(monitor.name)
+                Text(displayName)
                     .font(.caption)
                     .fontWeight(.medium)
                     .multilineTextAlignment(.center)
@@ -110,7 +114,7 @@ struct MonitorCardView: View {
                             .cornerRadius(3)
                     }
                     
-                    if monitor.backingScaleFactor > 1.0 {
+                    if monitor.scale > 1.0 {
                         Text("Retina")
                             .font(.caption2)
                             .foregroundColor(.green)
@@ -125,22 +129,6 @@ struct MonitorCardView: View {
         .frame(width: 100)
         .padding(.vertical, 8)
     }
-}
-
-/**
- * Data structure for monitor information
- */
-struct MonitorInfo {
-    let id: Int
-    let name: String
-    let resolution: String
-    let width: CGFloat
-    let height: CGFloat
-    let originX: CGFloat
-    let originY: CGFloat
-    let isBuiltIn: Bool
-    let isWorkspace: Bool
-    let backingScaleFactor: CGFloat
 }
 
 // MARK: - Preview

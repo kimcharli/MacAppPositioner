@@ -213,7 +213,7 @@ struct MonitorBadgeView: View {
                     .font(.caption2)
                     .fontWeight(.medium)
                 
-                Text(monitor.position)
+                Text(monitor.position.rawValue)
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -221,11 +221,11 @@ struct MonitorBadgeView: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 3)
         .background(
-            monitor.position == "workspace" ? Color.purple.opacity(0.1) : Color.gray.opacity(0.1)
+            monitor.position == .workspace ? Color.purple.opacity(0.1) : Color.gray.opacity(0.1)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 4)
-                .stroke(monitor.position == "workspace" ? Color.purple : Color.gray, lineWidth: 1)
+                .stroke(monitor.position == .workspace ? Color.purple : Color.gray, lineWidth: 1)
         )
         .cornerRadius(4)
     }
@@ -312,16 +312,9 @@ struct CreateProfileView: View {
             return
         }
         
-        let monitors = CocoaCoordinateManager.shared.getAllMonitors().map { monitor -> Monitor in
-            let position: String
-            if monitor.isBuiltIn {
-                position = "builtin"
-            } else if monitor.isWorkspace {
-                position = "workspace"
-            } else {
-                position = "secondary"
-            }
-            return Monitor(resolution: monitor.resolution, position: position)
+        let monitors = CocoaCoordinateManager.shared.getAllMonitors().map { monitor in
+            Monitor(resolution: monitor.resolution,
+                    position: CocoaCoordinateManager.positionLabel(for: monitor))
         }
         
         let newProfile = Profile(monitors: monitors)
@@ -401,6 +394,7 @@ struct EditProfileView: View {
         }
         
         config.profiles.removeValue(forKey: originalProfileName)
+        config.profiles[trimmedName] = profile  // insert under new key
         if configManager.saveConfig(config) {
             onProfileUpdated(trimmedName)
             dismiss()

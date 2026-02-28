@@ -40,7 +40,7 @@ func testNativeCocoaSystem() {
         print("Monitor \(index + 1): \(monitor.resolution)")
         print("  Frame: \(monitor.frame) [Native Cocoa]")
         print("  Visible Frame: \(monitor.visibleFrame) [Native Cocoa]")
-        print("  isMain: \(monitor.isMain), isBuiltIn: \(monitor.isBuiltIn), isWorkspace: \(monitor.isWorkspace)")
+        print("  isBuiltIn: \(monitor.isBuiltIn), isWorkspace: \(monitor.isWorkspace)")
     }
     
     if let mainScreen = NSScreen.main {
@@ -72,7 +72,6 @@ struct MacAppPositioner {
         
         let command = arguments[1]
         let profileManager = CocoaProfileManager()
-        let configManager = ConfigManager.shared
         let coordinateManager = CocoaCoordinateManager.shared
 
         switch command {

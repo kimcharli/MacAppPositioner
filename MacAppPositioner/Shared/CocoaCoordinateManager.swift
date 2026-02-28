@@ -15,7 +15,6 @@ struct CocoaMonitorInfo {
     let visibleFrame: CGRect    // Internal (top-left origin)
     let resolution: String
     let scale: CGFloat
-    let isMain: Bool
     let isBuiltIn: Bool
     let isWorkspace: Bool
     
@@ -24,7 +23,6 @@ struct CocoaMonitorInfo {
         self.visibleFrame = CocoaCoordinateManager.shared.convertCocoaToInternal(cocoaRect: nsScreen.visibleFrame, mainScreenHeight: mainScreenHeight)
         self.resolution = "\(nsScreen.frame.width)x\(nsScreen.frame.height)"
         self.scale = nsScreen.backingScaleFactor
-        self.isMain = nsScreen == NSScreen.main
         self.isBuiltIn = nsScreen.localizedName.contains("Built-in") || nsScreen.localizedName.contains("Liquid")
         self.isWorkspace = isWorkspace
     }
@@ -53,7 +51,7 @@ class CocoaCoordinateManager {
         
         var workspaceMonitorResolution: String?
         if let profileName = profileName, let profile = config?.profiles[profileName] {
-            workspaceMonitorResolution = profile.monitors.first(where: { $0.position == "workspace" })?.resolution
+            workspaceMonitorResolution = profile.monitors.first(where: { $0.position == .workspace })?.resolution
         }
         
         return NSScreen.screens.map { screen in
@@ -141,7 +139,7 @@ class CocoaCoordinateManager {
             AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, AXValueCreate(.cgSize, &mutableSize)!)
         }
         
-        print("  🎯 Position result: \(positionResult == .success ? "SUCCESS" : "FAILED")")
+        print("  🎯 Position result: \(accessibilityErrorDescription(positionResult))")
         print("  📍 Final position: \(position)")
         
         // Verify the position after setting it
@@ -203,29 +201,27 @@ class CocoaCoordinateManager {
         return windowArray.first
     }
     
-    func calculateQuadrantPosition(quadrant: String, windowSize: CGSize, visibleFrame: CGRect) -> CGPoint {
-        let baseX: CGFloat
-        let baseY: CGFloat
-        
+    /// Returns the target top-left corner for a window given a `WindowPosition`.
+    /// `.center` and `.keep` are handled by callers; this method falls back to `.topLeft` for those.
+    func calculateQuadrantPosition(quadrant: WindowPosition, windowSize: CGSize, visibleFrame: CGRect) -> CGPoint {
         switch quadrant {
-        case "top_left":
-            baseX = visibleFrame.minX
-            baseY = visibleFrame.minY
-        case "top_right":
-            baseX = visibleFrame.maxX - windowSize.width
-            baseY = visibleFrame.minY
-        case "bottom_left":
-            baseX = visibleFrame.minX
-            baseY = visibleFrame.maxY - windowSize.height
-        case "bottom_right":
-            baseX = visibleFrame.maxX - windowSize.width
-            baseY = visibleFrame.maxY - windowSize.height
-        default:
-            baseX = visibleFrame.minX
-            baseY = visibleFrame.minY
+        case .topLeft, .center, .keep:
+            return CGPoint(x: visibleFrame.minX, y: visibleFrame.minY)
+        case .topRight:
+            return CGPoint(x: visibleFrame.maxX - windowSize.width, y: visibleFrame.minY)
+        case .bottomLeft:
+            return CGPoint(x: visibleFrame.minX, y: visibleFrame.maxY - windowSize.height)
+        case .bottomRight:
+            return CGPoint(x: visibleFrame.maxX - windowSize.width, y: visibleFrame.maxY - windowSize.height)
         }
-        
-        return CGPoint(x: baseX, y: baseY)
+    }
+
+    /// Returns the `MonitorRole` for a detected monitor based on its characteristics.
+    /// Use this wherever a position label must be written into a `Monitor` config record.
+    static func positionLabel(for monitor: CocoaMonitorInfo) -> MonitorRole {
+        if monitor.isBuiltIn  { return .builtin }
+        if monitor.isWorkspace { return .workspace }
+        return .secondary
     }
     
     func getBuiltinScreen() -> NSScreen {
@@ -247,12 +243,6 @@ class CocoaCoordinateManager {
         return "\(label): (\(rect.origin.x), \(rect.origin.y), \(rect.width), \(rect.height)) [\(system)]"
     }
     
-    /**
-     * Provides human-readable descriptions for Accessibility API error codes.
-     *
-     * @param error: AXError code from Accessibility API
-     * @return: String description of the error
-     */
     private func accessibilityErrorDescription(_ error: AXError) -> String {
         switch error {
         case .success:
@@ -288,7 +278,14 @@ class CocoaCoordinateManager {
         case .notEnoughPrecision:
             return "Not enough precision"
         @unknown default:
-            return "Unknown error (\\(error.rawValue))"
+            return "Unknown error (\(error.rawValue))"
         }
     }
+}
+
+// MARK: - Identifiable
+
+extension CocoaMonitorInfo: Identifiable {
+    /// Stable identity: resolution + origin, unique per physical display.
+    var id: String { "\(resolution)@\(Int(frame.origin.x)),\(Int(frame.origin.y))" }
 }
