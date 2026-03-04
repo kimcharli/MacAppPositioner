@@ -153,10 +153,11 @@ class MenuBarManager: NSObject {
     
     @objc func showAbout() {
         let buildDate = getCurrentBuildDate()
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
         let alert = NSAlert()
         alert.messageText = "Mac App Positioner"
         alert.informativeText = """
-        Version: 1.0
+        Version: \(version)
         Build Date: \(buildDate)
         
         A native macOS application for intelligent window positioning across multiple monitors.
