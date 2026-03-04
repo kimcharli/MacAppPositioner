@@ -28,6 +28,7 @@ Mac App Positioner automatically positions application windows according to pred
 - **`CocoaCoordinateManager`**: Coordinate conversion (Cocoa to internal top-left), screen detection, quadrant calculations, window positioning via Accessibility API
 - **`CocoaProfileManager`**: Profile detection by resolution matching, layout application, plan generation
 - **`ConfigManager`**: JSON configuration loading from multiple search paths, caching
+- **`AppLogger`**: Shared file logger that overrides `print()` to tee all output to both stdout and a timestamped log file under the configured `log_directory`
 - **`WindowManager`**: Low-level Accessibility API window manipulation
 - **`AppUtils`**: Resolution normalization, path utilities
 
@@ -79,4 +80,5 @@ NSScreen.screens -> resolution strings -> compare against config profiles -> mat
 - **Top-left internal coordinates**: Aligns with Accessibility API, avoiding per-window conversion
 - **Explicit builtin screen detection**: `getBuiltinScreen()` avoids `NSScreen.main` inconsistency between CLI and GUI apps
 - **Resolution-based matching**: Profiles matched by monitor resolution sets, not by arrangement position
-- **Singleton managers**: `ConfigManager.shared` and `CocoaCoordinateManager.shared` ensure consistent state
+- **Singleton managers**: `ConfigManager.shared`, `CocoaCoordinateManager.shared`, and `AppLogger.shared` ensure consistent state
+- **Global print() override**: `AppLogger` shadows `Swift.print` at module scope so all output is logged without call-site changes

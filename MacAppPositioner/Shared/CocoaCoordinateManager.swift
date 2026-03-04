@@ -23,7 +23,7 @@ struct CocoaMonitorInfo {
         self.visibleFrame = CocoaCoordinateManager.shared.convertCocoaToInternal(cocoaRect: nsScreen.visibleFrame, mainScreenHeight: mainScreenHeight)
         self.resolution = "\(nsScreen.frame.width)x\(nsScreen.frame.height)"
         self.scale = nsScreen.backingScaleFactor
-        self.isBuiltIn = nsScreen.localizedName.contains("Built-in") || nsScreen.localizedName.contains("Liquid")
+        self.isBuiltIn = CocoaCoordinateManager.isBuiltInScreen(nsScreen)
         self.isWorkspace = isWorkspace
     }
 }
@@ -61,8 +61,8 @@ class CocoaCoordinateManager {
         }
     }
     
-    func findWorkspaceMonitor(resolution: String) -> CocoaMonitorInfo? {
-        return getAllMonitors().first { monitor in
+    func findWorkspaceMonitor(resolution: String, from monitors: [CocoaMonitorInfo]? = nil) -> CocoaMonitorInfo? {
+        return (monitors ?? getAllMonitors()).first { monitor in
             AppUtils.normalizeResolution(monitor.resolution) == AppUtils.normalizeResolution(resolution)
         }
     }
@@ -126,7 +126,7 @@ class CocoaCoordinateManager {
         
         // Attempt to activate the application to bring it to the front and give it focus
         if let runningApp = NSRunningApplication(processIdentifier: pid) {
-            runningApp.activate(options: .activateIgnoringOtherApps)
+            runningApp.activate()
         }
         
         // Some apps (e.g. Chrome) need time after activation before AX windows are accessible.
@@ -150,7 +150,7 @@ class CocoaCoordinateManager {
         
         // If initial positioning fails or is not successful, try again after a short delay
         if positionResult != .success {
-            Thread.sleep(forTimeInterval: 0.1) // Small delay
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.1))
             positionResult = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, AXValueCreate(.cgPoint, &mutablePosition)!)
         }
         if let size = size {
@@ -162,10 +162,10 @@ class CocoaCoordinateManager {
         print("  📍 Final position: \(position)")
         
         // Verify the position after setting it
-        if let actualFrame = getWindowFrame(pid: pid) {
+        if let actualRect = getWindowRect(pid: pid) {
             let tolerance: CGFloat = 1.0 // Allow for minor discrepancies
-            if abs(actualFrame.position.x - position.x) > tolerance || abs(actualFrame.position.y - position.y) > tolerance {
-                print("❌ Window did not move to the exact calculated position. Actual: \(actualFrame.position)")
+            if abs(actualRect.origin.x - position.x) > tolerance || abs(actualRect.origin.y - position.y) > tolerance {
+                print("❌ Window did not move to the exact calculated position. Actual: \(actualRect.origin)")
             } else {
                 print("✅ Window moved to the calculated position.")
             }
@@ -243,8 +243,14 @@ class CocoaCoordinateManager {
         return .secondary
     }
     
+    /// Shared predicate for built-in screen detection.
+    /// Used by both `CocoaMonitorInfo.init` and `getBuiltinScreen()`.
+    static func isBuiltInScreen(_ screen: NSScreen) -> Bool {
+        screen.localizedName.contains("Built-in") || screen.localizedName.contains("Liquid")
+    }
+
     func getBuiltinScreen() -> NSScreen {
-        if let builtinScreen = NSScreen.screens.first(where: { $0.localizedName.contains("Built-in") || $0.localizedName.contains("Liquid") }) {
+        if let builtinScreen = NSScreen.screens.first(where: { Self.isBuiltInScreen($0) }) {
             return builtinScreen
         }
         if let originScreen = NSScreen.screens.first(where: { $0.frame.origin == .zero }) {

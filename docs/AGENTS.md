@@ -42,6 +42,7 @@ Quick reference for AI agents working with the Mac App Positioner codebase.
 | `CocoaCoordinateManager` | Screen detection, coordinate conversion, quadrant calculations, window positioning |
 | `CocoaProfileManager` | Profile detection, layout application, plan generation |
 | `ConfigManager` | Config loading/saving from multiple search paths |
+| `AppLogger` | Shared file logger — tees `print()` to stdout + log file |
 | `AppUtils` | Resolution normalization, shared utilities |
 | `MenuBarManager` | GUI menu bar interface |
 
@@ -55,11 +56,11 @@ Quick reference for AI agents working with the Mac App Positioner codebase.
 | Hardcode resolution format `"3440.0x1440.0"` | Use `AppUtils.normalizeResolution()` |
 | Rely on `NSScreen.main` | Use `getBuiltinScreen()` |
 | Write duplicate utility functions | Use `AppUtils` |
-| `NSWorkspace.shared.runningApplications.first(where:)` for PID lookup | Use `getAppPID(bundleID:)` — handles multiple processes with same bundle ID |
+| `NSWorkspace.shared.runningApplications.first(where:)` for PID lookup | Use `getAppPIDs(bundleID:)` — handles multiple processes with same bundle ID |
 
 ### Multi-Instance Apps
 
-Some apps (e.g. Google Chrome) run multiple processes with the same bundle ID simultaneously — a regular window instance and a headless/debugging instance. `NSWorkspace.shared.runningApplications.first(where:)` returns whichever the OS lists first, which may be the headless one with no AX-accessible windows. `getAppPID` in `CocoaProfileManager` handles this by iterating all matches and picking the process that actually has windows. Always go through `getAppPID` rather than querying `NSWorkspace` directly.
+Some apps (e.g. Google Chrome) run multiple processes with the same bundle ID simultaneously — a regular window instance and a headless/debugging instance. `NSWorkspace.shared.runningApplications.first(where:)` returns whichever the OS lists first, which may be the headless one with no AX-accessible windows. `getAppPIDs` in `CocoaProfileManager` handles this by returning all matches sorted by recency; callers pick the first PID where `hasMovableWindow` is true. Always go through `getAppPIDs` rather than querying `NSWorkspace` directly.
 
 ## GUI Deployment Checklist
 

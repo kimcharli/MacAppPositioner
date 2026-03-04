@@ -12,15 +12,16 @@ class DashboardViewModel: ObservableObject {
     private var planWindow: NSWindow?
 
     private let profileManager = CocoaProfileManager()
-    private let configManager = ConfigManager.shared
 
     func loadProfiles() {
-        guard let config = configManager.loadConfig() else {
-            statusMessage = "Error: config.json not found or invalid."
-            return
+        switch AppUtils.loadProfileNames() {
+        case .success(let names):
+            profiles = names
+            statusMessage = "Loaded \(profiles.count) profile(s)"
+        case .failure(let error):
+            profiles = []
+            statusMessage = "Error: \(error.localizedDescription)"
         }
-        profiles = Array(config.profiles.keys).sorted()
-        statusMessage = "Loaded \(profiles.count) profile(s)"
     }
 
     func detectCurrentProfile() {

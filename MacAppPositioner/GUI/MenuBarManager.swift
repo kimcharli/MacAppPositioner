@@ -135,11 +135,11 @@ class MenuBarManager: NSObject {
     
     @objc func autoApplyProfile() {
         if let detectedProfile = profileManager.detectProfile() {
-            NSLog("MenuBarManager: Applying detected profile: \(detectedProfile)")
+            print("MenuBarManager: Applying detected profile: \(detectedProfile)")
             profileManager.applyProfile(detectedProfile)
             showNotification(title: "Profile Applied", message: "Applied profile: \(detectedProfile)")
         } else {
-            NSLog("MenuBarManager: No profile detected")
+            print("MenuBarManager: No profile detected")
             showNotification(title: "Auto Apply Failed", message: "No matching profile found for current setup.")
         }
     }
@@ -168,7 +168,7 @@ class MenuBarManager: NSObject {
         • Native Cocoa coordinate system
         • Reliable builtin screen detection
         
-        © 2025 Mac App Positioner
+        © 2026 Mac App Positioner
         """
         alert.alertStyle = .informational
         alert.addButton(withTitle: "OK")

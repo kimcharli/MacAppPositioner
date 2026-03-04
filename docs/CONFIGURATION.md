@@ -15,14 +15,16 @@ This is the single reference for the `config.json` format used by Mac App Positi
 
 ```json
 {
+  "log_directory": "~/Documents/logs",
   "profiles": { ... },
   "layout": { ... },
   "applications": { ... }
 }
 ```
 
-| Section | Required | Purpose |
-| ------- | -------- | ------- |
+| Field | Required | Purpose |
+| ----- | -------- | ------- |
+| `log_directory` | No | Directory for log files (default: `~/Documents/logs`) |
 | `profiles` | Yes | Monitor configurations for different environments |
 | `layout` | Yes | Application-to-position assignments |
 | `applications` | No | App-specific behaviors (e.g., Chrome workaround) |
@@ -194,6 +196,44 @@ osascript -e 'tell application "System Events" to get bundle identifier of every
 **Development**: `com.microsoft.VSCode`, `com.apple.dt.Xcode`, `com.apple.Terminal`, `com.googlecode.iterm2`
 
 **Productivity**: `com.microsoft.Outlook`, `notion.id`, `md.obsidian`
+
+## Logging
+
+Both CLI and GUI automatically write a timestamped log file for every session.
+
+### Configuration
+
+```json
+{
+  "log_directory": "~/Documents/logs"
+}
+```
+
+| Field | Default | Description |
+| ----- | ------- | ----------- |
+| `log_directory` | `~/Documents/logs` | Directory where log files are written. Supports `~` for home directory. |
+
+When omitted, logs are written to `~/Documents/logs`.
+
+### Log File Naming
+
+Files are named `<mode>-<timestamp>.log`:
+
+- CLI: `cli-20260304-183136.log`
+- GUI: `gui-20260304-190000.log`
+
+### How It Works
+
+`AppLogger` overrides the global `print()` function so all output is automatically teed to both stdout and the log file. No changes to existing code are needed — any `print()` call is captured.
+
+The logger reads `log_directory` directly from config.json via a lightweight pre-parse (independent of `ConfigManager`) to avoid circular dependencies during startup.
+
+### Log File Location
+
+```bash
+ls ~/Documents/logs/
+# cli-20260304-183136.log  gui-20260304-190000.log  ...
+```
 
 ## Finding Monitor Resolutions
 

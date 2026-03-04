@@ -87,6 +87,7 @@ struct Config: Codable {
     var layout: Layout?
     var applications: [String: AppSettings]?
     var profiles: [String: Profile]
+    var log_directory: String?
 }
 
 // MARK: - Protocol

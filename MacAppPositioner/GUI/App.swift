@@ -15,6 +15,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarManager: MenuBarManager?
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
+        AppLogger.shared.start(codeName: "gui")
+
         menuBarManager = MenuBarManager()
         menuBarManager?.setupMenuBar()
     }

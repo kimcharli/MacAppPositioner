@@ -73,8 +73,10 @@ class CocoaProfileManager {
             return
         }
 
-        var actualWindowSize = AppConstants.defaultWindowSize
-        if let currentPosition = coordinateManager.getWindowRect(pid: pid) {
+        let currentPosition = coordinateManager.getWindowRect(pid: pid)
+        let actualWindowSize = resolveWindowSize(currentSize: currentPosition?.size, sizing: sizing, appSettings: appSettings)
+
+        if let currentPosition = currentPosition {
             print("  Current position: \(coordinateManager.debugDescription(rect: currentPosition, label: "Current"))")
 
             if position == .center {
@@ -83,10 +85,6 @@ class CocoaProfileManager {
                     print("  📱 \(bundleID) is already on target screen, skipping repositioning")
                     return
                 }
-            }
-
-            if sizing == "keep" || appSettings?.sizing == "keep" {
-                actualWindowSize = currentPosition.size
             }
         }
 
@@ -148,13 +146,7 @@ class CocoaProfileManager {
 
     private func createAppAction(bundleID: String, position: WindowPosition, sizing: String?, targetMonitor: CocoaMonitorInfo, appSettings: AppSettings?) -> AppAction {
         let currentPosition = getAppPIDs(bundleID: bundleID).first(where: { coordinateManager.hasMovableWindow(pid: $0) }).flatMap { coordinateManager.getWindowRect(pid: $0) }
-        var actualWindowSize = currentPosition?.size ?? AppConstants.defaultWindowSize
-
-        if sizing == "keep" || appSettings?.sizing == "keep" {
-            if let currentSize = currentPosition?.size {
-                actualWindowSize = currentSize
-            }
-        }
+        let actualWindowSize = resolveWindowSize(currentSize: currentPosition?.size, sizing: sizing, appSettings: appSettings)
 
         let calculatedPosition = coordinateManager.calculateQuadrantPosition(quadrant: position, windowSize: actualWindowSize, visibleFrame: targetMonitor.visibleFrame)
         let targetRect = CGRect(origin: calculatedPosition, size: actualWindowSize)
@@ -198,7 +190,7 @@ class CocoaProfileManager {
             return
         }
         
-        guard let workspaceMonitor = coordinateManager.findWorkspaceMonitor(resolution: workspaceMonitorConfig.resolution) else {
+        guard let workspaceMonitor = coordinateManager.findWorkspaceMonitor(resolution: workspaceMonitorConfig.resolution, from: allMonitors) else {
             print("Workspace monitor with resolution \(workspaceMonitorConfig.resolution) not found")
             return
         }
@@ -237,6 +229,15 @@ class CocoaProfileManager {
     }
 
     // MARK: - Utility Functions
+
+    /// Determines the window size to use: keeps the current size when sizing is
+    /// "keep", otherwise falls back to `AppConstants.defaultWindowSize`.
+    private func resolveWindowSize(currentSize: CGSize?, sizing: String?, appSettings: AppSettings?) -> CGSize {
+        if sizing == "keep" || appSettings?.sizing == "keep", let currentSize = currentSize {
+            return currentSize
+        }
+        return AppConstants.defaultWindowSize
+    }
     
     /// Returns all PIDs for running apps with the given bundle ID, most recently
     /// launched first. Callers should try each PID in order and use the first
@@ -330,7 +331,6 @@ class CocoaProfileManager {
       "md.obsidian": { "position": "center" }
     }
   },
-  "applications": {}
 }
 """
         

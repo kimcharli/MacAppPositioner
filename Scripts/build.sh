@@ -24,6 +24,7 @@ swiftc -o dist/MacAppPositioner \
     MacAppPositioner/Shared/CocoaCoordinateManager.swift \
     MacAppPositioner/Shared/CocoaProfileManager.swift \
     MacAppPositioner/Shared/AppUtils.swift \
+    MacAppPositioner/Shared/AppLogger.swift \
     MacAppPositioner/Shared/PlanModels.swift \
     -framework AppKit -framework CoreGraphics
 

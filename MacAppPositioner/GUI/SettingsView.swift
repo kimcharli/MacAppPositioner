@@ -96,7 +96,7 @@ struct SettingsView: View {
                         .buttonStyle(.bordered)
                     }
                     
-                    Text("Version 1.0.0 - Built with Swift & SwiftUI")
+                    Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown") - Built with Swift & SwiftUI")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

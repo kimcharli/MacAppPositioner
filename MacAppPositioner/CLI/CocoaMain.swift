@@ -63,6 +63,8 @@ func testNativeCocoaSystem() {
 @main
 struct MacAppPositioner {
     static func main() {
+        AppLogger.shared.start(codeName: "cli")
+
         let arguments = CommandLine.arguments
         
         guard arguments.count > 1 else {
