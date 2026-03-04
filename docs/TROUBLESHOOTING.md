@@ -155,14 +155,27 @@ If an app has multiple windows (like Outlook's "Reminders" window), MacAppPositi
 - Ensure the main window is active/focused when applying.
 - Check if there are persistent secondary windows that might be confusing the Accessibility API.
 
-**For Chrome specifically**, add to your config:
+**For apps with multiple processes (e.g. Chrome)**: Some apps run multiple processes with the same bundle ID (e.g. a regular Chrome window and a headless/debugging instance). `getAppPID` now selects the process that has accessible AX windows. If an app stopped working after you launched a secondary instance, this is likely the cause — see section 10 below.
 
-```json
-"applications": {
-  "com.google.Chrome": {
-    "positioning_strategy": "chrome"
-  }
-}
+### 10. App Not Moved — Multiple Instances of Same App Running
+
+**Symptoms**: `❌ Failed to find a suitable window for PID <X>` even though the app is visibly open.
+
+**Root Cause**: Some applications (notably Google Chrome) can have multiple OS processes sharing the same bundle ID. For example:
+- A regular Chrome browser window (the one you want to move)
+- A headless or debugging instance (e.g. launched by Gemini CLI, VS Code, or similar tools with `--remote-debugging-port`)
+
+`NSWorkspace.shared.runningApplications.first(where:)` returns the **first** matching process, which may be the headless instance with no visible windows — causing `getBestWindow` to return nil.
+
+**Fix in code**: `getAppPID` in `CocoaProfileManager.swift` now iterates all matching processes and picks the first one that has accessible AX windows, falling back to the first match if none do.
+
+**If you add new apps**: Do not use `NSWorkspace.shared.runningApplications.first(where:)` directly. Always use `getAppPID(bundleID:)` which handles this multi-instance case.
+
+**Diagnosis**:
+```bash
+# Check for multiple instances of the same app
+ps aux | grep -i "[G]oogle Chrome" | grep -v Helper
+# Multiple lines = multiple Chrome processes
 ```
 
 ## Debug Logging

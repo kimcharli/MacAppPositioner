@@ -59,19 +59,16 @@ struct Layout: Codable {
 }
 
 struct AppSettings: Codable {
-    var positioningStrategy: String?  // Special positioning behavior (e.g., "chrome")
     var positioning: String?  // Override: "keep" to prevent repositioning
     var sizing: String? = "keep"  // Override: "keep" (default) to prevent resizing
 
     enum CodingKeys: String, CodingKey {
-        case positioningStrategy = "positioning_strategy"
         case positioning = "positioning"
         case sizing = "sizing"
     }
     
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        positioningStrategy = try container.decodeIfPresent(String.self, forKey: .positioningStrategy)
         positioning = try container.decodeIfPresent(String.self, forKey: .positioning)
         sizing = try container.decodeIfPresent(String.self, forKey: .sizing) ?? "keep"
     }
@@ -88,7 +85,7 @@ struct Profile: Codable {
 
 struct Config: Codable {
     var layout: Layout?
-    var applications: [String: AppSettings]
+    var applications: [String: AppSettings]?
     var profiles: [String: Profile]
 }
 

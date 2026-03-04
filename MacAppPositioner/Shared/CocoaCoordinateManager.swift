@@ -121,7 +121,17 @@ class CocoaCoordinateManager {
             runningApp.activate(options: .activateIgnoringOtherApps)
         }
         
-        guard let window = getBestWindow(app: app) else {
+        // Some apps (e.g. Chrome) need time after activation before AX windows are accessible.
+        // Retry with increasing delays to handle slow-to-respond applications.
+        var window: AXUIElement?
+        for attempt in 0..<5 {
+            window = getBestWindow(app: app)
+            if window != nil { break }
+            let delay = 0.1 * Double(attempt + 1)  // 0.1, 0.2, 0.3, 0.4s
+            Thread.sleep(forTimeInterval: delay)
+        }
+        
+        guard let window = window else {
             print("❌ Failed to find a suitable window for PID \(pid).")
             return
         }

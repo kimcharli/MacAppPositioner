@@ -122,7 +122,7 @@ class CocoaProfileManager {
            let workspaceMonitor = coordinateManager.findWorkspaceMonitor(resolution: workspaceMonitorConfig.resolution),
            let layout = config.layout?.workspace {
             for (bundleID, workspaceApp) in layout {
-                let action = createAppAction(bundleID: bundleID, position: workspaceApp.position, sizing: workspaceApp.sizing, targetMonitor: workspaceMonitor, appSettings: config.applications[bundleID])
+                let action = createAppAction(bundleID: bundleID, position: workspaceApp.position, sizing: workspaceApp.sizing, targetMonitor: workspaceMonitor, appSettings: config.applications?[bundleID])
                 actions.append(action)
             }
         }
@@ -130,7 +130,7 @@ class CocoaProfileManager {
         if let builtinApps = config.layout?.builtin,
            let builtinMonitor = allMonitors.first(where: { $0.isBuiltIn }) {
             for (bundleID, builtinApp) in builtinApps {
-                let action = createAppAction(bundleID: bundleID, position: builtinApp.position, sizing: builtinApp.sizing, targetMonitor: builtinMonitor, appSettings: config.applications[bundleID])
+                let action = createAppAction(bundleID: bundleID, position: builtinApp.position, sizing: builtinApp.sizing, targetMonitor: builtinMonitor, appSettings: config.applications?[bundleID])
                 actions.append(action)
             }
         }
@@ -203,7 +203,7 @@ class CocoaProfileManager {
                     position: workspaceApp.position,
                     sizing: workspaceApp.sizing,
                     targetMonitor: workspaceMonitor,
-                    appSettings: config.applications[bundleID]
+                    appSettings: config.applications?[bundleID]
                 )
             }
         }
@@ -217,7 +217,7 @@ class CocoaProfileManager {
                     position: builtinApp.position,
                     sizing: builtinApp.sizing,
                     targetMonitor: builtinMonitor,
-                    appSettings: config.applications[bundleID]
+                    appSettings: config.applications?[bundleID]
                 )
             }
         }
@@ -230,8 +230,26 @@ class CocoaProfileManager {
 
     // MARK: - Utility Functions
     
+    /// Returns the PID of the running app with the given bundle ID.
+    /// When multiple instances exist (e.g. two Chrome processes), picks
+    /// the one that has accessible AX windows, falling back to the first match.
     private func getAppPID(bundleID: String) -> pid_t? {
-        return NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleID })?.processIdentifier
+        let matches = NSWorkspace.shared.runningApplications.filter { $0.bundleIdentifier == bundleID }
+        if matches.isEmpty { return nil }
+        if matches.count == 1 { return matches.first?.processIdentifier }
+        
+        // Multiple instances — prefer the one with accessible windows
+        for app in matches {
+            let pid = app.processIdentifier
+            let axApp = AXUIElementCreateApplication(pid)
+            var windows: CFTypeRef?
+            if AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windows) == .success,
+               let windowArray = windows as? [AXUIElement], !windowArray.isEmpty {
+                return pid
+            }
+        }
+        // Fallback to first match
+        return matches.first?.processIdentifier
     }
     
     // MARK: - Profile Generation
