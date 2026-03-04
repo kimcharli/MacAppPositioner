@@ -113,6 +113,14 @@ class CocoaCoordinateManager {
         return CGRect(origin: frame.position, size: frame.size)
     }
 
+    /// Returns true if the process has a moveable window accessible via the AX API,
+    /// without activating the app. Used to distinguish visible instances from
+    /// headless/debug processes that share the same bundle ID.
+    func hasMovableWindow(pid: pid_t) -> Bool {
+        let app = AXUIElementCreateApplication(pid)
+        return getBestWindow(app: app) != nil
+    }
+
     func setWindowPosition(pid: pid_t, position: CGPoint, size: CGSize? = nil) {
         let app = AXUIElementCreateApplication(pid)
         
@@ -122,13 +130,14 @@ class CocoaCoordinateManager {
         }
         
         // Some apps (e.g. Chrome) need time after activation before AX windows are accessible.
-        // Retry with increasing delays to handle slow-to-respond applications.
+        // Use RunLoop.run(until:) instead of Thread.sleep so the main thread's run loop
+        // keeps processing events (including the activation event) during the wait.
         var window: AXUIElement?
         for attempt in 0..<5 {
             window = getBestWindow(app: app)
             if window != nil { break }
             let delay = 0.1 * Double(attempt + 1)  // 0.1, 0.2, 0.3, 0.4s
-            Thread.sleep(forTimeInterval: delay)
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: delay))
         }
         
         guard let window = window else {

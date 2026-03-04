@@ -53,21 +53,30 @@ class CocoaProfileManager {
                             sizing: String?,
                             targetMonitor: CocoaMonitorInfo,
                             appSettings: AppSettings?) {
-        
-        guard let pid = getAppPID(bundleID: bundleID) else {
+
+        let pids = getAppPIDs(bundleID: bundleID)
+        guard !pids.isEmpty else {
             print("  ❌ App not running: \(bundleID)")
             return
         }
-        
+
         if position == .keep {
             print("  🔒 \(bundleID) has 'keep' position - skipping repositioning")
             return
         }
-        
+
+        // When multiple processes share a bundle ID (e.g. a visible Chrome and a
+        // headless debug instance), try each PID until we find one with a moveable window.
+        // hasMovableWindow checks without activation so no flicker on skipped processes.
+        guard let pid = pids.first(where: { coordinateManager.hasMovableWindow(pid: $0) }) else {
+            print("  ❌ No moveable window found for \(bundleID) across \(pids.count) process(es).")
+            return
+        }
+
         var actualWindowSize = AppConstants.defaultWindowSize
         if let currentPosition = coordinateManager.getWindowRect(pid: pid) {
             print("  Current position: \(coordinateManager.debugDescription(rect: currentPosition, label: "Current"))")
-            
+
             if position == .center {
                 let windowCenter = CGPoint(x: currentPosition.midX, y: currentPosition.midY)
                 if targetMonitor.frame.contains(windowCenter) {
@@ -75,12 +84,12 @@ class CocoaProfileManager {
                     return
                 }
             }
-            
+
             if sizing == "keep" || appSettings?.sizing == "keep" {
                 actualWindowSize = currentPosition.size
             }
         }
-        
+
         let calculatedPosition: CGPoint
         switch position {
         case .center:
@@ -89,7 +98,7 @@ class CocoaProfileManager {
                 y: targetMonitor.visibleFrame.midY - actualWindowSize.height / 2
             )
         case .keep:
-            return // already handled above; satisfies exhaustive switch
+            return
         case .topLeft, .topRight, .bottomLeft, .bottomRight:
             calculatedPosition = coordinateManager.calculateQuadrantPosition(
                 quadrant: position,
@@ -97,11 +106,10 @@ class CocoaProfileManager {
                 visibleFrame: targetMonitor.visibleFrame
             )
         }
-        
+
         print("  Calculated Position: \(calculatedPosition) [Global]")
-        
         coordinateManager.setWindowPosition(pid: pid, position: calculatedPosition, size: nil)
-        
+
         if let finalPosition = coordinateManager.getWindowRect(pid: pid) {
             print("  Final position: \(coordinateManager.debugDescription(rect: finalPosition, label: "Final"))")
         }
@@ -139,7 +147,7 @@ class CocoaProfileManager {
     }
 
     private func createAppAction(bundleID: String, position: WindowPosition, sizing: String?, targetMonitor: CocoaMonitorInfo, appSettings: AppSettings?) -> AppAction {
-        let currentPosition = getAppPID(bundleID: bundleID).flatMap { coordinateManager.getWindowRect(pid: $0) }
+        let currentPosition = getAppPIDs(bundleID: bundleID).first(where: { coordinateManager.hasMovableWindow(pid: $0) }).flatMap { coordinateManager.getWindowRect(pid: $0) }
         var actualWindowSize = currentPosition?.size ?? AppConstants.defaultWindowSize
 
         if sizing == "keep" || appSettings?.sizing == "keep" {
@@ -230,26 +238,14 @@ class CocoaProfileManager {
 
     // MARK: - Utility Functions
     
-    /// Returns the PID of the running app with the given bundle ID.
-    /// When multiple instances exist (e.g. two Chrome processes), picks
-    /// the one that has accessible AX windows, falling back to the first match.
-    private func getAppPID(bundleID: String) -> pid_t? {
-        let matches = NSWorkspace.shared.runningApplications.filter { $0.bundleIdentifier == bundleID }
-        if matches.isEmpty { return nil }
-        if matches.count == 1 { return matches.first?.processIdentifier }
-        
-        // Multiple instances — prefer the one with accessible windows
-        for app in matches {
-            let pid = app.processIdentifier
-            let axApp = AXUIElementCreateApplication(pid)
-            var windows: CFTypeRef?
-            if AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windows) == .success,
-               let windowArray = windows as? [AXUIElement], !windowArray.isEmpty {
-                return pid
-            }
-        }
-        // Fallback to first match
-        return matches.first?.processIdentifier
+    /// Returns all PIDs for running apps with the given bundle ID, most recently
+    /// launched first. Callers should try each PID in order and use the first
+    /// one that has a moveable window.
+    private func getAppPIDs(bundleID: String) -> [pid_t] {
+        return NSWorkspace.shared.runningApplications
+            .filter { $0.bundleIdentifier == bundleID }
+            .sorted { $0.processIdentifier > $1.processIdentifier } // higher PID = more recent
+            .map { $0.processIdentifier }
     }
     
     // MARK: - Profile Generation
