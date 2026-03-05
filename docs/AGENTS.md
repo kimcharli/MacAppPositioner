@@ -43,7 +43,7 @@ Quick reference for AI agents working with the Mac App Positioner codebase.
 | `CocoaProfileManager` | Profile detection, layout application, plan generation |
 | `ConfigManager` | Config loading/saving from multiple search paths |
 | `AppLogger` | Shared file logger — tees `print()` to stdout + log file |
-| `AppUtils` | Resolution normalization, shared utilities |
+| `AppUtils` | Resolution normalization, Accessibility permission check, shared utilities |
 | `MenuBarManager` | GUI menu bar interface |
 
 ## Common Mistakes to Avoid

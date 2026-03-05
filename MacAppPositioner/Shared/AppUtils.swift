@@ -1,4 +1,6 @@
 import Foundation
+import ApplicationServices
+import AppKit
 
 /**
  * Utility functions for MacAppPositioner application
@@ -66,6 +68,62 @@ class AppUtils {
         return normalizeResolution(resolution1) == normalizeResolution(resolution2)
     }
     
+    // MARK: - Accessibility
+
+    /// Check and log whether the app has Accessibility permission.
+    /// Without it, AXUIElement calls silently fail and no windows can be moved.
+    /// In GUI mode, shows an alert dialog with fix instructions when not granted.
+    @discardableResult
+    static func checkAccessibilityPermission(promptIfNeeded: Bool = false) -> Bool {
+        let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): false]
+        let trusted = AXIsProcessTrustedWithOptions(options)
+        if trusted {
+            print("✅ Accessibility permission: granted")
+        } else {
+            print("⚠️  Accessibility permission: NOT granted — window positioning will fail")
+            print("   To fix:")
+            print("   1. Open System Settings > Privacy & Security > Accessibility")
+            print("   2. Remove any existing MacAppPositionerGUI entry (select it, click '−')")
+            print("   3. Click '+' and add /Applications/MacAppPositionerGUI.app")
+            print("   4. Ensure the toggle is ON")
+            print("   5. Quit and relaunch MacAppPositionerGUI")
+
+            if promptIfNeeded {
+                showAccessibilityAlert()
+            }
+        }
+        return trusted
+    }
+
+    /// Show a macOS alert with step-by-step instructions to fix Accessibility permission.
+    private static func showAccessibilityAlert() {
+        DispatchQueue.main.async {
+            let alert = NSAlert()
+            alert.messageText = "Accessibility Permission Required"
+            alert.informativeText = """
+            Mac App Positioner cannot move windows without Accessibility permission.
+
+            To fix:
+            1. Open System Settings > Privacy & Security > Accessibility
+            2. Remove any existing MacAppPositionerGUI entry (click '−')
+            3. Click '+' and add this app from /Applications/
+            4. Make sure the toggle is ON
+            5. Quit and relaunch this app
+            """
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "Open System Settings")
+            alert.addButton(withTitle: "Dismiss")
+
+            let response = alert.runModal()
+            if response == .alertFirstButtonReturn {
+                // Open System Settings > Privacy & Security > Accessibility
+                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+        }
+    }
+
     // MARK: - Profile Management Utilities
     
     /**

@@ -124,9 +124,15 @@ class CocoaCoordinateManager {
     func setWindowPosition(pid: pid_t, position: CGPoint, size: CGSize? = nil) {
         let app = AXUIElementCreateApplication(pid)
         
-        // Attempt to activate the application to bring it to the front and give it focus
+        // Attempt to activate the application to bring it to the front and give it focus.
+        // On macOS 14+ activate() always forces activation (the old option has no effect).
+        // On older versions we need .activateIgnoringOtherApps to force-switch from our GUI.
         if let runningApp = NSRunningApplication(processIdentifier: pid) {
-            runningApp.activate()
+            if #available(macOS 14.0, *) {
+                runningApp.activate()
+            } else {
+                runningApp.activate(options: [.activateIgnoringOtherApps])
+            }
         }
         
         // Some apps (e.g. Chrome) need time after activation before AX windows are accessible.

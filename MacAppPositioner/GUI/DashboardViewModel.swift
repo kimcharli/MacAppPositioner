@@ -49,7 +49,7 @@ class DashboardViewModel: ObservableObject {
         statusMessage = "Applying \(profileName) profile..."
 
         DispatchQueue.global(qos: .userInitiated).async {
-            // Note: profileManager.applyProfile calls NSRunningApplication.activate()
+            // Note: profileManager.applyProfile calls NSRunningApplication.activate(options:)
             // which requires the main thread for reliable behavior.
             DispatchQueue.main.sync {
                 self.profileManager.applyProfile(profileName)

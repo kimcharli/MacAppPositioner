@@ -64,6 +64,7 @@ func testNativeCocoaSystem() {
 struct MacAppPositioner {
     static func main() {
         AppLogger.shared.start(codeName: "cli")
+        AppUtils.checkAccessibilityPermission(promptIfNeeded: false)
 
         let arguments = CommandLine.arguments
         

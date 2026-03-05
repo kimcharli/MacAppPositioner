@@ -224,7 +224,11 @@ class CocoaProfileManager {
 
         // Restore focus to the app that was active before positioning
         if let previousApp = previousApp {
-            previousApp.activate()
+            if #available(macOS 14.0, *) {
+                previousApp.activate()
+            } else {
+                previousApp.activate(options: [.activateIgnoringOtherApps])
+            }
         }
     }
 

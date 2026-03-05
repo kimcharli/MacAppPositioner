@@ -200,7 +200,9 @@ system_profiler SPDisplaysDataType
 
 **GUI changes not reflected**: You're running an old version from `/Applications/` instead of the newly built `dist/` version. Check the About menu build timestamp.
 
-**Permission errors**: Grant Accessibility permissions to your terminal app (for CLI) or to Mac App Positioner (for GUI) in System Settings > Privacy & Security > Accessibility.
+**Permission errors**: Grant Accessibility permissions to your terminal app (for CLI) or to Mac App Positioner (for GUI) in System Settings > Privacy & Security > Accessibility. If the GUI was rebuilt, you must **remove and re-add** the app in the Accessibility list — macOS TCC invalidates the old entry when the binary's code signature changes. The build script ad-hoc signs the bundle to reduce this, but replacing the binary still may require re-granting. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) section 1 for details.
+
+**Check logs first**: Both CLI and GUI write per-session logs to `~/Documents/logs/`. The first lines show whether Accessibility permission is granted — this is the most common cause of "nothing moves" issues.
 
 ## 9. Contributing
 

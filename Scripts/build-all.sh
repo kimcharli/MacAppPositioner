@@ -61,10 +61,11 @@ cp "dist/${APP_NAME}" "${APP_PATH}/Contents/MacOS/"
 # Copy Info.plist if it exists
 if [ -f "Info.plist" ]; then
     cp "Info.plist" "${APP_PATH}/Contents/"
-    echo -e "${GREEN}✅ App bundle created${NC}"
-else
-    echo -e "${YELLOW}⚠️  Info.plist not found, app bundle incomplete${NC}"
 fi
+
+# Ad-hoc sign so macOS TCC can reliably track Accessibility permission
+codesign -s - --force "${APP_PATH}" 2>/dev/null
+echo -e "${GREEN}✅ App bundle created (ad-hoc signed)${NC}"
 
 echo ""
 

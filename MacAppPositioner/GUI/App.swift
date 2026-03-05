@@ -16,6 +16,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         AppLogger.shared.start(codeName: "gui")
+        AppUtils.checkAccessibilityPermission(promptIfNeeded: false)
 
         menuBarManager = MenuBarManager()
         menuBarManager?.setupMenuBar()
@@ -23,6 +24,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
+    }
+
+    func applicationWillTerminate(_ aNotification: Notification) {
+        print("👋 Application quitting")
+        AppLogger.shared.stop()
     }
 }
 

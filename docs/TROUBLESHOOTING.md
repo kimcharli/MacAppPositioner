@@ -20,17 +20,35 @@ sw_vers -productVersion
 
 ### 1. Windows Don't Move (Accessibility Permissions)
 
-**Symptoms**: Command runs but windows stay in place, or "Failed to move" messages appear.
+**Symptoms**: Command runs but windows stay in place. Log shows `⚠️ Accessibility permission: NOT granted` or `❌ No moveable window found` for every app.
 
-**Solution**: Grant Accessibility permissions.
+**Root Cause**: Without Accessibility permission, all AXUIElement queries silently return empty results. `hasMovableWindow` returns false for every PID, so no windows are found or moved.
 
-- **CLI**: System Settings > Privacy & Security > Accessibility > add your terminal app
-- **GUI**: System Settings > Privacy & Security > Accessibility > add Mac App Positioner
+**Solution — CLI**: Grant Accessibility permission to your terminal app (Terminal.app, iTerm2, VS Code, etc.) in **System Settings > Privacy & Security > Accessibility**.
 
-If permissions were recently changed, restart the terminal or app.
+**Solution — GUI**:
+
+1. Open **System Settings > Privacy & Security > Accessibility**
+2. If `MacAppPositionerGUI` is already listed, **remove it** first (select, click `−`)
+3. Click `+` and add `/Applications/MacAppPositionerGUI.app`
+4. Ensure the toggle is **ON**
+5. Quit and relaunch MacAppPositionerGUI
+
+**Why remove and re-add?** macOS TCC (Transparency, Consent, and Control) tracks apps by code signature. When you rebuild and replace the binary, the signature changes and the old permission entry becomes stale — the toggle appears ON but the OS no longer trusts the binary. Removing and re-adding forces TCC to register the new signature.
+
+The build script (`build-all.sh`) now ad-hoc signs the app bundle with `codesign -s -` to give it a stable identity. This reduces (but doesn't eliminate) TCC invalidation on rebuilds.
+
+**Verification**: Check the log file (`~/Documents/logs/gui-*.log` or `cli-*.log`). The first lines after the header show the permission status:
+
+```
+✅ Accessibility permission: granted        ← working
+⚠️  Accessibility permission: NOT granted   ← broken, follow steps above
+```
+
+The GUI will also show an alert dialog with fix instructions and an "Open System Settings" button when permission is not granted.
 
 ```bash
-# Nuclear option: reset and re-grant
+# Nuclear option: reset ALL Accessibility permissions and re-grant
 tccutil reset Accessibility
 ```
 
@@ -159,7 +177,7 @@ If an app has multiple windows (like Outlook's "Reminders" window), MacAppPositi
 
 ### 10. App Not Moved — Multiple Instances of Same App Running
 
-**Symptoms**: `❌ Failed to find a suitable window for PID <X>` even though the app is visibly open.
+**Symptoms**: `❌ No moveable window found for <bundleID> across N process(es)` even though the app is visibly open.
 
 **Root Cause**: Some applications (notably Google Chrome) can have multiple OS processes sharing the same bundle ID. For example:
 - A regular Chrome browser window (the one you want to move)
@@ -167,24 +185,52 @@ If an app has multiple windows (like Outlook's "Reminders" window), MacAppPositi
 
 `NSWorkspace.shared.runningApplications.first(where:)` returns the **first** matching process, which may be the headless instance with no visible windows — causing `getBestWindow` to return nil.
 
-**Fix in code**: `getAppPID` in `CocoaProfileManager.swift` now iterates all matching processes and picks the first one that has accessible AX windows, falling back to the first match if none do.
+**Fix in code**: `getAppPIDs` in `CocoaProfileManager.swift` returns all matching PIDs sorted by recency. Callers use `hasMovableWindow(pid:)` to probe each PID via the AX API without activating the app, selecting the first one that actually owns a visible window.
 
-**If you add new apps**: Do not use `NSWorkspace.shared.runningApplications.first(where:)` directly. Always use `getAppPID(bundleID:)` which handles this multi-instance case.
+**If you add new apps**: Do not use `NSWorkspace.shared.runningApplications.first(where:)` directly. Always use `getAppPIDs(bundleID:)` which handles this multi-instance case.
+
+**Important**: If `hasMovableWindow` returns false for ALL processes, it usually means **Accessibility permission is not granted** (see section 1), not that the windows are actually missing.
 
 **Diagnosis**:
 ```bash
 # Check for multiple instances of the same app
 ps aux | grep -i "[G]oogle Chrome" | grep -v Helper
 # Multiple lines = multiple Chrome processes
+
+# Check the log file for details
+tail -30 ~/Documents/logs/gui-*.log
 ```
 
 ## Debug Logging
 
+Both CLI and GUI write timestamped log files to the directory configured by `log_directory` in `config.json` (default: `~/Documents/logs`).
+
 ```bash
-# Stream GUI app logs in real time
+# List recent log files
+ls -lt ~/Documents/logs/{cli,gui}-*.log | head -10
+
+# Read the latest GUI log
+cat "$(ls -t ~/Documents/logs/gui-*.log | head -1)"
+
+# Read the latest CLI log
+cat "$(ls -t ~/Documents/logs/cli-*.log | head -1)"
+```
+
+Log files capture all `print()` output (via global override) including:
+- Accessibility permission status
+- Config loading
+- Profile detection and matching
+- Per-app positioning details (current position, calculated target, result)
+- Menu action clicks (Apply Auto, Detect, specific profile applies)
+- Quit event
+
+### System Logs (supplementary)
+
+```bash
+# Stream GUI app system logs in real time
 log stream --predicate 'process == "MacAppPositionerGUI"'
 
-# Show recent CLI logs
+# Show recent CLI system logs
 log show --predicate 'process == "MacAppPositioner"' --last 15m
 
 # Check display configuration

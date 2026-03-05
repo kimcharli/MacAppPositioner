@@ -126,26 +126,31 @@ class MenuBarManager: NSObject {
     }
 
     @objc func detectCurrentSetup() {
+        print("\n🔍 [Menu] Detect Current Setup clicked")
         if let profile = profileManager.detectProfile() {
+            print("   Result: matched profile '\(profile)'")
             showNotification(title: "Profile Detected", message: "Current setup matches profile: \(profile)")
         } else {
+            print("   Result: no matching profile")
             showNotification(title: "No Profile Match", message: "Current monitor setup doesn't match any saved profiles.")
         }
     }
     
     @objc func autoApplyProfile() {
+        print("\n🚀 [Menu] Apply Auto clicked")
         if let detectedProfile = profileManager.detectProfile() {
-            print("MenuBarManager: Applying detected profile: \(detectedProfile)")
+            print("   Applying detected profile: \(detectedProfile)")
             profileManager.applyProfile(detectedProfile)
             showNotification(title: "Profile Applied", message: "Applied profile: \(detectedProfile)")
         } else {
-            print("MenuBarManager: No profile detected")
+            print("   No profile detected")
             showNotification(title: "Auto Apply Failed", message: "No matching profile found for current setup.")
         }
     }
 
     @objc func applyProfile(_ sender: NSMenuItem) {
         if let profileName = sender.representedObject as? String {
+            print("\n📋 [Menu] Apply profile '\(profileName)' clicked")
             profileManager.applyProfile(profileName)
             showNotification(title: "Profile Applied", message: "Applied profile: \(profileName)")
         }
