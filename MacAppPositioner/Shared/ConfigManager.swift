@@ -148,21 +148,30 @@ class ConfigManager: ConfigManaging {
         ]
         
         for url in configPaths {
-            if FileManager.default.fileExists(atPath: url.path) {
-                do {
-                    let data = try Data(contentsOf: url)
-                    let decoder = JSONDecoder()
-                    let config = try decoder.decode(Config.self, from: data)
-                    print("Loaded config from: \(url.path)")
-                    cachedConfig = config      // Cache the loaded config
-                    loadedConfigURL = url      // Remember where we loaded from
-                    return config
-                } catch {
-                    print("Error decoding config at \(url.path): \(error)")
-                }
+            guard FileManager.default.fileExists(atPath: url.path) else { continue }
+
+            do {
+                let data = try Data(contentsOf: url)
+                let decoder = JSONDecoder()
+                let config = try decoder.decode(Config.self, from: data)
+                print("Loaded config from: \(url.path)")
+                cachedConfig = config      // Cache the loaded config
+                loadedConfigURL = url      // Remember where we loaded from
+                return config
+            } catch {
+                // A file that exists but cannot be read is terminal. Falling
+                // through to the "not found" branch would tell a user with a
+                // one-character typo that their config is missing, when it was
+                // found and rejected -- and would send them looking in the
+                // wrong place, or silently pick up a stale config from a
+                // lower-priority path.
+                print("❌ Could not read the config at \(url.path)")
+                print("   \(error)")
+                print("   Fix this file, or move it aside to fall back to another location.")
+                return nil
             }
         }
-        
+
         print("Config not found in any standard location")
         print("Searched paths:")
         for path in configPaths {
