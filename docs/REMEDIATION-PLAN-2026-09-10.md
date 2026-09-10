@@ -620,6 +620,55 @@ grep -c '\.0x' ~/.config/mac-app-positioner/config.json   # expect 0
 By observation: creating a profile from the GUI's "Create New Profile" yields
 one whose `layout.workspace` apps actually appear in `plan`.
 
+## Phase 3b outcome (2026-09-10)
+
+3b.1, 3b.2, 3b.3, 3b.5 and 3b.6 shipped in five commits
+(`674b8b5`..`b77a7f0`). `Scripts/build.sh` and `Scripts/test_all.sh` exit 0;
+suite still 9/9. **3b.4 remains open** and is tracked in `TODO.md`.
+
+Verification block re-run at close, against the operator's real config, which
+was restored and confirmed by hash afterwards:
+
+| Check | Result |
+| ----- | ------ |
+| `update` round trip preserves roles | plan entries 8 -> 8 (was 8 -> 4) |
+| float resolutions in config | 0 |
+| `update <new>` creates | reports "created", prints roles |
+| `update --workspace <bad>` | rejected, nothing written |
+| `list` | matches marked, absent displays `✗` |
+| suite | 9 passed / 0 failed |
+
+### Newly observed while executing
+
+- **3b.6 did not exist in the plan.** Creating a profile picked the first
+  non-builtin display as workspace — enumeration order. It chose `2560x1440`
+  on a machine whose real workspace is `3840x2160`. Since the whole point of
+  the phase is "go to the office and record it", the default landed wrong in
+  exactly the case it was written for. Added `--workspace`, validated.
+- **3b.2 could not be its own commit.** 3b.1, 3b.2 and 3b.3 are one rewrite of
+  `updateProfile`; three commits would have meant writing it three times.
+
+### Not verified
+
+- **The GUI call site.** `ProfileManagerView.createProfile` now uses the shared
+  helper and had the identical defect, but no SwiftUI file compiles on this
+  machine: the Command Line Tools 27.0 update installed 2026-09-10 16:37 ships
+  no `libSwiftUIMacros.dylib`, so `@State` cannot expand. Reproduced on a clean
+  checkout of `HEAD`, so it is environmental. The change is by inspection only
+  until either Xcode is installed or the toolchain is repaired.
+
+### Still open after 3b
+
+- **3b.4** — per-profile layouts. `README.md:18` promises them; `Config.layout`
+  is global. Options A/B/C in the section above.
+- **Top-row windows never converge.** `top_left` / `top_right` land 30pt short,
+  `apply` reports failure, the next `plan` still says MOVE. Bottom row is
+  clean. `LayoutEngine` does use `visibleFrame`, so the suspect is the
+  Cocoa->internal conversion (`CocoaCoordinateManager.swift:49,73`). The
+  measured 30pt does not match that monitor's 90pt menu bar, so the mechanism
+  is not yet understood.
+- Quadrant tiling, and the Phase 4 / Phase 5 remainders.
+
 ### Phase 3b commit sequence
 
 | # | Commit | Items | Status |

@@ -2,15 +2,15 @@
 
 This file tracks the development tasks for the Mac App Positioner application.
 
-> **▶ Active work:** [docs/REMEDIATION-PLAN-2026-09-10.md](docs/REMEDIATION-PLAN-2026-09-10.md) — Phases 0, 1, 2, 2.5 and 3a are complete. **Phase 3b (multi-profile authoring) is planned and takes priority over everything else.**
+> **▶ Active work:** [docs/REMEDIATION-PLAN-2026-09-10.md](docs/REMEDIATION-PLAN-2026-09-10.md) — Phases 0, 1, 2, 2.5, 3a and **3b are complete**, except 3b.4 which needs a ruling.
 >
-> **▶ Why:** this repo exists for multi-environment use — home, office, travel. Detection and switching work. **Creating a profile does not.** Both authoring paths (CLI `update`, GUI "Create New Profile") write a profile with no `workspace` monitor, so every `layout.workspace` app is silently dropped from the plan. Measured on a live config: 5 apps became 1 after a single `update`. Until 3b lands, there is no working way to add a second environment.
+> **▶ Multi-profile now works.** Creating a profile used to write one with no `workspace` monitor, so every `layout.workspace` app was silently dropped — there was no working way to add a second environment. `update` now preserves or accepts the workspace monitor (`--workspace <resolution>`), creates a profile that does not exist, and a new `list` command shows every profile and which one matches.
 >
-> **▶ Open ruling:** 3b.4 — `README.md:18` promises "different layouts" per profile, but `layout` is global. Either implement per-profile layouts or correct the claim.
+> **▶ Open ruling:** 3b.4 — `README.md:18` promises "different layouts" per profile, but `layout` is global. Implement the per-profile override, or correct the claim. Tracked under "Open decisions" below.
 >
-> Quadrant tiling (former Phase 3 proper) is displaced by 3b but still unresolved: the four documented quadrant apps overlap 41–80% pairwise and sum to 228% of the workspace monitor's area, and tiling must be opt-out because `AppLayoutEntry.sizing` defaults to `"keep"`.
+> **▶ Known defect:** top-row windows never converge. `top_left` / `top_right` apps land 30pt short, `apply` reports failure, and the next `plan` still says MOVE — forever. Bottom row is clean. Not yet isolated.
 >
-> Also open, found 2026-09-10 while applying a profile: **top-row windows never converge.** `top_left` and `top_right` apps land 30pt short of target, `apply` reports failure, and the next `plan` still says MOVE — forever. Bottom-row apps converge cleanly. Not yet isolated.
+> **▶ Environment:** the Command Line Tools 27.0 update (2026-09-10 16:37) ships no `libSwiftUIMacros.dylib`, so **no SwiftUI file compiles** and `Scripts/build-all.sh` fails. `Scripts/build.sh` (CLI) and `Scripts/test_all.sh` are unaffected. Reproduced on a clean `HEAD`.
 >
 > That plan supersedes the status of the "CODE REVIEW FINDINGS & FIX PLAN" section below, which a 2026-09-10 audit found to contain three items marked `[x]` that are only half-done. **The Phase 1 checklist below is also unreliable** — it credits `WindowManager.swift`, a file that does not exist. Trust the remediation plan over this file until Phase 5 reconciles them.
 

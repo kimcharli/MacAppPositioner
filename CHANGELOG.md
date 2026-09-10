@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Remediation, Phase 3b (2026-09-10)
+
+Multi-profile authoring. The repository exists to serve several environments,
+but there was no working way to create a second one.
+
+#### Fixed
+
+- **[BUG]** Creating or updating a profile produced one with **no workspace
+  monitor**, so every `layout.workspace` app was silently dropped from the plan
+  — no error, just fewer apps. Both writers asked for the monitor list without
+  saying which display was the workspace, so the role could never be assigned.
+  Measured on a real config: a single `update` took the plan from 5 apps to 1.
+  This affected the CLI's `update` and the GUI's "Create New Profile" alike.
+- **[BUG]** Profile writes recorded resolutions as `2056.0x1329.0` while
+  `generate-config` wrote `2056x1329`. Detection normalised both, so it worked,
+  but the file disagreed with itself.
+
+#### Added
+
+- **`list`** — shows every profile, its monitors, and which one matches the
+  displays attached right now, marking each display present or absent. There
+  was previously no way to see what profiles existed short of reading the JSON.
+  When nothing matches it prints what *is* attached, since a profile matches
+  only on exact set equality and the mismatch is usually one resolution.
+- **`update` now creates a profile that does not exist.** It previously refused
+  with "not found", and `generate-config` emits a whole fresh config with a
+  single profile, so neither command could add one to an existing config.
+- **`update <name> --workspace <resolution>`** — names the workspace monitor
+  explicitly. Without it, a new profile takes the first non-builtin display,
+  which is enumeration order; the flag is validated against the attached
+  displays so a typo fails instead of producing a profile pointing at the wrong
+  screen. Updating an existing profile keeps the workspace it already had.
+
+#### Known issues
+
+- `top_left` and `top_right` windows land 30pt short of their target and never
+  converge: `apply` reports failure and the next `plan` still says `MOVE`.
+  Bottom-row positions are unaffected.
+- `README.md` describes "different layouts" per profile. Layout is currently
+  global — profiles switch which monitor the layout targets, not the layout
+  itself. Unresolved; tracked as 3b.4.
+
 ### Remediation, Phase 3a (2026-09-10)
 
 Config fidelity: the parts of Phase 3 that needed no design ruling.
