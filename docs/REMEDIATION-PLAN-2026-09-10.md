@@ -1,6 +1,6 @@
 # Remediation Plan — 2026-09-10
 
-**Status:** Approved by @ckim on 2026-09-10. **Phase 0 complete**, **Phase 1 complete** (both 2026-09-10). Phases 2–5 remain queued and are not approved for execution.
+**Status:** Approved by @ckim on 2026-09-10. **Phase 0 complete**, **Phase 1 complete** (both 2026-09-10). **Phase 2 approved and executing** (2026-09-10), re-scoped — see the toolchain ruling below. Phases 3–5 remain queued.
 
 ## Context
 
@@ -59,6 +59,7 @@ The structural remedy (Phase 1) is a pure `LayoutEngine.resolve(...)` consumed b
 - **`positioning_strategy` — keep or delete?** Documented at `CONFIGURATION.md:138` but absent from the `AppSettings` model entirely. **@ckim must decide** whether Chrome needs a distinct strategy hook or whether the current `hasMovableWindow` PID selection has superseded it. Blocks Phase 3 item 12. Parked here until then.
 - **Quadrant semantics — anchor or tile?** Today no code path ever resizes a window; `top_left` anchors a window at its existing size. README promises four zones. **@ckim must decide** whether to implement true tiling (behavior change for existing users) or correct the documentation. Blocks Phase 3 item 11.
 - **`generate-config` stdout pollution.** Diagnostics share stdout with the JSON payload, so the output is copy-pasteable but not redirectable. Deferred to Phase 3 (see item 0.1). No decision needed — just sequencing.
+- **Migrate the test harness to XCTest?** Blocked on full Xcode being installed (Command Line Tools alone ship neither XCTest nor swift-testing — see the Phase 2 toolchain ruling). **@ckim must decide** whether to install Xcode. If so, the compiled-test harness converts to a `Package.swift` test target mechanically: the tests already link the real `Shared/` sources and use plain value assertions, so only the assertion syntax changes. Until then the harness stays as-is and is not a stopgap but the supported path.
 
 ## Phase 1 — Items to execute
 
@@ -104,10 +105,89 @@ This phase is otherwise a refactor, but unifying the two paths necessarily adopt
 - **`apply` now skips windows already within `positioningTolerance` of their target.** Previously only `plan` had this check, so `apply` re-set the position of correctly-placed windows every run. Net effect: less window flicker.
 - **`plan` now reports `KEEP` / `UNAVAILABLE` with no target** instead of a fabricated top-left MOVE for `center`, `keep`, and not-running apps. This is the D1 fix and is visible in CLI and GUI output.
 
+## Phase 2 — Items to execute
+
+**Goal:** make the logic that currently requires the operator's physical displays testable against fixtures. The two tests excluded in Phase 0 are excluded precisely because they assert against real hardware; this phase is what lets them be replaced rather than skipped.
+
+### Toolchain ruling (decided during execution, 2026-09-10)
+
+The planned `Package.swift` + XCTest target is **dropped, not deferred**, because it cannot work on this machine:
+
+```
+$ xcode-select -p
+/Library/Developer/CommandLineTools
+$ swift test
+error: no such module 'XCTest'
+error: no such module 'Testing'      # swift-testing likewise absent
+```
+
+Only Command Line Tools are installed, and neither XCTest nor swift-testing ships with them — both require full Xcode. `swift build` against a `MAPCore` target *does* succeed, but shipping a test target that cannot run here would be config I can't verify.
+
+**Adopted instead:** the compiled-test harness already introduced in Phase 1 (`run_compiled_test` in `Scripts/test_all.sh`), which `swiftc`-compiles a test file together with `MacAppPositioner/Shared/*.swift`. It needs nothing beyond `swiftc`, and it links the real shipping sources rather than a re-implementation — which was the actual requirement. **The substance of Phase 2 (the seams and the fixture tests) is unchanged; only the harness technology differs.**
+
+See Parked / deferred for the migration decision.
+
+### 2.1 — Shared assertion helper
+
+- **New file:** `Tests/TestSupport.swift`, compiled into every compiled test.
+- `Tests/test_layout_engine.swift` currently carries its own `check` / `failures` pair; a second test file would copy it. Extract once.
+
+### 2.2 — `ScreenProviding` seam
+
+- **New file:** `MacAppPositioner/Shared/ScreenProviding.swift`.
+- `protocol ScreenProviding { var screens: [ScreenSnapshot] { get } }` where `ScreenSnapshot` carries `frame` (Cocoa), `localizedName`, `backingScaleFactor` — everything `CocoaMonitorInfo.init` reads from `NSScreen`, and nothing else.
+- `SystemScreenProvider` wraps `NSScreen.screens`; `FixtureScreenProvider` returns a canned list.
+- **File:** `CocoaCoordinateManager.swift` — reads `NSScreen.screens` directly in `getAllMonitors` and `getBuiltinScreen`. Gains an injectable `init(screenProvider:)`; `shared` keeps using the system provider.
+
+### 2.3 — `WindowControlling` seam
+
+- **New file:** `MacAppPositioner/Shared/WindowControlling.swift`.
+- `protocol WindowControlling` covering what `CocoaProfileManager` actually needs: `runningPIDs(bundleID:)`, `localizedName(bundleID:)`, `hasMovableWindow(pid:)`, `windowFrame(pid:)`, `setWindowPosition(pid:position:size:)`.
+- `SystemWindowController` delegates to the existing `CocoaCoordinateManager` + `NSWorkspace` code paths. `FixtureWindowController` returns canned frames and *records* the moves it was asked to make, so a test can assert what apply would do without moving a window.
+- **File:** `CocoaProfileManager.swift` — gains `init(configManager:coordinateManager:windowController:)`, defaulting to the current singletons so no call site changes. Uses the existing but so-far-unused `ConfigManaging` protocol, closing the half-done item flagged in the audit.
+
+### 2.4 — Fixture tests for hardware-dependent logic
+
+- **New file:** `Tests/test_profile_logic.swift`, covering what previously needed real displays:
+  - `detectProfile` matches on a resolution set, ignoring order.
+  - `detectProfile` resolves the `macbook` / `builtin` alias (the Phase 0 fix, currently unguarded).
+  - `generatePlan` targets the correct monitor per app, including the built-in section.
+  - `generatePlan` emits `UNAVAILABLE` for an app with no running process.
+  - Cocoa→internal conversion is correct for a multi-monitor arrangement with a non-primary origin — the class of bug that caused the historical "GUI positions to wrong location" defect.
+
+### 2.5 — Retire the superseded scripts
+
+- Delete `Tests/test_chrome_simple.swift` (moves real Chrome windows; hardcodes the author's `1329`px display — the last remaining hardcoded `1329` in the repo) and `Tests/test_positioning_success.swift` (stale binary path, invokes a real `apply`).
+- Remove their exclusion comments from `Scripts/test_all.sh`, which exist only to explain why they were skipped.
+
+## Phase 2 commit sequence
+
+| # | Commit | Items |
+| - | ------ | ----- |
+| 12 | `docs: re-scope Phase 2 around the available toolchain` | this section |
+| 13 | `test: extract shared assertion helper` | 2.1 |
+| 14 | `refactor(core): introduce ScreenProviding seam` | 2.2 |
+| 15 | `refactor(core): introduce WindowControlling seam` | 2.3 |
+| 16 | `test: cover profile detection and plan generation with fixtures` | 2.4 |
+| 17 | `test: retire hardware-dependent scripts` | 2.5 |
+
+## Phase 2 verification
+
+```bash
+./Scripts/build-all.sh                      # exits 0, CLI + GUI
+./Scripts/test_all.sh                       # exits 0
+grep -rn "1329" Tests/ MacAppPositioner/    # no matches
+grep -rn "NSScreen" MacAppPositioner/Shared/CocoaProfileManager.swift   # no matches
+```
+
+Plus, by observation:
+
+- `./dist/MacAppPositioner detect` and `plan` behave identically to before the refactor on real hardware (the seams default to the system implementations).
+- The fixture tests fail if the Phase 0 builtin-alias fix is reverted — i.e. they actually guard it.
+
 ## Later phases (not approved for execution)
 
-- **Phase 2 — Testability.** Add `Package.swift` (`MAPCore` / CLI / `MAPCoreTests`); introduce `ScreenProviding` and `WindowControlling` seams; port `Tests/*.swift` to XCTest with fixture screens.
-- **Phase 3 — Honest config.** Real tiling via the already-present `size:` parameter; honor or delete `applications.positioning`; make `saveConfig` non-destructive (merge, don't re-encode); read or remove `@AppStorage("defaultProfile")`.
+- **Phase 3 — Honest config.** Real tiling via the already-present `size:` parameter; honor or delete `applications.positioning`; make `saveConfig` non-destructive (merge, don't re-encode); read or remove `@AppStorage("defaultProfile")`; route `generate-config` diagnostics to stderr.
 - **Phase 4 — Robustness.** Display identity via `CGDisplayCreateUUIDFromDisplayID`; harden `getBestWindow` (drop the `as!` force-cast, filter before accepting `kAXMainWindow`); move the apply loop off the main-thread `RunLoop.run(until:)` reentrancy pattern.
 - **Phase 5 — Doc truth-up.** Remove the nonexistent `WindowManager` from `ARCHITECTURE.md:32` and `DEVELOPMENT.md:35`; reconcile Rule 3 with `AppConstants`; correct the three half-done `[x]` items in `TODO.md`.
 

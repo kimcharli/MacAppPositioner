@@ -2,7 +2,7 @@
 
 This file tracks the development tasks for the Mac App Positioner application.
 
-> **▶ Active work:** [docs/REMEDIATION-PLAN-2026-09-10.md](docs/REMEDIATION-PLAN-2026-09-10.md) — Phase 0 (correctness fixes) and **Phase 1 (`plan` and `apply` unified behind a pure `LayoutEngine`) are complete.** Phase 2 (SPM + XCTest + injectable screen/window seams) is next and awaits sign-off.
+> **▶ Active work:** [docs/REMEDIATION-PLAN-2026-09-10.md](docs/REMEDIATION-PLAN-2026-09-10.md) — Phase 0 (correctness fixes) and Phase 1 (`plan` and `apply` unified behind a pure `LayoutEngine`) are complete. **Phase 2 (injectable screen/window seams + fixture tests) is approved and executing**, re-scoped away from SPM/XCTest, which this machine's toolchain cannot run.
 >
 > That plan supersedes the status of the "CODE REVIEW FINDINGS & FIX PLAN" section below, which a 2026-09-10 audit found to contain three items marked `[x]` that are only half-done. Trust the remediation plan over this file until Phase 5 reconciles them.
 
