@@ -177,7 +177,7 @@ If an app has multiple windows (like Outlook's "Reminders" window), MacAppPositi
 
 ### 10. App Not Moved — Multiple Instances of Same App Running
 
-**Symptoms**: `❌ No moveable window found for <bundleID> across N process(es)` even though the app is visibly open.
+**Symptoms**: `❌ No moveable window found for <bundleID>.` even though the app is visibly open.
 
 **Root Cause**: Some applications (notably Google Chrome) can have multiple OS processes sharing the same bundle ID. For example:
 - A regular Chrome browser window (the one you want to move)
@@ -185,9 +185,9 @@ If an app has multiple windows (like Outlook's "Reminders" window), MacAppPositi
 
 `NSWorkspace.shared.runningApplications.first(where:)` returns the **first** matching process, which may be the headless instance with no visible windows — causing `getBestWindow` to return nil.
 
-**Fix in code**: `getAppPIDs` in `CocoaProfileManager.swift` returns all matching PIDs sorted by recency. Callers use `hasMovableWindow(pid:)` to probe each PID via the AX API without activating the app, selecting the first one that actually owns a visible window.
+**Fix in code**: `WindowControlling.addressablePID(bundleID:)` (in `Shared/WindowControlling.swift`) walks `runningPIDs(bundleID:)`, which is sorted most-recently-launched first, and returns the first PID for which `hasMovableWindow(pid:)` is true. The probe goes through the AX API without activating the app, so skipped processes don't flicker.
 
-**If you add new apps**: Do not use `NSWorkspace.shared.runningApplications.first(where:)` directly. Always use `getAppPIDs(bundleID:)` which handles this multi-instance case.
+**If you add new apps**: Do not use `NSWorkspace.shared.runningApplications.first(where:)` directly. Go through `addressablePID(bundleID:)` — or `currentWindowFrame(bundleID:)`, which combines the lookup with a frame read — so the multi-instance case is handled for you.
 
 **Important**: If `hasMovableWindow` returns false for ALL processes, it usually means **Accessibility permission is not granted** (see section 1), not that the windows are actually missing.
 

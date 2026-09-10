@@ -42,6 +42,8 @@ Quick reference for AI agents working with the Mac App Positioner codebase.
 | `LayoutEngine` | **Single owner of target window geometry.** Pure; no AppKit/AX/singletons. Put all placement rules here. |
 | `CocoaCoordinateManager` | Screen detection, coordinate conversion, window positioning |
 | `CocoaProfileManager` | Profile detection, plan generation, plan execution |
+| `ScreenProviding` | Seam over `NSScreen`. `SystemScreenProvider` in production, `FixtureScreenProvider` in tests |
+| `WindowControlling` | Seam over `NSWorkspace` + the AX API. `SystemWindowController` in production, `FixtureWindowController` in tests |
 | `ConfigManager` | Config loading/saving from multiple search paths |
 | `AppLogger` | Shared file logger — tees `print()` to stdout + log file |
 | `AppUtils` | Resolution normalization, Accessibility permission check, shared constants |
@@ -59,11 +61,23 @@ Quick reference for AI agents working with the Mac App Positioner codebase.
 | Hardcode resolution format `"3440.0x1440.0"` | Use `AppUtils.normalizeResolution()` |
 | Rely on `NSScreen.main` | Use `getBuiltinScreen()` |
 | Write duplicate utility functions | Use `AppUtils` |
-| `NSWorkspace.shared.runningApplications.first(where:)` for PID lookup | Use `getAppPIDs(bundleID:)` — handles multiple processes with same bundle ID |
+| `NSWorkspace.shared.runningApplications.first(where:)` for PID lookup | Use `addressablePID(bundleID:)` on `WindowControlling` — handles multiple processes with the same bundle ID |
+| Read `NSScreen` or call the AX API from `CocoaProfileManager` | Go through the `ScreenProviding` / `WindowControlling` seams, or the tests cannot run without your hardware |
 
 ### Multi-Instance Apps
 
-Some apps (e.g. Google Chrome) run multiple processes with the same bundle ID simultaneously — a regular window instance and a headless/debugging instance. `NSWorkspace.shared.runningApplications.first(where:)` returns whichever the OS lists first, which may be the headless one with no AX-accessible windows. `getAppPIDs` in `CocoaProfileManager` handles this by returning all matches sorted by recency; callers pick the first PID where `hasMovableWindow` is true. Always go through `getAppPIDs` rather than querying `NSWorkspace` directly.
+Some apps (e.g. Google Chrome) run multiple processes with the same bundle ID simultaneously — a regular window instance and a headless/debugging instance. `NSWorkspace.shared.runningApplications.first(where:)` returns whichever the OS lists first, which may be the headless one with no AX-accessible windows.
+
+`WindowControlling.addressablePID(bundleID:)` handles this: `runningPIDs(bundleID:)` returns matches sorted most-recently-launched first, and `addressablePID` returns the first whose `hasMovableWindow(pid:)` is true. The probe does not activate the app, so skipped processes don't flicker. Use `currentWindowFrame(bundleID:)` when you want the frame as well.
+
+### Testing
+
+Two harnesses, both driven by `./Scripts/test_all.sh`:
+
+- `run_test` — runs a standalone `Tests/*.swift` script via `swift`. For observation scripts that only read the live system.
+- `run_compiled_test` — `swiftc`-compiles a test together with `MacAppPositioner/Shared/*.swift` and `Tests/TestSupport.swift`. For anything asserting on shipping types. Such a file **must** use `@main struct X { static func main() }` and **must not** have a hashbang or top-level statements.
+
+Use the fixture providers rather than real hardware; see `Tests/test_profile_logic.swift`.
 
 ## GUI Deployment Checklist
 
