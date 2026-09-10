@@ -187,7 +187,7 @@ class CocoaProfileManager {
 
     // MARK: - Profile Generation
     
-    func updateProfile(name: String) {
+    func updateProfile(name: String, workspaceResolution: String? = nil) {
         guard var config = configManager.loadConfig() else {
             print("Failed to load config.json")
             return
@@ -195,14 +195,37 @@ class CocoaProfileManager {
 
         let existing = config.profiles[name]
 
-        // Keep the workspace monitor the operator already chose. Without this the
-        // role is recomputed from scratch, comes back empty, and every
-        // layout.workspace app silently vanishes from the plan.
-        let currentWorkspace = existing?.monitors
+        // An explicit choice wins. Otherwise keep the workspace monitor the
+        // operator already chose: without this the role is recomputed from
+        // scratch, comes back empty, and every layout.workspace app silently
+        // vanishes from the plan.
+        let requestedWorkspace = workspaceResolution ?? existing?.monitors
             .first(where: { $0.position == .workspace })?
             .resolution
 
-        let newMonitors = coordinateManager.profileMonitors(preservingWorkspace: currentWorkspace)
+        // Validate an explicit choice against reality. A typo would otherwise
+        // fall through to the first-non-builtin default and quietly produce a
+        // profile pointing at the wrong screen.
+        if let requested = workspaceResolution {
+            let attached = coordinateManager.getAllMonitors()
+            let matches = CocoaCoordinateManager.isBuiltInAlias(requested)
+                ? attached.contains { $0.isBuiltIn }
+                : attached.contains {
+                    AppUtils.normalizeResolution($0.resolution)
+                        == AppUtils.normalizeResolution(requested)
+                  }
+
+            guard matches else {
+                print("❌ No attached display matches '\(requested)'.")
+                print("   Attached:")
+                for monitor in attached {
+                    print("     \(AppUtils.normalizeResolution(monitor.resolution))")
+                }
+                return
+            }
+        }
+
+        let newMonitors = coordinateManager.profileMonitors(preservingWorkspace: requestedWorkspace)
         config.profiles[name] = Profile(monitors: newMonitors)
 
         guard configManager.saveConfig(config) else {

@@ -152,9 +152,26 @@ It prints the roles it recorded, and says whether it created or overwrote:
 
 Updating an existing profile **keeps the workspace monitor you already chose**.
 When creating a new one there is nothing to preserve, so the first non-builtin
-display is used — check the printed roles and edit the config if it guessed
-wrong, since which screen is `workspace` decides where the whole `layout.workspace`
-section lands.
+display is used — which is enumeration order, not a judgement about your desk.
+Name the one you want explicitly:
+
+```bash
+./dist/MacAppPositioner update office --workspace 3440x1440
+```
+
+The resolution is checked against the attached displays, so a typo fails
+instead of silently producing a profile that positions nothing:
+
+```text
+❌ No attached display matches '9999x9999'.
+   Attached:
+     2056x1329
+     2560x1440
+     3840x2160
+```
+
+Which screen is `workspace` decides where the whole `layout.workspace` section
+lands, so it is worth getting right — check the roles it prints.
 
 ### `generate-config` - Generate Config Template
 

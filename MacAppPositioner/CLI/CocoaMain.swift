@@ -16,7 +16,8 @@ func printUsage() {
       detect                  - Detect current monitor profile
       list                    - List configured profiles and which one matches
       apply [profile-name]    - Auto-detect and apply profile (or force specific profile)
-      update <profile-name>   - Update profile with current monitor setup
+      update <profile-name>   - Create or update a profile from the current setup
+                                (optionally: --workspace <resolution>)
       generate-config         - Generate monitor configuration
       test-coordinates        - Test native Cocoa coordinate system
     
@@ -26,6 +27,7 @@ func printUsage() {
       MacAppPositioner apply              # Auto-detect and apply
       MacAppPositioner apply office       # Force apply 'office' profile
       MacAppPositioner update office
+      MacAppPositioner update office --workspace 3440x1440
       MacAppPositioner generate-config
       MacAppPositioner test-coordinates
     """)
@@ -158,11 +160,22 @@ struct MacAppPositioner {
 
             case "update":
             guard arguments.count > 2 else {
-                print("Usage: MacAppPositioner update <profile-name>")
+                print("Usage: MacAppPositioner update <profile-name> [--workspace <resolution>]")
                 exit(1)
             }
             let profileName = arguments[2]
-            profileManager.updateProfile(name: profileName)
+
+            var requestedWorkspace: String? = nil
+            if let flagIndex = arguments.firstIndex(of: "--workspace") {
+                guard flagIndex + 1 < arguments.count else {
+                    print("Usage: MacAppPositioner update <profile-name> [--workspace <resolution>]")
+                    print("       --workspace needs a resolution, e.g. --workspace 3440x1440")
+                    exit(1)
+                }
+                requestedWorkspace = arguments[flagIndex + 1]
+            }
+
+            profileManager.updateProfile(name: profileName, workspaceResolution: requestedWorkspace)
             
         case "list":
             profileManager.listProfiles()
