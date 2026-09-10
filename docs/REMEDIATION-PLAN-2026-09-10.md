@@ -1,6 +1,6 @@
 # Remediation Plan — 2026-09-10
 
-**Status:** Approved by @ckim on 2026-09-10. **Phase 0 complete** (2026-09-10) — see Outcome below. Phases 1–5 are queued and not yet approved for execution.
+**Status:** Approved by @ckim on 2026-09-10. **Phase 0 complete** (2026-09-10) — see Outcome below. **Phase 1 approved and executing** (2026-09-10). Phases 2–5 remain queued.
 
 ## Context
 
@@ -60,9 +60,52 @@ The structural remedy (Phase 1) is a pure `LayoutEngine.resolve(...)` consumed b
 - **Quadrant semantics — anchor or tile?** Today no code path ever resizes a window; `top_left` anchors a window at its existing size. README promises four zones. **@ckim must decide** whether to implement true tiling (behavior change for existing users) or correct the documentation. Blocks Phase 3 item 11.
 - **`generate-config` stdout pollution.** Diagnostics share stdout with the JSON payload, so the output is copy-pasteable but not redirectable. Deferred to Phase 3 (see item 0.1). No decision needed — just sequencing.
 
+## Phase 1 — Items to execute
+
+**Goal:** make plan/apply divergence inexpressible, not merely fixed. Today `CocoaProfileManager.positionApp()` and `CocoaProfileManager.createAppAction()` each compute target geometry with different rules; `createAppAction` routes `.center` and `.keep` through `calculateQuadrantPosition`, which maps both to the top-left corner. So `plan` advertises a MOVE to top-left for a centered app while `apply` centers it, and fabricates a target for `keep` apps that is never used.
+
+### 1.1 — New pure `LayoutEngine`
+
+- **New file:** `MacAppPositioner/Shared/LayoutEngine.swift`. Imports `CoreGraphics`/`Foundation` only — **no AppKit, no AX, no singletons**, so Phase 2 can unit-test it against fixtures.
+- `struct MonitorGeometry { frame, visibleFrame }` — a plain value, decoupled from `NSScreen` and `CocoaMonitorInfo`.
+- `enum Decision`: `.move`, `.keepConfigured`, `.keepAlreadyPlaced`, `.keepOnTargetScreen`, `.appUnavailable`.
+- `struct Placement { targetFrame: CGRect?, decision: Decision }` — `nil` target means "nothing to do", which is what `.keep` and a not-running app actually mean.
+- `static func resolve(...) -> Placement` is the sole owner of target geometry.
+- **Moves in, and is deleted from its origin:** `resolveWindowSize` (from `CocoaProfileManager.swift:239`) and the quadrant math (from `CocoaCoordinateManager.calculateQuadrantPosition`, whose `case .topLeft, .center, .keep:` collapse is the source of the bug).
+
+### 1.2 — Let the plan express "no move"
+
+- **File:** `MacAppPositioner/Shared/PlanModels.swift`.
+- `ActionType` gains `.unavailable` ("app not running / no moveable window"), today misreported as `MOVE`.
+- `AppAction.targetPosition` becomes `CGRect?`; `AppAction` gains `reason: String` so both front-ends can explain *why* without re-deriving it.
+
+### 1.3 — One geometry path, and apply executes the plan
+
+- **File:** `MacAppPositioner/Shared/CocoaProfileManager.swift`.
+- `createAppAction` delegates entirely to `LayoutEngine.resolve`.
+- `positionApp` is deleted; its duplicate `switch` was the second implementation.
+- `applyProfile(_:)` becomes `generatePlan(for:)` + `executePlan(_:)`. `executePlan` re-resolves the PID by bundle ID at execution time (rather than caching it in `AppAction`) so a plan stays a pure description and cannot carry a stale PID.
+
+### 1.4 — Call sites
+
+- `MacAppPositioner/CLI/CocoaMain.swift` — `plan` printing handles the optional target and prints `reason`.
+- `MacAppPositioner/GUI/ContentView.swift:238` — `ExecutionPlanView` reads `action.targetPosition` non-optionally; must unwrap.
+- `Scripts/build.sh` and `Scripts/build-gui.sh` enumerate sources explicitly (no globbing) — both need `LayoutEngine.swift` added or the build breaks.
+
+### 1.5 — Regression test for the exact bug
+
+- **New file:** `Tests/test_layout_engine.swift`, compiled against `LayoutEngine.swift` by `Scripts/test_all.sh` via `swiftc`, asserting that `.center` resolves to a centered frame (not the top-left corner) and that `.keep` yields a `nil` target.
+- This is a **stopgap in the existing standalone-script style**, superseded by the Phase 2 XCTest target. It exists so Phase 1 ships with proof rather than a claim.
+
+### Intended behaviour changes
+
+This phase is otherwise a refactor, but unifying the two paths necessarily adopts each path's rules on both sides:
+
+- **`apply` now skips windows already within `positioningTolerance` of their target.** Previously only `plan` had this check, so `apply` re-set the position of correctly-placed windows every run. Net effect: less window flicker.
+- **`plan` now reports `KEEP` / `UNAVAILABLE` with no target** instead of a fabricated top-left MOVE for `center`, `keep`, and not-running apps. This is the D1 fix and is visible in CLI and GUI output.
+
 ## Later phases (not approved for execution)
 
-- **Phase 1 — Unify plan and apply.** Extract pure `LayoutEngine.resolve`; make `createAppAction` and `positionApp` both consume it; make `applyProfile` execute `generatePlan`'s output. Fixes D1.
 - **Phase 2 — Testability.** Add `Package.swift` (`MAPCore` / CLI / `MAPCoreTests`); introduce `ScreenProviding` and `WindowControlling` seams; port `Tests/*.swift` to XCTest with fixture screens.
 - **Phase 3 — Honest config.** Real tiling via the already-present `size:` parameter; honor or delete `applications.positioning`; make `saveConfig` non-destructive (merge, don't re-encode); read or remove `@AppStorage("defaultProfile")`.
 - **Phase 4 — Robustness.** Display identity via `CGDisplayCreateUUIDFromDisplayID`; harden `getBestWindow` (drop the `as!` force-cast, filter before accepting `kAXMainWindow`); move the apply loop off the main-thread `RunLoop.run(until:)` reentrancy pattern.
@@ -96,7 +139,30 @@ Three defects beyond the four planned items were found and fixed during executio
 
 One finding was parked rather than fixed: `generate-config` stdout pollution (see Parked / deferred).
 
-**Next:** Phase 1 (unify plan and apply via a pure `LayoutEngine`) is the highest-value remaining work — it eliminates D1 structurally rather than patching it. Awaiting sign-off.
+**Next:** Phase 1 (unify plan and apply via a pure `LayoutEngine`) is the highest-value remaining work — it eliminates D1 structurally rather than patching it. Approved 2026-09-10; see "Phase 1 — Items to execute" above.
+
+## Phase 1 commit sequence
+
+| # | Commit | Items |
+| - | ------ | ----- |
+| 7 | `docs: detail Phase 1 in the remediation plan` | this section |
+| 8 | `feat(core): add pure LayoutEngine` | 1.1 |
+| 9 | `refactor(core): drive plan and apply from LayoutEngine` | 1.2, 1.3, 1.4 |
+| 10 | `test: cover LayoutEngine center/keep resolution` | 1.5 |
+
+## Phase 1 verification
+
+```bash
+./Scripts/build-all.sh      # exits 0 (both scripts updated for the new file)
+./Scripts/test_all.sh       # exits 0, now 8 tests
+```
+
+Plus, by observation against a config with a `center` app and a `keep` app:
+
+- `plan` reports `KEEP` with no target for the `keep` app (previously `MOVE` to top-left).
+- `plan` reports a **centred** target for the `center` app (previously the top-left corner).
+- The target `plan` prints for a `top_left` app is byte-identical to where `apply` puts it.
+- `grep -c "calculateQuadrantPosition" MacAppPositioner/Shared/CocoaCoordinateManager.swift` returns 0 — the duplicate path is gone, not just bypassed.
 
 ## Verification
 
