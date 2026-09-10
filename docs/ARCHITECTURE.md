@@ -25,12 +25,13 @@ Mac App Positioner automatically positions application windows according to pred
 
 ### Shared Core (`MacAppPositioner/Shared/`)
 
-- **`CocoaCoordinateManager`**: Coordinate conversion (Cocoa to internal top-left), screen detection, quadrant calculations, window positioning via Accessibility API
-- **`CocoaProfileManager`**: Profile detection by resolution matching, layout application, plan generation
+- **`LayoutEngine`**: **Single owner of target window geometry.** Pure (Foundation + CoreGraphics only — no AppKit, no Accessibility API, no singletons). Both plan generation and layout application call `LayoutEngine.resolve(...)`, which is what prevents a preview from disagreeing with an apply.
+- **`CocoaCoordinateManager`**: Coordinate conversion (Cocoa to internal top-left), screen detection, window positioning via Accessibility API
+- **`CocoaProfileManager`**: Profile detection by resolution matching, plan generation, plan execution
 - **`ConfigManager`**: JSON configuration loading from multiple search paths, caching
 - **`AppLogger`**: Shared file logger that overrides `print()` to tee all output to both stdout and a timestamped log file under the configured `log_directory`
-- **`WindowManager`**: Low-level Accessibility API window manipulation
-- **`AppUtils`**: Resolution normalization, path utilities
+- **`AppUtils`**: Resolution normalization, Accessibility permission check, shared constants
+- **`PlanModels`**: `ExecutionPlan` / `AppAction` data structures
 
 ## Technology Stack
 
@@ -55,16 +56,21 @@ NSScreen.screens -> resolution strings -> compare against config profiles -> mat
 
 ### Layout Application
 
+`applyProfile(name)` is defined as `generatePlan(name)` followed by `executePlan(plan)`. There is no second geometry path — what the preview describes is literally what runs.
+
 ```text
 1. Load config.json (ConfigManager)
 2. Detect monitors, convert to internal coordinates (CocoaCoordinateManager)
 3. Match profile by resolution set (CocoaProfileManager)
-4. For each app in layout:
-   a. Find running app by bundle ID (NSWorkspace)
-   b. Get current window position via Accessibility API
-   c. Calculate target position in quadrant (CocoaCoordinateManager)
-   d. Set new position via Accessibility API
-   e. Verify final position
+4. Build the plan — for each app in the layout:
+   a. Find running app by bundle ID, pick the PID with a moveable window
+   b. Read its current frame via the Accessibility API
+   c. LayoutEngine.resolve(...) -> target frame + decision
+      (move / keepConfigured / keepAlreadyPlaced / keepOnTargetScreen / appUnavailable)
+5. Execute the plan — for each action whose decision is `move`:
+   a. Re-resolve the PID by bundle ID (plans carry no PIDs)
+   b. Set the position via the Accessibility API and verify it
+6. Restore focus to the previously frontmost app
 ```
 
 ### Configuration Search Order
@@ -77,6 +83,7 @@ NSScreen.screens -> resolution strings -> compare against config profiles -> mat
 ## Key Design Decisions
 
 - **Shared core logic**: CLI and GUI use identical `CocoaProfileManager` and `CocoaCoordinateManager` to ensure consistent behavior
+- **Plan is the only geometry path**: `applyProfile` executes `generatePlan`'s output, so a preview and an apply cannot drift. Target geometry lives solely in the pure `LayoutEngine`.
 - **Top-left internal coordinates**: Aligns with Accessibility API, avoiding per-window conversion
 - **Explicit builtin screen detection**: `getBuiltinScreen()` avoids `NSScreen.main` inconsistency between CLI and GUI apps
 - **Resolution-based matching**: Profiles matched by monitor resolution sets, not by arrangement position

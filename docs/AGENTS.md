@@ -39,11 +39,12 @@ Quick reference for AI agents working with the Mac App Positioner codebase.
 
 | Class | Purpose |
 | ----- | ------- |
-| `CocoaCoordinateManager` | Screen detection, coordinate conversion, quadrant calculations, window positioning |
-| `CocoaProfileManager` | Profile detection, layout application, plan generation |
+| `LayoutEngine` | **Single owner of target window geometry.** Pure; no AppKit/AX/singletons. Put all placement rules here. |
+| `CocoaCoordinateManager` | Screen detection, coordinate conversion, window positioning |
+| `CocoaProfileManager` | Profile detection, plan generation, plan execution |
 | `ConfigManager` | Config loading/saving from multiple search paths |
 | `AppLogger` | Shared file logger — tees `print()` to stdout + log file |
-| `AppUtils` | Resolution normalization, Accessibility permission check, shared utilities |
+| `AppUtils` | Resolution normalization, Accessibility permission check, shared constants |
 | `MenuBarManager` | GUI menu bar interface |
 
 ## Common Mistakes to Avoid
@@ -51,6 +52,8 @@ Quick reference for AI agents working with the Mac App Positioner codebase.
 | Don't | Do Instead |
 | ----- | ---------- |
 | `./MacAppPositioner detect` | `./dist/MacAppPositioner detect` |
+| Compute a window target anywhere but `LayoutEngine` | Add the rule to `LayoutEngine.resolve` — plan and apply both consume it |
+| Add a positioning branch to `applyProfile` | `applyProfile` only executes `generatePlan`'s output; change the engine |
 | Use `ProfileManager` | Use `CocoaProfileManager` |
 | Use `CoordinateManager` | Use `CocoaCoordinateManager` |
 | Hardcode resolution format `"3440.0x1440.0"` | Use `AppUtils.normalizeResolution()` |

@@ -1,6 +1,6 @@
 # Remediation Plan — 2026-09-10
 
-**Status:** Approved by @ckim on 2026-09-10. **Phase 0 complete** (2026-09-10) — see Outcome below. **Phase 1 approved and executing** (2026-09-10). Phases 2–5 remain queued.
+**Status:** Approved by @ckim on 2026-09-10. **Phase 0 complete**, **Phase 1 complete** (both 2026-09-10). Phases 2–5 remain queued and are not approved for execution.
 
 ## Context
 
@@ -145,10 +145,11 @@ One finding was parked rather than fixed: `generate-config` stdout pollution (se
 
 | # | Commit | Items |
 | - | ------ | ----- |
-| 7 | `docs: detail Phase 1 in the remediation plan` | this section |
-| 8 | `feat(core): add pure LayoutEngine` | 1.1 |
-| 9 | `refactor(core): drive plan and apply from LayoutEngine` | 1.2, 1.3, 1.4 |
-| 10 | `test: cover LayoutEngine center/keep resolution` | 1.5 |
+| 7 | `57c17f7` `docs: detail Phase 1 in the remediation plan` | this section |
+| 8 | `e0b3986` `feat(core): add pure LayoutEngine` | 1.1 |
+| 9 | `f00a2d5` `refactor(core): drive plan and apply from LayoutEngine` | 1.2, 1.3, 1.4 |
+| 10 | `479af42` `test: cover LayoutEngine center/keep resolution` | 1.5 |
+| 11 | `docs: record Phase 1 outcome` | closeout + architecture docs |
 
 ## Phase 1 verification
 
@@ -163,6 +164,32 @@ Plus, by observation against a config with a `center` app and a `keep` app:
 - `plan` reports a **centred** target for the `center` app (previously the top-left corner).
 - The target `plan` prints for a `top_left` app is byte-identical to where `apply` puts it.
 - `grep -c "calculateQuadrantPosition" MacAppPositioner/Shared/CocoaCoordinateManager.swift` returns 0 — the duplicate path is gone, not just bypassed.
+
+## Phase 1 outcome (2026-09-10)
+
+All criteria pass.
+
+| Check | Result |
+| ----- | ------ |
+| `./Scripts/build-all.sh` | exit 0 |
+| `./Scripts/test_all.sh` | exit 0, **8/8** (Layout Engine test added, 20 assertions) |
+| `calculateQuadrantPosition` / `positionApp` in source | 0 occurrences — only a historical reference in a comment |
+| `LayoutEngine` imports | `Foundation`, `CoreGraphics` only — purity held |
+
+Measured against a live config with one app per decision type:
+
+| Layout | Before | After |
+| ------ | ------ | ----- |
+| `center` | `MOVE` → `(-2560, -1440)` (monitor corner) | `MOVE` → `(-1625, -1034)` (actual centre) |
+| `keep` | `MOVE` → fabricated corner target | `KEEP` → target `unchanged` |
+| not running | `MOVE` | `UNAVAILABLE`, with a would-be target |
+| `center`, already on monitor | `MOVE` | `KEEP — already on the target screen` |
+
+End-to-end parity confirmed: `plan` predicted `(-1625, -1034)` for a `center` app and `apply` reported `Final position: (-1625.0, -1034.0)`. Re-running `plan` afterwards returned `KEEP`. (This moved one throwaway window — Dictionary — during verification.)
+
+**Deviations from plan:** two, both additive. Plan actions are now sorted by bundle ID, because `layout` is a dictionary and unstable iteration order meant `apply` visited apps in a different order than the preview listed them. And commit 11 folds in `ARCHITECTURE.md` / `AGENTS.md` updates for the new component, including removal of the nonexistent `WindowManager` entry — one Phase 5 item pulled forward, rather than knowingly leaving a false line in a list being edited.
+
+**Next:** Phase 2 (SPM + XCTest + `ScreenProviding` / `WindowControlling` seams). `LayoutEngine` was built pure specifically so Phase 2 can test it without hardware. Awaiting sign-off.
 
 ## Verification
 
