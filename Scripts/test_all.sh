@@ -48,6 +48,47 @@ run_test() {
     fi
 }
 
+# Compile a test against the real Shared sources and run the resulting binary.
+# Used for tests that exercise shipping types directly instead of
+# re-implementing the logic inside a standalone script.
+run_compiled_test() {
+    local test_name="$1"
+    local test_script="$2"
+
+    echo -e "\n${BLUE}🔬 Running: ${test_name}${NC}"
+    echo "----------------------------------------"
+
+    if [ ! -f "$test_script" ]; then
+        echo -e "${RED}❌ ${test_name}: MISSING (${test_script})${NC}"
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        FAILED_TESTS+=("${test_name} (missing)")
+        return
+    fi
+
+    local bin
+    bin="$(mktemp -t maptest)"
+
+    if ! swiftc -o "$bin" MacAppPositioner/Shared/*.swift "$test_script" \
+            -framework AppKit -framework CoreGraphics; then
+        echo -e "${RED}❌ ${test_name}: COMPILE FAILED${NC}"
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        FAILED_TESTS+=("${test_name} (compile)")
+        rm -f "$bin"
+        return
+    fi
+
+    if "$bin"; then
+        echo -e "${GREEN}✅ ${test_name}: PASSED${NC}"
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+    else
+        echo -e "${RED}❌ ${test_name}: FAILED${NC}"
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        FAILED_TESTS+=("$test_name")
+    fi
+
+    rm -f "$bin"
+}
+
 if ! command -v swift &> /dev/null; then
     echo -e "${RED}❌ Error: Swift compiler not found${NC}"
     echo "   Please install Xcode Command Line Tools: xcode-select --install"
@@ -63,6 +104,9 @@ run_test "Visible Frames"            "Tests/test_visible_frames.swift"
 run_test "App Screen Detection"      "Tests/test_app_screen_detection.swift"
 run_test "Positioning Logic"         "Tests/test_positioning_logic.swift"
 run_test "Real Positioning"          "Tests/test_real_positioning.swift"
+
+# Compiled against Shared/ rather than run as a standalone script.
+run_compiled_test "Layout Engine"    "Tests/test_layout_engine.swift"
 
 # Deliberately excluded from the suite:
 #
