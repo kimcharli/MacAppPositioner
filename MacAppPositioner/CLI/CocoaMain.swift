@@ -34,35 +34,43 @@ func printUsage() {
 }
 
 func testNativeCocoaSystem() {
-    print("=== Native Cocoa Coordinate System Test ===")
-    
+    print("=== Coordinate System Test ===")
+
     let coordinateManager = CocoaCoordinateManager.shared
     let monitors = coordinateManager.getAllMonitors()
-    
-    print("\n📺 All Monitors (Native Cocoa Coordinates):")
+
+    // Raw AppKit values, straight from NSScreen: bottom-left origin, Y up.
+    print("\n\u{1F4FA} Raw AppKit (Cocoa: bottom-left origin, Y up):")
+    for (index, screen) in NSScreen.screens.enumerated() {
+        print("Screen \(index + 1): \(screen.localizedName)")
+        print("  Frame:         \(screen.frame)")
+        print("  Visible Frame: \(screen.visibleFrame)")
+        let insetTop = screen.frame.maxY - screen.visibleFrame.maxY
+        let insetBottom = screen.visibleFrame.minY - screen.frame.minY
+        print("  Reserved: \(insetTop)pt top (menu bar), \(insetBottom)pt bottom (Dock)")
+    }
+
+    // What the app actually computes with. These are converted to a top-left
+    // origin, Y down, to match the Accessibility API.
+    print("\n\u{1F4D0} Internal (top-left origin, Y down \u{2014} what targets are computed in):")
     for (index, monitor) in monitors.enumerated() {
         print("Monitor \(index + 1): \(monitor.resolution)")
-        print("  Frame: \(monitor.frame) [Native Cocoa]")
-        print("  Visible Frame: \(monitor.visibleFrame) [Native Cocoa]")
+        print("  Frame:         \(monitor.frame)")
+        print("  Visible Frame: \(monitor.visibleFrame)")
         print("  isBuiltIn: \(monitor.isBuiltIn), isWorkspace: \(monitor.isWorkspace)")
     }
-    
+
     if let mainScreen = NSScreen.main {
-        print("\n🖥️ NSScreen.main (Native Cocoa):")
-        print("  Frame: \(mainScreen.frame) [Native Cocoa]")
-        print("  Visible Frame: \(mainScreen.visibleFrame) [Native Cocoa]")
+        print("\n\u{1F5A5}\u{FE0F} NSScreen.main (raw Cocoa): \(mainScreen.frame)")
     }
-    
+
     if let builtinScreen = CocoaCoordinateManager.shared.getBuiltinScreen() {
-        print("\n🖥️ Builtin Screen (Reliable Detection):")
-        print("  Frame: \(builtinScreen.frame) [Native Cocoa]")
-        print("  Visible Frame: \(builtinScreen.visibleFrame) [Native Cocoa]")
+        print("\u{1F5A5}\u{FE0F} Builtin screen (raw Cocoa): \(builtinScreen.frame)")
     } else {
-        print("\n🖥️ Builtin Screen: none detected")
+        print("\u{1F5A5}\u{FE0F} Builtin screen: none detected")
     }
-    
-    print("\n✅ Native Cocoa coordinate system test completed")
-    print("Note: All coordinates use bottom-left origin, Y increases upward")
+
+    print("\n\u{2705} Coordinate system test completed")
 }
 
 // MARK: - Main Function
