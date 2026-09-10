@@ -2,7 +2,7 @@
 
 This file tracks the development tasks for the Mac App Positioner application.
 
-> **▶ Active work:** [docs/REMEDIATION-PLAN-2026-09-10.md](docs/REMEDIATION-PLAN-2026-09-10.md) — Phase 0 (correctness fixes) is approved and executing. Phases 1–5 are planned but await sign-off.
+> **▶ Active work:** [docs/REMEDIATION-PLAN-2026-09-10.md](docs/REMEDIATION-PLAN-2026-09-10.md) — **Phase 0 (correctness fixes) is complete.** Phase 1 (unify `plan` and `apply` behind a pure `LayoutEngine`) is the next milestone and awaits sign-off.
 >
 > That plan supersedes the status of the "CODE REVIEW FINDINGS & FIX PLAN" section below, which a 2026-09-10 audit found to contain three items marked `[x]` that are only half-done. Trust the remediation plan over this file until Phase 5 reconciles them.
 

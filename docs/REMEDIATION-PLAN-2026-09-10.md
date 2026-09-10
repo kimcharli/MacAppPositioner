@@ -1,6 +1,6 @@
 # Remediation Plan — 2026-09-10
 
-**Status:** Approved by @ckim on 2026-09-10. Phase 0 executes this session; Phases 1–5 are queued and not yet approved for execution.
+**Status:** Approved by @ckim on 2026-09-10. **Phase 0 complete** (2026-09-10) — see Outcome below. Phases 1–5 are queued and not yet approved for execution.
 
 ## Context
 
@@ -72,13 +72,31 @@ The structural remedy (Phase 1) is a pure `LayoutEngine.resolve(...)` consumed b
 
 Phase 0 lands as five commits, this one first:
 
-| # | Commit | Items |
-| - | ------ | ----- |
-| 1 | `docs: add 2026-09-10 remediation plan` | this file + `TODO.md` pointer |
-| 2 | `fix(cli): emit valid JSON from generate-config` | 0.1 |
-| 3 | `fix(test): point test_all.sh at tests that exist` | 0.2 |
-| 4 | `fix(core): reuse detected monitors, resolve builtin alias` | 0.3 |
-| 5 | `docs: ship config.example.json` | 0.4 |
+| # | Commit | Items | Status |
+| - | ------ | ----- | ------ |
+| 1 | `a7c1df9` `docs: add 2026-09-10 remediation plan` | this file + `TODO.md` pointer | ✅ |
+| 2 | `eccca76` `fix(cli): emit valid JSON from generate-config` | 0.1 | ✅ |
+| 3 | `272171b` `fix(test): point test_all.sh at tests that exist` | 0.2 | ✅ |
+| 4 | `37490e5` `fix(core): reuse detected monitors, resolve builtin alias` | 0.3 | ✅ |
+| 5 | `861fc1d` `docs: ship config.example.json` | 0.4 | ✅ |
+
+## Outcome (2026-09-10)
+
+All five verification criteria pass:
+
+| Check | Result |
+| ----- | ------ |
+| `./Scripts/build-all.sh` | exit 0, CLI + GUI |
+| `generate-config` output parses | ✅, and now emits `[builtin, workspace, secondary]` |
+| `config.example.json` parses and decodes via `ConfigManager` | ✅ |
+| `./Scripts/test_all.sh` | exit 0, **7/7 pass in 2.6s** (was 0/5, exit 1) |
+| No diffs under `MacAppPositioner/GUI/` | ✅ 0 files |
+
+Three defects beyond the four planned items were found and fixed during execution, all inside `generateConfigForCurrentSetup()` and `findWorkspaceMonitor()`; see the notes under 0.1 and 0.3.
+
+One finding was parked rather than fixed: `generate-config` stdout pollution (see Parked / deferred).
+
+**Next:** Phase 1 (unify plan and apply via a pure `LayoutEngine`) is the highest-value remaining work — it eliminates D1 structurally rather than patching it. Awaiting sign-off.
 
 ## Verification
 
