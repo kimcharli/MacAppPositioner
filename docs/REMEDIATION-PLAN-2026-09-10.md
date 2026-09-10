@@ -492,9 +492,131 @@ Verification block re-run at close, all green:
   silently), and the stored profile is re-checked against the config before
   use. A manual click is still the only way to confirm the whole path.
 
-**Next:** Phase 3 proper, which needs the quadrant tiling ruling. Everything
-else remaining is Phase 4 (agreed skippable) or Phase 5 (blocked on that same
-ruling).
+**Next:** Phase 3b. Phase 3 proper (quadrant tiling) is displaced — see below.
+
+## Phase 3b — Multi-profile authoring (added 2026-09-10)
+
+**This takes priority over Phase 3 proper, Phase 4 and Phase 5.** The repository
+exists to serve multiple environments — `README.md:18` sells a "Profile System —
+Different layouts for home, office, or travel setups". Detection and switching
+work. **Creating a profile does not.** Both authoring paths produce a profile
+that silently positions nothing, so a user cannot get from one environment to a
+second one at all. Until this is fixed the product does not do the thing it is
+for.
+
+Found by trying to answer "how do I add an office profile?" and discovering
+there is no working way to do it.
+
+### 3b.1 — Profile writes destroy the workspace role
+
+- **Defect:** `CocoaProfileManager.updateProfile` (`:201`) and
+  `ProfileManagerView.createProfile` (`:315`) both call `getAllMonitors()` with
+  no `workspaceResolution`. That argument defaults to `nil`, so `isWorkspace` is
+  `false` for every screen (`CocoaCoordinateManager.swift:76-80`), and
+  `positionLabel(for:)` (`:262-266`) can therefore only ever return `.builtin`
+  or `.secondary` — **never `.workspace`**.
+- **Consequence:** the written profile has no workspace monitor, so
+  `generatePlan`'s `profile.monitors.first(where: { $0.position == .workspace })`
+  (`CocoaProfileManager.swift:83`) is nil and every `layout.workspace` app is
+  dropped from the plan **with no error**.
+- **Measured** on the live config, then restored from a hash-verified backup:
+
+  ```text
+  before:  builtin 2056x1329 | secondary 2560x1440 | workspace 3840x2160
+  after:   builtin 2056.0x1329.0 | secondary 2560.0x1440.0 | secondary 3840.0x2160.0
+  plan:    5 apps -> 1 app   (Chrome, Teams, Outlook, KakaoTalk all vanished)
+  ```
+
+- **Fix:** one shared role-deriving helper used by both call sites. When
+  updating an existing profile, take the workspace resolution from that profile
+  so the operator's choice survives. When creating, fall back to the same
+  heuristic `generateConfigForCurrentSetup` already uses (`:231-244`) — first
+  non-builtin display becomes workspace — so all three writers agree.
+- **Regression test:** update a profile whose workspace is the *second*
+  non-builtin display and assert the role survives the round trip.
+
+### 3b.2 — `update` cannot create a profile
+
+- **Defect:** `updateProfile` guards `config.profiles[name] != nil` and returns
+  "Profile '<name>' not found" (`:196-199`). Combined with 3b.1 there is **no
+  working CLI path to add a second profile**: `update` refuses, and
+  `generate-config` emits a whole fresh config containing exactly one profile
+  named `detected`, so redirecting it over an existing config destroys any
+  profiles already there.
+- **Fix:** `update <name>` creates when absent, and says which it did. Note in
+  the output that the profile was added, not silently.
+
+### 3b.3 — Profile writes emit un-normalised resolutions
+
+- **Defect:** `updateProfile:203` and `createProfile:316` write
+  `monitor.resolution` raw, producing `2056.0x1329.0`, while
+  `generateConfigForCurrentSetup:242` writes `AppUtils.normalizeResolution(...)`
+  — `2056x1329`. Matching normalises both sides (`:50,58,61`) so this does not
+  break detection today; it makes the file inconsistent and the difference
+  looks meaningful when it is not.
+- **Fix:** normalise at the point of write, in the 3b.1 helper.
+
+### 3b.4 — DECISION: per-profile layouts
+
+- **Defect:** `README.md:18` promises "Different **layouts** for home, office, or
+  travel setups". There is one layout. `Config.layout` is top-level
+  (`ConfigManager.swift:96-100`) and `Profile` carries only `monitors`
+  (`:92-94`), so every profile shares a single app arrangement.
+- What works today: the shared layout is re-targeted at whichever monitor the
+  matched profile marks `workspace`, so "same arrangement, different hardware"
+  is handled. What cannot be expressed: a different arrangement per
+  environment — e.g. four quadrants on a large monitor at the office but two
+  apps on the builtin while travelling.
+- **Options:**
+  - **A (recommended)** — optional `layout` inside a profile, overriding the
+    top-level one when present. Backward compatible: existing configs are
+    unchanged and keep using the global layout. Delivers the README's claim.
+  - **B** — move `layout` into profiles entirely. Breaking; needs a migration.
+  - **C** — implement nothing and correct `README.md` to say profiles switch
+    *hardware*, not layouts.
+- **Blocked on the operator's ruling.** 3b.1–3b.3 do not depend on it.
+
+### 3b.5 — No way to see what profiles exist
+
+- **Defect:** the CLI has no `list`. `detect` names only the matching profile,
+  and a non-matching environment prints "No matching profile detected" without
+  saying what it looked for. With multiple profiles, that is the first thing an
+  operator needs.
+- **Fix:** `list` command — profile names, their monitors, which is workspace,
+  and a marker on the one that currently matches.
+
+### Phase 3b verification
+
+```bash
+# 3b.1 — the role survives a round trip
+./dist/MacAppPositioner update <profile> && ./dist/MacAppPositioner plan | grep -c "MOVE\|KEEP"
+# expect the same app count as before the update, not 1
+
+# 3b.2 — update creates
+./dist/MacAppPositioner update office     # on a config with no 'office'
+
+# 3b.3 — no float resolutions land in the file
+grep -c '\.0x' ~/.config/mac-app-positioner/config.json   # expect 0
+
+# 3b.5
+./dist/MacAppPositioner list
+```
+
+By observation: creating a profile from the GUI's "Create New Profile" yields
+one whose `layout.workspace` apps actually appear in `plan`.
+
+### Phase 3b commit sequence
+
+| # | Commit | Items |
+| - | ------ | ----- |
+| 37 | `docs: plan Phase 3b, multi-profile authoring` | this section |
+| 38 | `fix(profiles): keep the workspace monitor when writing a profile` | 3b.1 + 3b.3 |
+| 39 | `feat(cli): let update create a profile that does not exist yet` | 3b.2 |
+| 40 | `feat(cli): add a list command` | 3b.5 |
+| 41 | (3b.4, pending ruling) | 3b.4 |
+
+38 merges 3b.1 and 3b.3 because both live in the same new helper; splitting
+them would mean writing the helper twice.
 
 ## Later phases (not approved for execution)
 
