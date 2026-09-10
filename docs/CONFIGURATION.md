@@ -38,7 +38,7 @@ Then replace the resolutions under `profiles` with your own — run `./dist/MacA
 | `log_directory` | No | Directory for log files (default: `~/Documents/logs`) |
 | `profiles` | Yes | Monitor configurations for different environments |
 | `layout` | Yes | Application-to-position assignments |
-| `applications` | No | App-specific behaviors (e.g., Chrome workaround) |
+| `applications` | No | App-specific overrides (only `sizing` today) |
 
 ## Profiles
 
@@ -178,21 +178,28 @@ reports typos instead of silently centring the window.
 
 ## Applications
 
-Defines special behaviors. Only needed for apps that require workarounds.
+Optional per-application overrides. Most configs don't need this section.
 
 ```json
 "applications": {
   "com.google.Chrome": {
-    "positioning_strategy": "chrome"
+    "sizing": "keep"
   }
 }
 ```
 
 | Property | Values | Purpose |
 | -------- | ------ | ------- |
-| `positioning_strategy` | `"chrome"`, `"default"` | Special window handling logic |
-| `positioning` | `"keep"` | Override to prevent repositioning |
-| `sizing` | `"keep"` | Override to prevent resizing |
+| `sizing` | `"keep"` | Prevent resizing this app, regardless of its layout entry |
+
+To stop an app being **moved**, set its layout position to `"keep"` instead — see
+[Position Values](#position-values).
+
+> **Chrome and other multi-process apps** need no configuration. Applications that
+> run several processes under one bundle ID (a visible window plus a headless or
+> debugging instance) are handled automatically: the app probes each process and
+> picks the one that actually owns a moveable window. See
+> [Troubleshooting section 10](TROUBLESHOOTING.md).
 
 ## Complete Example
 
@@ -216,18 +223,13 @@ Defines special behaviors. Only needed for apps that require workarounds.
     "builtin": {
       "md.obsidian": { "position": "keep" }
     }
-  },
-  "applications": {
-    "com.google.Chrome": {
-      "positioning_strategy": "chrome"
-    }
   }
 }
 ```
 
 In this example:
 
-- Chrome goes to top-left of the 3440x1440 workspace monitor with special Chrome handling
+- Chrome goes to top-left of the 3440x1440 workspace monitor
 - Outlook goes to bottom-left, Teams top-right, KakaoTalk bottom-right
 - Obsidian stays wherever it is on the built-in display
 

@@ -65,18 +65,21 @@ struct Layout: Codable {
     }
 }
 
+/// Per-application overrides, independent of any layout section.
+///
+/// Only `sizing` is honoured. A `positioning` key was decoded here for a long
+/// time but never read by anything; it was removed rather than implemented
+/// because `layout.<section>.<bundleID>.position: "keep"` already expresses the
+/// same intent and *is* acted on. See LayoutEngine.resolve.
 struct AppSettings: Codable {
-    var positioning: String?  // Override: "keep" to prevent repositioning
     var sizing: String? = "keep"  // Override: "keep" (default) to prevent resizing
 
     enum CodingKeys: String, CodingKey {
-        case positioning = "positioning"
         case sizing = "sizing"
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        positioning = try container.decodeIfPresent(String.self, forKey: .positioning)
         sizing = try container.decodeIfPresent(String.self, forKey: .sizing) ?? "keep"
     }
 }
