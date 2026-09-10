@@ -3,7 +3,7 @@ import Foundation
 /// Shared logger that tees all output to both stdout and a log file.
 ///
 /// The log directory is read from the `log_directory` field in config.json
-/// (supports `~` expansion). Falls back to `~/Documents/logs` when not set.
+/// (supports `~` expansion). Falls back to `~/Library/Logs/mac-app-positioner` when not set.
 ///
 /// Call `AppLogger.shared.start(codeName:)` once at startup with `"cli"` or `"gui"`.
 /// All subsequent `print()` calls (via the global override below) are automatically
@@ -16,7 +16,9 @@ class AppLogger {
     private let queue = DispatchQueue(label: "com.macappositioner.logger")
 
     /// Default log directory when config.json has no `log_directory` key.
-    private static let defaultLogDirectory = "~/Documents/logs"
+    /// `~/Library/Logs` is the macOS convention for user-level app logs, and is
+    /// where Console.app looks; it is created on demand if absent.
+    private static let defaultLogDirectory = "~/Library/Logs/mac-app-positioner"
 
     private init() {}
 

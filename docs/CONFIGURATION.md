@@ -26,7 +26,7 @@ Then replace the resolutions under `profiles` with your own — run `./dist/MacA
 
 ```json
 {
-  "log_directory": "~/Documents/logs",
+  "log_directory": "~/Library/Logs/mac-app-positioner",
   "profiles": { ... },
   "layout": { ... },
   "applications": { ... }
@@ -35,7 +35,7 @@ Then replace the resolutions under `profiles` with your own — run `./dist/MacA
 
 | Field | Required | Purpose |
 | ----- | -------- | ------- |
-| `log_directory` | No | Directory for log files (default: `~/Documents/logs`) |
+| `log_directory` | No | Directory for log files (default: `~/Library/Logs/mac-app-positioner`) |
 | `profiles` | Yes | Monitor configurations for different environments |
 | `layout` | Yes | Application-to-position assignments |
 | `applications` | No | App-specific overrides (only `sizing` today) |
@@ -262,15 +262,15 @@ Both CLI and GUI automatically write a timestamped log file for every session.
 
 ```json
 {
-  "log_directory": "~/Documents/logs"
+  "log_directory": "~/Library/Logs/mac-app-positioner"
 }
 ```
 
 | Field | Default | Description |
 | ----- | ------- | ----------- |
-| `log_directory` | `~/Documents/logs` | Directory where log files are written. Supports `~` for home directory. |
+| `log_directory` | `~/Library/Logs/mac-app-positioner` | Directory where log files are written. Supports `~` for home directory. |
 
-When omitted, logs are written to `~/Documents/logs`.
+When omitted, logs are written to `~/Library/Logs/mac-app-positioner`.
 
 ### Log File Naming
 
@@ -288,7 +288,7 @@ The logger reads `log_directory` directly from config.json via a lightweight pre
 ### Log File Location
 
 ```bash
-ls ~/Documents/logs/
+ls ~/Library/Logs/mac-app-positioner/
 # cli-20260304-183136.log  gui-20260304-190000.log  ...
 ```
 

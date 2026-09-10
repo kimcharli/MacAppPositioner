@@ -194,4 +194,4 @@ alias layout-detect='~/path/to/dist/MacAppPositioner detect'
 - **Re-running `apply` is safe**: windows already at their target are skipped
 - **Test one app first**: When setting up a new profile, test with a single app before configuring many
 - **Monitor arrangement matters**: Profile detection matches by resolution set, not physical arrangement
-- **Check the logs**: every run writes to `~/Documents/logs/`; the first lines show whether Accessibility permission was granted
+- **Check the logs**: every run writes to `~/Library/Logs/mac-app-positioner/`; the first lines show whether Accessibility permission was granted

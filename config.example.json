@@ -1,5 +1,5 @@
 {
-  "log_directory": "~/Documents/logs",
+  "log_directory": "~/Library/Logs/mac-app-positioner",
   "profiles": {
     "office": {
       "monitors": [

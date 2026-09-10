@@ -38,7 +38,7 @@ sw_vers -productVersion
 
 The build script (`build-all.sh`) now ad-hoc signs the app bundle with `codesign -s -` to give it a stable identity. This reduces (but doesn't eliminate) TCC invalidation on rebuilds.
 
-**Verification**: Check the log file (`~/Documents/logs/gui-*.log` or `cli-*.log`). The first lines after the header show the permission status:
+**Verification**: Check the log file (`~/Library/Logs/mac-app-positioner/gui-*.log` or `cli-*.log`). The first lines after the header show the permission status:
 
 ```
 ✅ Accessibility permission: granted        ← working
@@ -198,22 +198,22 @@ ps aux | grep -i "[G]oogle Chrome" | grep -v Helper
 # Multiple lines = multiple Chrome processes
 
 # Check the log file for details
-tail -30 ~/Documents/logs/gui-*.log
+tail -30 ~/Library/Logs/mac-app-positioner/gui-*.log
 ```
 
 ## Debug Logging
 
-Both CLI and GUI write timestamped log files to the directory configured by `log_directory` in `config.json` (default: `~/Documents/logs`).
+Both CLI and GUI write timestamped log files to the directory configured by `log_directory` in `config.json` (default: `~/Library/Logs/mac-app-positioner`).
 
 ```bash
 # List recent log files
-ls -lt ~/Documents/logs/{cli,gui}-*.log | head -10
+ls -lt ~/Library/Logs/mac-app-positioner/{cli,gui}-*.log | head -10
 
 # Read the latest GUI log
-cat "$(ls -t ~/Documents/logs/gui-*.log | head -1)"
+cat "$(ls -t ~/Library/Logs/mac-app-positioner/gui-*.log | head -1)"
 
 # Read the latest CLI log
-cat "$(ls -t ~/Documents/logs/cli-*.log | head -1)"
+cat "$(ls -t ~/Library/Logs/mac-app-positioner/cli-*.log | head -1)"
 ```
 
 Log files capture all `print()` output (via global override) including:
