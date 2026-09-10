@@ -79,6 +79,25 @@ func testNativeCocoaSystem() {
 struct MacAppPositioner {
     static func main() {
         AppLogger.shared.start(codeName: "cli")
+
+        // Must happen before anything reads NSScreen.
+        //
+        // `NSScreen.visibleFrame` under-reports the menu bar inset on external
+        // displays until the process has an NSApplication. Without this, an
+        // external screen reports 0pt reserved at the top when the window server
+        // is really holding back 30pt, so every `top_left` / `top_right` target
+        // was 30pt too high, got clamped on the way in, and failed verification
+        // on every run — the plan proposed the same MOVE forever.
+        //
+        // Measured on a 3840x2160 external display:
+        //     before NSApplication.shared -> reservedTop = 0.0
+        //     after  NSApplication.shared -> reservedTop = 30.0
+        //
+        // `.accessory` keeps this a background process: no Dock icon, no menu
+        // bar of its own. We never call `run()`; this exists purely to make
+        // AppKit's screen metrics correct.
+        NSApplication.shared.setActivationPolicy(.accessory)
+
         AppUtils.checkAccessibilityPermission(promptIfNeeded: false)
 
         let arguments = CommandLine.arguments
