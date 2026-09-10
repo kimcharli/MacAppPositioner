@@ -26,6 +26,7 @@ swiftc -o dist/MacAppPositioner \
     MacAppPositioner/Shared/AppUtils.swift \
     MacAppPositioner/Shared/AppLogger.swift \
     MacAppPositioner/Shared/PlanModels.swift \
+    MacAppPositioner/Shared/LayoutEngine.swift \
     -framework AppKit -framework CoreGraphics
 
 if [ $? -eq 0 ]; then
