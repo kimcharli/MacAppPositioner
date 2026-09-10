@@ -29,11 +29,14 @@ MacAppPositioner/
 │   ├── ProfileManagerView.swift
 │   └── SettingsView.swift
 └── Shared/
-    ├── CocoaCoordinateManager.swift # Coordinate system & window positioning
+    ├── LayoutEngine.swift           # Target window geometry (pure)
+    ├── CocoaCoordinateManager.swift # Coordinate conversion & AX window positioning
     ├── CocoaProfileManager.swift    # Profile detection & application
+    ├── ScreenProviding.swift        # Screen access seam (system / fixture)
+    ├── WindowControlling.swift      # Window access seam (system / fixture)
     ├── ConfigManager.swift          # JSON config loading
-    ├── WindowManager.swift          # Legacy window manipulation
-    ├── AppUtils.swift               # Utility functions
+    ├── AppLogger.swift              # Tees print() to a per-session log file
+    ├── AppUtils.swift               # Utility functions & shared constants
     └── PlanModels.swift             # Execution plan data structures
 ```
 
@@ -41,8 +44,11 @@ MacAppPositioner/
 
 | Class | Responsibility |
 |-------|---------------|
-| `CocoaCoordinateManager` | Screen detection, coordinate conversion (Cocoa→internal), quadrant calculations, window positioning via Accessibility API |
+| `LayoutEngine` | **Single owner of target window geometry.** Pure — Foundation + CoreGraphics only. Both plan generation and apply call `resolve(...)`, so a preview cannot disagree with an apply. All placement rules belong here. |
+| `CocoaCoordinateManager` | Screen detection, coordinate conversion (Cocoa→internal), window positioning via Accessibility API |
 | `CocoaProfileManager` | Profile detection, layout application, plan generation, config generation |
+| `ScreenProviding` | Seam over `NSScreen` — `SystemScreenProvider` in production, `FixtureScreenProvider` in tests |
+| `WindowControlling` | Seam over `NSWorkspace` + the Accessibility API — `SystemWindowController` in production, `FixtureWindowController` in tests |
 | `ConfigManager` | Loading/saving `config.json` from multiple search paths |
 | `AppUtils` | Resolution normalization, shared utilities |
 | `MenuBarManager` | GUI menu bar icon and menu structure |
@@ -78,23 +84,19 @@ Use drag-and-drop to install — `cp` commands can cause permission issues.
 ## 5. Testing
 
 ```bash
-./Scripts/test_all.sh    # Full test suite (~10 seconds)
+./Scripts/test_all.sh    # Full suite (~8 seconds)
 ```
 
-Individual tests in `Tests/`:
+The suite uses **two harnesses**, and which one you want depends on what you're testing.
+
+### `run_test` — standalone observation scripts
+
+Run directly by `swift`, with no access to the shipping types. Use these only to observe the live system (screen enumeration, permission checks).
 
 ```bash
 swift Tests/test_monitor_detection.swift
 swift Tests/test_positioning_logic.swift
 ```
-
-### When to Add Tests
-
-- New positioning or coordinate features
-- Bug fixes (add regression tests)
-- Monitor setup changes (update expected values)
-
-### Test Template
 
 ```swift
 #!/usr/bin/env swift
@@ -108,6 +110,41 @@ var testPass = true
 print("Result: \(testPass ? "PASS" : "FAIL")")
 exit(testPass ? 0 : 1)
 ```
+
+### `run_compiled_test` — tests against the real sources
+
+`swiftc`-compiles the test together with `MacAppPositioner/Shared/*.swift` and `Tests/TestSupport.swift`, so it asserts on the shipping types rather than a re-implementation. **Prefer this for anything about behaviour.**
+
+Two hard constraints, both of which are compiler errors rather than warnings:
+
+- Use `@main struct … { static func main() }`. Top-level statements are rejected (`expressions are not allowed at the top level`).
+- **No hashbang** (`hashbang line is allowed only in the main file`).
+
+```swift
+import Foundation
+
+@main
+struct MyFeatureTests {
+    static func main() {
+        let t = TestRunner("My Feature")
+
+        t.section("[1] what is being established")
+        t.checkEqual(actual, expected, "plain-language claim")
+
+        t.finish()   // exits 0 if every check passed, else 1
+    }
+}
+```
+
+Inject fixtures instead of depending on the machine's hardware — `FixtureScreenProvider` for displays, `FixtureWindowController` for running apps and their windows. `Tests/test_profile_logic.swift` is the worked example.
+
+Register the new file in `Scripts/test_all.sh`, and add any new `Shared/*.swift` file to **both** `Scripts/build.sh` and `Scripts/build-gui.sh` — they enumerate sources explicitly.
+
+### When to Add Tests
+
+- New positioning or coordinate features
+- Bug fixes (add regression tests)
+- Monitor setup changes (update expected values)
 
 ## 6. Coordinate System Rules
 
@@ -124,10 +161,10 @@ NSScreen (Cocoa)              Internal / Accessibility API
 └──────────────┘              └──────────────┘
 ```
 
-**Conversion happens once**, at the NSScreen API boundary, via `convertCocoaToInternal()`:
+**Conversion happens once**, at the NSScreen API boundary, via `convertCocoaToInternal()`. It is `static` because it depends on nothing but its arguments (an instance forwarder exists for convenience):
 
 ```swift
-func convertCocoaToInternal(cocoaRect: CGRect, mainScreenHeight: CGFloat) -> CGRect {
+static func convertCocoaToInternal(cocoaRect: CGRect, mainScreenHeight: CGFloat) -> CGRect {
     let internalY = mainScreenHeight - cocoaRect.maxY
     return CGRect(x: cocoaRect.origin.x, y: internalY, width: cocoaRect.width, height: cocoaRect.height)
 }
@@ -137,27 +174,27 @@ After conversion, all internal calculations (quadrant positioning, window placem
 
 ### Critical Rules
 
-1. **Do NOT use `NSScreen.main` for coordinate reference height or monitor identification.** It returns different screens for CLI vs GUI apps (whichever monitor has mouse focus in GUI). Use `NSScreen.screens.first` for the menu bar screen (Cocoa origin), and `getBuiltinScreen()` for built-in display identification.
+1. **Do NOT use `NSScreen.main` for coordinate reference height or monitor identification.** It returns different screens for CLI vs GUI apps (whichever monitor has mouse focus in GUI). Use the first entry of `ScreenProviding.screens` for the menu bar screen (Cocoa origin), and `getBuiltinScreen()` for built-in display identification. Reading `NSScreen` directly outside `SystemScreenProvider` also makes the code untestable.
 
 2. **Convert Cocoa→internal at the boundary only.** `CocoaMonitorInfo.init(from:)` handles this. Do not convert inside business logic.
 
 3. **Use actual window dimensions** for positioning. Never hardcode default sizes — get the real size from `getWindowRect()`.
 
-4. **Restore focus after positioning.** `applyProfile()` activates each app to position it via the Accessibility API. Always save `NSWorkspace.shared.frontmostApplication` before the loop and call `previousApp.activate()` after all positioning completes, so the user's original window regains focus.
+4. **Restore focus after positioning.** `setWindowPosition` activates the target app — the Accessibility API will not reliably move a window otherwise — so applying a profile leaves focus on whichever app was positioned last. `executePlan` therefore captures `frontmostBundleID()` before the loop and calls `activate(bundleID:)` afterwards, returning focus to where the user left it. Preserve that if you change the loop.
 
 5. **Verify positioning visually.** Debug output alone is insufficient. Use AppleScript or visual confirmation:
    ```bash
    osascript -e 'tell application "Chrome" to get bounds of front window'
    ```
 
-6. **Always specify the correct profile** when detecting monitors. The workspace monitor comes from the profile config, not from `NSScreen.screens` order.
+6. **Always resolve the workspace monitor from the profile.** The workspace monitor comes from the profile config, not from `NSScreen.screens` order. Pass it in via `getAllMonitors(workspaceResolution:)`; do not have monitor detection load config itself.
 
 ### Historical Bugs to Avoid
 
 | Bug | Root Cause | Prevention |
 |-----|-----------|-----------|
 | GUI menu bar Apply does nothing visible / positions to wrong location | `getAllMonitors()` used `NSScreen.main?.frame.height` for Cocoa→internal conversion. In GUI apps, `NSScreen.main` returns the screen with mouse focus (not the menu bar screen), producing wrong `mainScreenHeight` and therefore wrong Y coordinates for all monitors | Use `NSScreen.screens.first?.frame.height` — `screens.first` always returns the menu bar screen regardless of app type |
-| Chrome on wrong monitor | `getAllMonitors()` used first profile instead of specified profile | Always pass profile name to `getAllMonitors(for:)` |
+| Chrome on wrong monitor | `getAllMonitors()` used the first profile instead of the specified one | Pass the profile's workspace resolution: `getAllMonitors(workspaceResolution:)`. It takes a resolution rather than a profile name so that monitor detection does no config I/O of its own — see the plan's item 2.6 |
 | Incorrect bottom-left position | Used default window size instead of actual | Always read actual window dimensions |
 
 ## 7. Terminology
