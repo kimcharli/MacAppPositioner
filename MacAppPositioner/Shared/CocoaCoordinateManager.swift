@@ -56,13 +56,27 @@ class CocoaCoordinateManager {
         
         return NSScreen.screens.map { screen in
             let screenResolution = "\(screen.frame.width)x\(screen.frame.height)"
-            let isWorkspace = workspaceMonitorResolution.map { AppUtils.normalizeResolution(screenResolution) == AppUtils.normalizeResolution($0) } ?? false
+            let isWorkspace = workspaceMonitorResolution.map { configured in
+                Self.isBuiltInAlias(configured)
+                    ? Self.isBuiltInScreen(screen)
+                    : AppUtils.normalizeResolution(screenResolution) == AppUtils.normalizeResolution(configured)
+            } ?? false
             return CocoaMonitorInfo(from: screen, isWorkspace: isWorkspace, mainScreenHeight: mainScreenHeight)
         }
     }
     
+    /// Resolves a configured workspace resolution to a detected monitor.
+    /// Honours the built-in aliases (`"builtin"` / `"macbook"`) that `detectProfile()`
+    /// accepts, so a profile naming the built-in display as its workspace monitor can
+    /// actually be applied and not merely detected.
     func findWorkspaceMonitor(resolution: String, from monitors: [CocoaMonitorInfo]? = nil) -> CocoaMonitorInfo? {
-        return (monitors ?? getAllMonitors()).first { monitor in
+        let candidates = monitors ?? getAllMonitors()
+
+        if Self.isBuiltInAlias(resolution) {
+            return candidates.first { $0.isBuiltIn }
+        }
+
+        return candidates.first { monitor in
             AppUtils.normalizeResolution(monitor.resolution) == AppUtils.normalizeResolution(resolution)
         }
     }
@@ -253,6 +267,14 @@ class CocoaCoordinateManager {
     /// Used by both `CocoaMonitorInfo.init` and `getBuiltinScreen()`.
     static func isBuiltInScreen(_ screen: NSScreen) -> Bool {
         screen.localizedName.contains("Built-in") || screen.localizedName.contains("Liquid")
+    }
+
+    /// Config `resolution` values that name the built-in display rather than a literal
+    /// pixel size. Single source of truth for `detectProfile()`, `getAllMonitors(for:)`
+    /// and `findWorkspaceMonitor(resolution:from:)`.
+    static func isBuiltInAlias(_ resolution: String) -> Bool {
+        let normalized = resolution.lowercased()
+        return normalized == "builtin" || normalized == "macbook"
     }
 
     func getBuiltinScreen() -> NSScreen {

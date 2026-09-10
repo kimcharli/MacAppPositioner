@@ -28,7 +28,7 @@ class CocoaProfileManager {
             var profileResolutions: Set<String> = []
             
             for monitor in profile.monitors {
-                if monitor.resolution == "builtin" || monitor.resolution == "macbook" {
+                if CocoaCoordinateManager.isBuiltInAlias(monitor.resolution) {
                     if let builtinMonitor = monitors.first(where: { $0.isBuiltIn }) {
                         profileResolutions.insert(AppUtils.normalizeResolution(builtinMonitor.resolution))
                     }
@@ -125,7 +125,7 @@ class CocoaProfileManager {
         var actions: [AppAction] = []
 
         if let workspaceMonitorConfig = profile.monitors.first(where: { $0.position == .workspace }),
-           let workspaceMonitor = coordinateManager.findWorkspaceMonitor(resolution: workspaceMonitorConfig.resolution),
+           let workspaceMonitor = coordinateManager.findWorkspaceMonitor(resolution: workspaceMonitorConfig.resolution, from: allMonitors),
            let layout = config.layout?.workspace {
             for (bundleID, workspaceApp) in layout {
                 let action = createAppAction(bundleID: bundleID, position: workspaceApp.position, sizing: workspaceApp.sizing, targetMonitor: workspaceMonitor, appSettings: config.applications?[bundleID])
