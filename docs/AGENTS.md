@@ -49,6 +49,24 @@ Quick reference for AI agents working with the Mac App Positioner codebase.
 | `AppUtils` | Resolution normalization, Accessibility permission check, shared constants |
 | `MenuBarManager` | GUI menu bar interface |
 
+## Build & Toolchain
+
+Both `Scripts/build.sh` and `Scripts/build-gui.sh` **enumerate sources
+explicitly**. A new file under `MacAppPositioner/Shared/` must be added to both
+or it will not compile into one of the targets.
+
+There is no SPM package and no Xcode project. `swift test` cannot work here:
+the Command Line Tools ship neither `XCTest` nor `Testing`. `Scripts/test_all.sh`
+is the supported harness.
+
+> **Current environment note (2026-09-10):** the Command Line Tools 27.0 update
+> ships no `libSwiftUIMacros.dylib`, so **no SwiftUI file compiles** — `@State`
+> cannot expand and `Scripts/build-all.sh` fails. `Scripts/build.sh` (CLI) and
+> `Scripts/test_all.sh` are unaffected. Reproduced on a clean checkout, so it is
+> environmental, not a regression. GUI changes cannot be verified by building
+> until Xcode is installed or the toolchain is repaired — say so explicitly
+> rather than implying a GUI change was tested.
+
 ## Common Mistakes to Avoid
 
 | Don't | Do Instead |
@@ -63,6 +81,53 @@ Quick reference for AI agents working with the Mac App Positioner codebase.
 | Write duplicate utility functions | Use `AppUtils` |
 | `NSWorkspace.shared.runningApplications.first(where:)` for PID lookup | Use `addressablePID(bundleID:)` on `WindowControlling` — handles multiple processes with the same bundle ID |
 | Read `NSScreen` or call the AX API from `CocoaProfileManager` | Go through the `ScreenProviding` / `WindowControlling` seams, or the tests cannot run without your hardware |
+| Build a profile's `monitors` array inline | Use `CocoaCoordinateManager.profileMonitors(preservingWorkspace:)` — doing it by hand loses the `workspace` role and silently drops every `layout.workspace` app |
+| Read screen geometry in a new executable without an `NSApplication` | Initialise `NSApplication.shared` first, or `visibleFrame` under-reports the external-display menu bar and targets become unreachable |
+| `print()` progress or status messages | `printDiagnostic(...)` — stdout is reserved for pipeable output like `generate-config` |
+| Call `print()` from anything `AppLogger.start()` touches | `Swift.print` or `FileHandle.standardError` — the global `print` is shadowed and will recurse |
+| Trust a rect's label without checking the space | `CocoaMonitorInfo.frame` is internal top-left; `NSScreen.frame` is Cocoa bottom-left |
+| `git add -A` | Stage explicit paths — a hook writes `graphify-out/` on every commit |
+
+## Traps That Have Already Bitten
+
+Each of these was found the expensive way. They look fine in review.
+
+**Silence is the failure mode.** This codebase's bugs mostly do not throw — they
+produce a shorter list. An app missing from `plan` output means it is not in
+`layout`; `UNAVAILABLE` means it *is* listed but exposes no moveable window.
+A profile with no `workspace` monitor drops every workspace app with no error
+at all. When something "does nothing", count the entries before assuming the
+positioning logic is wrong.
+
+**Config semantics that surprise people:**
+
+- `layout` is **global**, not per-profile. Profiles change which *monitor* the
+  layout targets, not the arrangement. (`README.md:18` still promises per-profile
+  layouts — open item 3b.4.)
+- Only `workspace` and `builtin` can host apps. A monitor labelled `secondary`,
+  `left` or `right` is recorded but can never receive one.
+- Profile matching is **exact set equality** over normalised resolutions.
+  Not a subset. Duplicate resolutions collapse into one set entry.
+- `AppLayoutEntry.sizing` defaults to `"keep"`. That, not
+  `AppConstants.defaultWindowSize`, is why windows keep their size.
+- An invalid `position` behaves differently by form: the object form
+  (`{"position": "bogus"}`) **throws and fails the whole config load**, while the
+  legacy bare string silently becomes `center`. `decodeIfPresent` throws on
+  present-but-invalid; the `?? .center` only covers an absent key.
+- `saveConfig` re-encodes from the `Config` struct, so any top-level key the
+  schema does not model is **dropped**. Everything modelled survives.
+- `generate-config` does **not** inspect running apps — its `layout` is a fixed
+  five-app template — and it prints a whole fresh config, so redirecting it over
+  an existing file destroys other profiles. `update` is the additive one.
+
+**Verify by running, not by reading.** Three claims in this codebase were nearly
+documented backwards from a confident read of the source, and were only caught
+by executing the code. If you are about to assert what something does, run it
+first — especially before writing it into a doc or a commit message.
+
+**Touching the operator's live config:** back it up, make the change, and
+restore with a `shasum` comparison to prove the machine was left as found.
+`plan` is read-only and safe; `apply` moves real windows.
 
 ### Multi-Instance Apps
 

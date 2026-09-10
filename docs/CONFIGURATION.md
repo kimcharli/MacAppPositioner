@@ -186,17 +186,18 @@ isn't doing what you expect:
 | `"top-left"` (legacy string form, typo) | Silently treated as `center`, no warning |
 | `{ "sizing": "keep" }` (`position` omitted) | Defaults to `center` |
 
-In the object form a bad value is reported precisely:
+In the object form a bad value is reported precisely, and the load stops there:
 
 ```text
-Error decoding config at /Users/you/.config/mac-app-positioner/config.json:
-  Data was corrupted. Path: layout.workspace.`com.google.Chrome`.position.
-  Cannot initialize WindowPosition from invalid String value top-left
+❌ Could not read the config at /Users/you/.config/mac-app-positioner/config.json
+   DecodingError.dataCorrupted: Data was corrupted. Path: layout.workspace.`com.google.Chrome`.position. Debug description: Cannot initialize WindowPosition from invalid String value top-left
+   Fix this file, or move it aside to fall back to another location.
 ```
 
-Note that this message is followed by `Config not found in any standard location`
-and the list of search paths. That second message is misleading — your file *was*
-found, it just could not be decoded. Fix the path named in the first message.
+A rejected config is terminal: the search does **not** continue to the next
+location. That matters, because otherwise a typo in your real config would hand
+control to a stale copy somewhere further down the search order and everything
+would appear to work with the wrong layout.
 
 The legacy string form has no such safety net: a typo there centres the window
 instead of failing, so prefer the object form.

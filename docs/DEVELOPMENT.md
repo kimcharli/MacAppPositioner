@@ -196,6 +196,46 @@ After conversion, all internal calculations (quadrant positioning, window placem
 | GUI menu bar Apply does nothing visible / positions to wrong location | `getAllMonitors()` used `NSScreen.main?.frame.height` for Cocoa→internal conversion. In GUI apps, `NSScreen.main` returns the screen with mouse focus (not the menu bar screen), producing wrong `mainScreenHeight` and therefore wrong Y coordinates for all monitors | Use `NSScreen.screens.first?.frame.height` — `screens.first` always returns the menu bar screen regardless of app type |
 | Chrome on wrong monitor | `getAllMonitors()` used the first profile instead of the specified one | Pass the profile's workspace resolution: `getAllMonitors(workspaceResolution:)`. It takes a resolution rather than a profile name so that monitor detection does no config I/O of its own — see the plan's item 2.6 |
 | Incorrect bottom-left position | Used default window size instead of actual | Always read actual window dimensions |
+| `top_left` / `top_right` windows land 30pt short and **never converge** — `apply` reports failure, next `plan` says `MOVE` again, forever | `NSScreen.visibleFrame` under-reports the menu bar inset on **external** displays until the process owns an `NSApplication`. The CLI had none, so external screens claimed 30pt at the top that the window server would not surrender | The CLI calls `NSApplication.shared.setActivationPolicy(.accessory)` before reading any screen. Never remove it; it is not GUI scaffolding. GUI apps are immune because they have an `NSApplication` by construction |
+| Profile written with no `workspace` monitor — every `layout.workspace` app silently disappears from the plan | `getAllMonitors()` was called with no `workspaceResolution`, so `isWorkspace` was false everywhere and `positionLabel(for:)` could only return `.builtin` / `.secondary` | Never build a profile's monitor list by hand. Use `CocoaCoordinateManager.profileMonitors(preservingWorkspace:)`, the single writer |
+
+### Platform Gotchas
+
+Non-obvious AppKit and toolchain behaviour that has already cost time here.
+
+- **`NSScreen.visibleFrame` needs an `NSApplication`.** On external displays it
+  reports a 0pt top inset until `NSApplication.shared` is touched, then reports
+  the true menu bar height. Measured in one process:
+
+  ```text
+  [before NSApplication.shared] SAMSUNG: reservedTop=0.0
+  [after  NSApplication.shared] SAMSUNG: reservedTop=30.0
+  ```
+
+  Any new executable that reads screen geometry must initialise `NSApplication`
+  first.
+
+- **`CocoaMonitorInfo.frame` / `.visibleFrame` are internal top-left, Y down** —
+  *not* Cocoa. They are already converted. `NSScreen.frame` is bottom-left, Y up.
+  Mixing them silently produces plausible-looking wrong coordinates. Label any
+  rect you print with the space it is in; `test-coordinates` once claimed
+  "[Native Cocoa]" over converted values, and that mislabel hid a real bug.
+
+- **`AppLogger` shadows the global `print()`.** Anything invoked during logger
+  startup must use `Swift.print` or write to `FileHandle.standardError`
+  directly, or it recurses. That is why `resolveLogDirectory()` re-implements a
+  minimal config read instead of using `ConfigManager`.
+
+- **stdout is for pipeable results only.** Progress and status go to
+  `printDiagnostic(...)`, which writes to stderr plus the log file. `print()`
+  reaches stdout. `generate-config > config.json` depends on this split.
+
+- **The window server clamps silently.** `setWindowPosition` requests are
+  granted at the nearest legal position and the AX call still returns success.
+  The only way to detect it is to re-read the frame, which `setWindowPosition`
+  does. Treat a mismatch as a real signal, not noise.
+
+- **`tac` does not exist on macOS.** Use `git log --reverse`.
 
 ## 7. Terminology
 
