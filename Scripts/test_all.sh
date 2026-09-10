@@ -68,7 +68,7 @@ run_compiled_test() {
     local bin
     bin="$(mktemp -t maptest)"
 
-    if ! swiftc -o "$bin" MacAppPositioner/Shared/*.swift "$test_script" \
+    if ! swiftc -o "$bin" MacAppPositioner/Shared/*.swift Tests/TestSupport.swift "$test_script" \
             -framework AppKit -framework CoreGraphics; then
         echo -e "${RED}❌ ${test_name}: COMPILE FAILED${NC}"
         TESTS_FAILED=$((TESTS_FAILED + 1))
