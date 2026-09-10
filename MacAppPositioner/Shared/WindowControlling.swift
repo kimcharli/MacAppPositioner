@@ -170,4 +170,11 @@ final class FixtureWindowController: WindowControlling {
     func frontmostBundleID() -> String? { frontmost }
 
     func activate(bundleID: String) { activations.append(bundleID) }
+
+    /// Clears recorded moves and activations, keeping the current app frames.
+    /// Lets a test apply twice and assert the second pass was a no-op.
+    func resetRecording() {
+        moves.removeAll()
+        activations.removeAll()
+    }
 }

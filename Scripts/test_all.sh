@@ -107,6 +107,7 @@ run_test "Real Positioning"          "Tests/test_real_positioning.swift"
 
 # Compiled against Shared/ rather than run as a standalone script.
 run_compiled_test "Layout Engine"    "Tests/test_layout_engine.swift"
+run_compiled_test "Profile Logic"    "Tests/test_profile_logic.swift"
 
 # Deliberately excluded from the suite:
 #
