@@ -10,8 +10,20 @@ import AppKit
 
 class CocoaProfileManager {
 
-    private let configManager = ConfigManager.shared
-    private let coordinateManager = CocoaCoordinateManager.shared
+    private let configManager: ConfigManaging
+    private let coordinateManager: CocoaCoordinateManager
+    private let windowController: WindowControlling
+
+    /// Defaults reproduce the previous singleton wiring, so existing call sites
+    /// are unchanged; tests inject fixtures instead.
+    init(configManager: ConfigManaging = ConfigManager.shared,
+         coordinateManager: CocoaCoordinateManager = .shared,
+         windowController: WindowControlling? = nil) {
+        self.configManager = configManager
+        self.coordinateManager = coordinateManager
+        self.windowController = windowController
+            ?? SystemWindowController(coordinateManager: coordinateManager)
+    }
     
     // MARK: - Profile Detection
     
@@ -92,7 +104,7 @@ class CocoaProfileManager {
                                  targetMonitor: CocoaMonitorInfo,
                                  appSettings: AppSettings?) -> AppAction {
 
-        let currentFrame = currentWindowFrame(bundleID: bundleID)
+        let currentFrame = windowController.currentWindowFrame(bundleID: bundleID)
 
         let placement = LayoutEngine.resolve(
             position: entry.position,
@@ -103,8 +115,7 @@ class CocoaProfileManager {
                                      visibleFrame: targetMonitor.visibleFrame)
         )
 
-        let appName = NSWorkspace.shared.runningApplications
-            .first(where: { $0.bundleIdentifier == bundleID })?.localizedName ?? bundleID
+        let appName = windowController.localizedName(bundleID: bundleID) ?? bundleID
 
         return AppAction(
             bundleID: bundleID,
@@ -135,60 +146,34 @@ class CocoaProfileManager {
     /// stays a pure description and cannot carry a stale process identifier.
     func executePlan(_ plan: ExecutionPlan) {
         // Remember which app had focus so we can restore it after positioning.
-        let previousApp = NSWorkspace.shared.frontmostApplication
+        let previousBundleID = windowController.frontmostBundleID()
 
         for action in plan.actions {
             print("\n📱 \(action.bundleID): \(action.action.rawValue) — \(action.reason)")
 
             guard action.action == .move, let target = action.targetPosition else { continue }
 
-            // When multiple processes share a bundle ID (e.g. a visible Chrome and a
-            // headless debug instance), use the first one with a moveable window.
-            // hasMovableWindow checks without activating, so skipped processes don't flicker.
-            guard let pid = getAppPIDs(bundleID: action.bundleID)
-                    .first(where: { coordinateManager.hasMovableWindow(pid: $0) }) else {
+            guard let pid = windowController.addressablePID(bundleID: action.bundleID) else {
                 print("  ❌ No moveable window found for \(action.bundleID).")
                 continue
             }
 
             print("  \(coordinateManager.debugDescription(rect: target, label: "Target"))")
-            coordinateManager.setWindowPosition(pid: pid, position: target.origin, size: nil)
+            windowController.setWindowPosition(pid: pid, position: target.origin, size: nil)
         }
 
         // Restore focus to the app that was active before positioning.
-        if let previousApp = previousApp {
-            if #available(macOS 14.0, *) {
-                previousApp.activate()
-            } else {
-                previousApp.activate(options: [.activateIgnoringOtherApps])
-            }
+        if let previousBundleID = previousBundleID {
+            windowController.activate(bundleID: previousBundleID)
         }
     }
 
     // MARK: - Utility Functions
 
-    /// Current frame of the addressable window for a bundle ID, or `nil` when the
-    /// app isn't running or exposes no moveable window.
-    private func currentWindowFrame(bundleID: String) -> CGRect? {
-        getAppPIDs(bundleID: bundleID)
-            .first(where: { coordinateManager.hasMovableWindow(pid: $0) })
-            .flatMap { coordinateManager.getWindowRect(pid: $0) }
-    }
-
-    /// Returns all PIDs for running apps with the given bundle ID, most recently
-    /// launched first. Callers should try each PID in order and use the first
-    /// one that has a moveable window.
-    private func getAppPIDs(bundleID: String) -> [pid_t] {
-        return NSWorkspace.shared.runningApplications
-            .filter { $0.bundleIdentifier == bundleID }
-            .sorted { $0.processIdentifier > $1.processIdentifier } // higher PID = more recent
-            .map { $0.processIdentifier }
-    }
-
     // MARK: - Profile Generation
     
     func updateProfile(name: String) {
-        guard var config = ConfigManager.shared.loadConfig() else {
+        guard var config = configManager.loadConfig() else {
             print("Failed to load config.json")
             return
         }

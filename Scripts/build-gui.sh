@@ -34,6 +34,7 @@ swiftc -o dist/MacAppPositionerGUI \
     MacAppPositioner/Shared/PlanModels.swift \
     MacAppPositioner/Shared/LayoutEngine.swift \
     MacAppPositioner/Shared/ScreenProviding.swift \
+    MacAppPositioner/Shared/WindowControlling.swift \
     -framework AppKit \
     -framework CoreGraphics \
     -framework SwiftUI
