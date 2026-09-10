@@ -1,6 +1,6 @@
 # Remediation Plan — 2026-09-10
 
-**Status:** Approved by @ckim on 2026-09-10. **Phase 0 complete**, **Phase 1 complete**, **Phase 2 complete** (all 2026-09-10), Phase 2 re-scoped during execution — see the toolchain ruling. **Phase 2.5 (doc truth-up, unblocked subset) approved and executing** (2026-09-10). Phases 3–5 remain queued; **Phase 3 is blocked on two @ckim decisions** (see Parked).
+**Status:** Approved by @ckim on 2026-09-10. **Phase 0 complete**, **Phase 1 complete**, **Phase 2 complete**, **Phase 2.5 complete** (all 2026-09-10), Phase 2 re-scoped during execution — see the toolchain ruling. Phases 3–5 remain queued; **Phase 3 is blocked on two @ckim decisions** (see Parked).
 
 ## Context
 
@@ -306,9 +306,9 @@ Every item below was verified against the code, not inferred from reading.
 ## Phase 2.5 verification
 
 ```bash
-# Every .swift filename mentioned in docs must exist on disk (excluding the plan,
-# which cites deleted files as history).
-grep -rhno "[A-Za-z_][A-Za-z0-9_]*\.swift" README.md docs/*.md CHANGELOG.md \
+# Every .swift filename mentioned in docs must exist on disk. Excludes this plan
+# and CHANGELOG.md's "Removed" section, which cite deleted files as history.
+grep -rhno "[A-Za-z_][A-Za-z0-9_]*\.swift" README.md docs/*.md \
   --exclude=REMEDIATION-PLAN-2026-09-10.md | sed 's/.*://' | sort -u
 
 grep -rn "getAppPIDs" README.md docs/ CHANGELOG.md   # no matches outside the plan
@@ -320,6 +320,44 @@ By observation:
 - Every command shown in `INSTALLATION.md` and `USAGE.md` is **executed**, and its real output pasted in. No hand-written samples.
 - The config produced by the documented install path parses via `json.load` *and* loads through `ConfigManager`.
 - No claim about quadrant tiling or `positioning_strategy` changes in either direction — those stay untouched pending the rulings.
+
+## Phase 2.5 outcome (2026-09-10)
+
+**Complete.** Commits `0ceb67f`..`7ccd1e0` — 7 commits, as planned.
+
+| Item | Result |
+| ---- | ------ |
+| 2.5.1 | `INSTALLATION.md` leads with `config.example.json`; `generate-config` shown piped through `sed`, with a verification step and a note that the filter dies with the Phase 3 stderr fix. Both paths executed: JSON parses **and** `ConfigManager` loads them. |
+| 2.5.2 | `AGENTS.md` + `TROUBLESHOOTING.md` repointed at `addressablePID` / `currentWindowFrame`. `AGENTS.md` gains the seams, a rule against raw `NSScreen`/AX use in `CocoaProfileManager`, and a Testing section covering both harnesses. Also fixed a symptom string (`… across N process(es)`) that no longer appears in any log. |
+| 2.5.3 | `DEVELOPMENT.md` source tree, Core Classes, Rule 1/4/6, the historical-bugs row, and the coordinate snippet corrected. All 21 `.swift` files it names resolve. |
+| 2.5.4 | `USAGE.md` samples recaptured from real runs; action-reason table added; `test-coordinates` documented; `generate-config` caveat aligned with the other two docs. |
+| 2.5.5 | `ARCHITECTURE.md` gains both seams; "Singleton managers" corrected to "default wiring, not the only wiring"; added the geometry-types-do-no-I/O rule from 2.6. |
+| 2.5.6 | `CHANGELOG.md` records Phases 0–2 — 4 behaviour changes, 7 fixes, additions, removals. |
+| 2.5.7 | `CONFIGURATION.md` position tables merged; legacy shorthand and invalid-value handling documented. `README.md` roadmap aligned. |
+
+**One plan item was wrong and the code corrected it.** 2.5.7 was written to document that "unknown position strings silently fall back to `center`", inferred from `?? .center` in `AppLayoutEntry.init(from:)`. Probing the decoder showed the two config forms diverge:
+
+| Written as | Actual result |
+| ---------- | ------------- |
+| `{ "position": "top-left" }` | **Throws** — the whole config fails to load |
+| `"top-left"` (legacy shorthand) | Silently becomes `center` |
+| `position` omitted | `center` |
+
+`decodeIfPresent` throws on a present-but-invalid value; the `?? .center` only covers an *absent* key. The silent fallback is real but lives only on the legacy string path. Documented as measured.
+
+Running that end to end surfaced a **new, unfixed defect**, recorded below: after the precise decode error, `ConfigManager` prints `Config not found in any standard location` and lists the search paths, telling a user with a one-character typo that their file is missing when it was found and rejected.
+
+**Two claims were checked and found CORRECT**, so they were left alone rather than "fixed": `ARCHITECTURE.md`'s "and verify it" (`setWindowPosition` does re-read and compare within tolerance) and `DEVELOPMENT.md` Rule 4's substance (activation does happen per app — inside `setWindowPosition`, so only the attribution was corrected).
+
+**Verification refined:** the "every `.swift` named in docs exists" check must also exclude `CHANGELOG.md`'s Removed section, which names the two deleted test scripts as history. That is a correct changelog entry, not a stale reference.
+
+**Known-unfixed, carried forward:**
+
+- `TODO.md:23` credits `WindowManager.swift`, which does not exist, in its completed-phases checklist. Phase 5 owns `TODO.md` reconciliation.
+- Plan/apply output prints a doubled colon (`Current: : (0.0, …)`) because the caller adds `": "` before a `debugDescription` that already starts with one. Documented verbatim in `USAGE.md` rather than prettified. Cosmetic; fix with Phase 3 or 5.
+- `ConfigManager` reports a decode failure as "not found". Misleading; queue for Phase 3, which is already touching config handling.
+
+**Next:** Phase 3 (honest config), still **blocked on the two @ckim decisions**. About half the remaining doc defects — the quadrant prose and diagram, `positioning_strategy`, `applications.positioning`, the inert `@AppStorage` claim — are held in Phase 5 pending those rulings.
 
 ## Later phases (not approved for execution)
 
