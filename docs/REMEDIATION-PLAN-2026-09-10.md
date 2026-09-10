@@ -585,6 +585,21 @@ there is no working way to do it.
 - **Fix:** `list` command — profile names, their monitors, which is workspace,
   and a marker on the one that currently matches.
 
+### 3b.6 — Workspace choice is arbitrary when creating a profile (found during execution)
+
+- **Not in the original 3b scope.** Surfaced by 3b.2: creating a profile picks
+  the *first non-builtin display* as workspace, which is screen enumeration
+  order — effectively arbitrary. On this machine `update <new>` chose
+  `2560x1440` while the operator's existing profile uses `3840x2160`.
+- **Why it matters:** the workspace monitor decides where the entire
+  `layout.workspace` section lands. Getting it wrong puts every quadrant app on
+  the wrong screen, and the intended workflow for a second environment is
+  exactly "go to the office, run `update office`" — the case where there is no
+  previous choice to preserve.
+- **Fix:** `update <name> --workspace <resolution>`, validated against the
+  attached displays so a typo fails loudly instead of silently producing a
+  profile that positions nothing. Without the flag, behaviour is unchanged.
+
 ### Phase 3b verification
 
 ```bash
@@ -607,16 +622,18 @@ one whose `layout.workspace` apps actually appear in `plan`.
 
 ### Phase 3b commit sequence
 
-| # | Commit | Items |
-| - | ------ | ----- |
-| 37 | `docs: plan Phase 3b, multi-profile authoring` | this section |
-| 38 | `fix(profiles): keep the workspace monitor when writing a profile` | 3b.1 + 3b.3 |
-| 39 | `feat(cli): let update create a profile that does not exist yet` | 3b.2 |
-| 40 | `feat(cli): add a list command` | 3b.5 |
-| 41 | (3b.4, pending ruling) | 3b.4 |
+| # | Commit | Items | Status |
+| - | ------ | ----- | ------ |
+| 37 | `674b8b5` `docs: plan Phase 3b, multi-profile authoring` | this section | ✅ |
+| 38 | `b183b4b` `fix(profiles): keep the workspace monitor when writing a profile` | 3b.1 + 3b.2 + 3b.3 | ✅ merged |
+| 39 | — | — | folded into 38 |
+| 40 | `5e23227` `feat(cli): add a list command` | 3b.5 | ✅ |
+| 41 | `feat(cli): let update target a specific workspace monitor` | 3b.6 | |
+| 42 | (pending ruling) | 3b.4 | blocked |
 
-38 merges 3b.1 and 3b.3 because both live in the same new helper; splitting
-them would mean writing the helper twice.
+38 absorbed 3b.2 as well as 3b.1 and 3b.3: all three are the same rewrite of
+`updateProfile`, and splitting them would have meant writing the function
+three times.
 
 ## Later phases (not approved for execution)
 
