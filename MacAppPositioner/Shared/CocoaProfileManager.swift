@@ -193,24 +193,31 @@ class CocoaProfileManager {
             return
         }
 
-        guard config.profiles[name] != nil else {
-            print("Profile '\(name)' not found in config.json")
+        let existing = config.profiles[name]
+
+        // Keep the workspace monitor the operator already chose. Without this the
+        // role is recomputed from scratch, comes back empty, and every
+        // layout.workspace app silently vanishes from the plan.
+        let currentWorkspace = existing?.monitors
+            .first(where: { $0.position == .workspace })?
+            .resolution
+
+        let newMonitors = coordinateManager.profileMonitors(preservingWorkspace: currentWorkspace)
+        config.profiles[name] = Profile(monitors: newMonitors)
+
+        guard configManager.saveConfig(config) else {
+            print("❌ Failed to save updated configuration.")
             return
         }
 
-        let monitors = coordinateManager.getAllMonitors()
-        let newMonitors = monitors.map { monitor in
-            Monitor(resolution: monitor.resolution,
-                    position: CocoaCoordinateManager.positionLabel(for: monitor))
-        }
+        // Say which happened. Creating a profile and overwriting one are very
+        // different outcomes to run by accident.
+        print(existing == nil
+              ? "✅ Profile '\(name)' created from the current monitor setup."
+              : "✅ Profile '\(name)' updated successfully.")
 
-        let newProfile = Profile(monitors: newMonitors)
-        config.profiles[name] = newProfile
-
-        if configManager.saveConfig(config) {
-            print("✅ Profile '\(name)' updated successfully.")
-        } else {
-            print("❌ Failed to save updated configuration.")
+        for monitor in newMonitors {
+            print("   \(monitor.position.rawValue): \(monitor.resolution)")
         }
     }
     

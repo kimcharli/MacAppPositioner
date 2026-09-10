@@ -113,6 +113,25 @@ This file tracks the development tasks for the Mac App Positioner application.
 
 ## 🚧 CURRENT PHASE: Advanced Features & Polish
 
+### Open decisions (blocking)
+
+- [ ] **3b.4 — per-profile layouts.** `README.md:18` promises "Different layouts
+  for home, office, or travel setups", but `Config.layout` is top-level
+  (`ConfigManager.swift:96-100`) and `Profile` carries only `monitors`
+  (`:92-94`), so every profile shares one arrangement. Works today: same layout
+  re-targeted at each profile's `workspace` monitor. Cannot be expressed: a
+  different arrangement per environment. Options: **A** optional `layout` inside
+  a profile overriding the global one (backward compatible, recommended);
+  **B** move `layout` into profiles (breaking); **C** implement nothing and
+  correct the README. See Phase 3b in the remediation plan.
+- [ ] **Quadrant tiling.** Four documented quadrant apps overlap 41–80% pairwise
+  and sum to 228% of the workspace monitor's area. Must be opt-out, because
+  `AppLayoutEntry.sizing` defaults to `"keep"`.
+- [ ] **Top-row windows never converge.** `top_left` / `top_right` land 30pt
+  short, `apply` reports failure, next `plan` still says MOVE — forever. Bottom
+  row converges. Not yet isolated; `LayoutEngine` does use `visibleFrame`, so
+  the suspect is the Cocoa→internal conversion (`CocoaCoordinateManager.swift:49,73`).
+
 ### Next Priority Features
 - [ ] **Enhanced Profile Management**
     - [ ] Create new profile interface in GUI

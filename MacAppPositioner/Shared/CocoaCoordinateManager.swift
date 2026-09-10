@@ -264,6 +264,51 @@ class CocoaCoordinateManager {
         if monitor.isWorkspace { return .workspace }
         return .secondary
     }
+
+    /// Builds the `monitors` array to persist for a profile, **keeping the
+    /// workspace role**.
+    ///
+    /// `positionLabel(for:)` alone cannot do this. It reads `monitor.isWorkspace`,
+    /// which `getAllMonitors` only sets when told which resolution is the
+    /// workspace one. Callers that omitted that argument got `false` for every
+    /// screen and therefore a profile with no workspace monitor at all, which
+    /// makes `generatePlan` silently drop every `layout.workspace` app.
+    ///
+    /// Pass the workspace resolution of the profile being updated so the
+    /// operator's choice survives the round trip. Pass `nil` when creating a
+    /// profile: the first non-builtin display is chosen, the same heuristic
+    /// `generateConfigForCurrentSetup` uses, so all three writers agree.
+    ///
+    /// Resolutions are normalised on the way out (`2056.0x1329.0` -> `2056x1329`)
+    /// to match what `generate-config` writes.
+    ///
+    /// A machine with only a built-in display yields no workspace monitor. That
+    /// is intentional: the built-in role wins, and such a setup positions apps
+    /// through `layout.builtin`.
+    func profileMonitors(preservingWorkspace workspaceResolution: String?) -> [Monitor] {
+        let monitors = getAllMonitors(workspaceResolution: workspaceResolution)
+
+        // False when creating a profile, or when the display that used to be the
+        // workspace is no longer attached. Either way, fall back to the first
+        // non-builtin screen rather than leaving the profile without one.
+        var workspaceAssigned = monitors.contains { $0.isWorkspace }
+
+        return monitors.map { monitor in
+            let role: MonitorRole
+            if monitor.isBuiltIn {
+                role = .builtin
+            } else if monitor.isWorkspace {
+                role = .workspace
+            } else if !workspaceAssigned {
+                role = .workspace
+                workspaceAssigned = true
+            } else {
+                role = .secondary
+            }
+            return Monitor(resolution: AppUtils.normalizeResolution(monitor.resolution),
+                           position: role)
+        }
+    }
     
     /// Shared predicate for built-in screen detection.
     static func isBuiltInScreen(_ screen: ScreenSnapshot) -> Bool {

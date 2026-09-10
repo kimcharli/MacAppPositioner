@@ -95,13 +95,29 @@ Positions running applications according to a profile's layout.
 
 Focus returns to whichever app was frontmost before the run.
 
-### `update` - Update Profile
+### `update` - Create or Update a Profile
 
-Updates an existing profile with your current monitor configuration.
+Writes your current monitor setup into a profile, creating it if it does not
+exist yet. This is how you add a second environment.
 
 ```bash
 ./dist/MacAppPositioner update office
 ```
+
+It prints the roles it recorded, and says whether it created or overwrote:
+
+```text
+✅ Profile 'office' created from the current monitor setup.
+   builtin: 2056x1329
+   workspace: 2560x1440
+   secondary: 3840x2160
+```
+
+Updating an existing profile **keeps the workspace monitor you already chose**.
+When creating a new one there is nothing to preserve, so the first non-builtin
+display is used — check the printed roles and edit the config if it guessed
+wrong, since which screen is `workspace` decides where the whole `layout.workspace`
+section lands.
 
 ### `generate-config` - Generate Config Template
 

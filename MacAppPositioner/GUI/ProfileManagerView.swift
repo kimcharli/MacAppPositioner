@@ -312,11 +312,8 @@ struct CreateProfileView: View {
             return
         }
         
-        let monitors = CocoaCoordinateManager.shared.getAllMonitors().map { monitor in
-            Monitor(resolution: monitor.resolution,
-                    position: CocoaCoordinateManager.positionLabel(for: monitor))
-        }
-        
+        let monitors = CocoaCoordinateManager.shared.profileMonitors(preservingWorkspace: nil)
+
         let newProfile = Profile(monitors: monitors)
         config.profiles[trimmedName] = newProfile
         
