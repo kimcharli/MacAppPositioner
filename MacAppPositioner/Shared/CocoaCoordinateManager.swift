@@ -55,21 +55,25 @@ class CocoaCoordinateManager {
     }
 
     // MARK: - Monitor Detection
-    
-    func getAllMonitors(for profileName: String? = nil) -> [CocoaMonitorInfo] {
-        let config = ConfigManager.shared.loadConfig()
+
+    /// Describes every attached screen in the internal coordinate system.
+    ///
+    /// - Parameter workspaceResolution: The configured resolution of the profile's
+    ///   workspace monitor, used to set `isWorkspace`. Pass `nil` when no profile
+    ///   is in play; no monitor is then flagged.
+    ///
+    /// This deliberately takes a resolution rather than a profile name. It used to
+    /// take a name and load `ConfigManager.shared` itself, which meant a caller
+    /// holding an injected config got a monitor list derived from a *different*
+    /// config. Config access belongs to the caller; this type does geometry.
+    func getAllMonitors(workspaceResolution: String? = nil) -> [CocoaMonitorInfo] {
         let screens = screenProvider.screens
         // screens.first is always the menu bar screen (Cocoa origin 0,0).
         // Do NOT use NSScreen.main here — it returns different screens in CLI vs GUI contexts.
         let mainScreenHeight = screens.first?.frame.height ?? 0
-        
-        var workspaceMonitorResolution: String?
-        if let profileName = profileName, let profile = config?.profiles[profileName] {
-            workspaceMonitorResolution = profile.monitors.first(where: { $0.position == .workspace })?.resolution
-        }
-        
+
         return screens.map { screen in
-            let isWorkspace = workspaceMonitorResolution.map { configured in
+            let isWorkspace = workspaceResolution.map { configured in
                 Self.isBuiltInAlias(configured)
                     ? Self.isBuiltInScreen(screen)
                     : AppUtils.normalizeResolution(screen.resolution) == AppUtils.normalizeResolution(configured)
@@ -271,7 +275,7 @@ class CocoaCoordinateManager {
     }
 
     /// Config `resolution` values that name the built-in display rather than a literal
-    /// pixel size. Single source of truth for `detectProfile()`, `getAllMonitors(for:)`
+    /// Single source of truth for `detectProfile()`, `getAllMonitors(workspaceResolution:)`
     /// and `findWorkspaceMonitor(resolution:from:)`.
     static func isBuiltInAlias(_ resolution: String) -> Bool {
         let normalized = resolution.lowercased()

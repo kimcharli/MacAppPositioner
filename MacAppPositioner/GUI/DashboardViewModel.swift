@@ -107,8 +107,10 @@ class DashboardViewModel: ObservableObject {
         isLoading = true
 
         DispatchQueue.global(qos: .userInitiated).async {
-            let currentProfile = self.profileManager.detectProfile()
-            let detectedMonitors = CocoaCoordinateManager.shared.getAllMonitors(for: currentProfile)
+            // Goes through the profile manager rather than
+            // CocoaCoordinateManager.shared, so profile detection and the
+            // isWorkspace flag are derived from one config load.
+            let detectedMonitors = self.profileManager.currentMonitors()
 
             DispatchQueue.main.async {
                 self.monitors = detectedMonitors

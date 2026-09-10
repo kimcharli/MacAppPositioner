@@ -26,7 +26,20 @@ class CocoaProfileManager {
     }
     
     // MARK: - Profile Detection
-    
+
+    /// Monitors for the currently detected profile, with `isWorkspace` resolved.
+    ///
+    /// Front-ends call this rather than `CocoaCoordinateManager.getAllMonitors`
+    /// directly, so the config that flags the workspace monitor is the same one
+    /// this manager was constructed with.
+    func currentMonitors() -> [CocoaMonitorInfo] {
+        let workspaceResolution = detectProfile()
+            .flatMap { configManager.loadConfig()?.profiles[$0] }?
+            .monitors.first(where: { $0.position == .workspace })?.resolution
+
+        return coordinateManager.getAllMonitors(workspaceResolution: workspaceResolution)
+    }
+
     func detectProfile() -> String? {
         guard let config = configManager.loadConfig() else {
             print("Failed to load config")
@@ -66,7 +79,9 @@ class CocoaProfileManager {
             return nil
         }
 
-        let allMonitors = coordinateManager.getAllMonitors(for: profileName)
+        let allMonitors = coordinateManager.getAllMonitors(
+            workspaceResolution: profile.monitors.first(where: { $0.position == .workspace })?.resolution
+        )
         var actions: [AppAction] = []
 
         if let workspaceMonitorConfig = profile.monitors.first(where: { $0.position == .workspace }),

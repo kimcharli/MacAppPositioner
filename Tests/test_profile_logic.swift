@@ -161,6 +161,12 @@ struct ProfileLogicTests {
         let plan = manager.generatePlan(for: "office")
         t.check(plan != nil, "plan generated")
 
+        // The workspace flag must come from the injected stub config. Monitor
+        // detection used to load ConfigManager.shared itself, so this was
+        // decided by whatever config.json the machine happened to have.
+        t.checkEqual(plan?.monitors.filter(\.isWorkspace).map(\.resolution), ["2560.0x1440.0"],
+                     "workspace monitor flagged from the stub config")
+
         // Workspace monitor is the 2560x1440 screen: internal x -2560..0, y -111..1329.
         let corner = action(plan, "com.example.Corner")
         t.checkEqual(corner?.action, ActionType.move, "top_right app is a MOVE")
