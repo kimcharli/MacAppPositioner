@@ -62,11 +62,17 @@ A native macOS application that automatically positions application windows acco
 
 ## Roadmap
 
-See [TODO.md](TODO.md) for the detailed development roadmap.
+See [TODO.md](TODO.md) for the development roadmap and
+[docs/REMEDIATION-PLAN-2026-09-10.md](docs/REMEDIATION-PLAN-2026-09-10.md) for the
+work currently in flight.
 
-**Current state**: Dual-interface app (CLI + GUI) with native coordinate system, multi-monitor support, and profile-based layouts.
+**Current state**: Dual-interface app (CLI + GUI) with a native coordinate system,
+multi-monitor support, and profile-based layouts. `plan` and `apply` share one
+geometry path, and profile detection and layout planning are covered by tests that
+run without specific hardware attached.
 
-**Next**: Enhanced profile management, layout snapshots, menu bar integration improvements.
+**Next**: config fidelity work — making every documented config key either function
+or go away. See the remediation plan.
 
 ## Contributing
 

@@ -96,22 +96,26 @@ Defines where applications are positioned. Layout has two sections: `workspace` 
 }
 ```
 
-### Workspace Position Values
+### Position Values
+
+`position` uses the same set of values in **both** the `workspace` and `builtin`
+sections — there is one position type, not two.
 
 | Position | Description |
 | -------- | ----------- |
-| `top_left` | Top-left quadrant of workspace monitor |
+| `top_left` | Top-left quadrant of the target monitor |
 | `top_right` | Top-right quadrant |
 | `bottom_left` | Bottom-left quadrant |
 | `bottom_right` | Bottom-right quadrant |
+| `center` | Centred on the target monitor (also the default when `position` is omitted) |
 | `keep` | Do not reposition |
 
-### Builtin Position Values
+In practice `center` is the usual choice for the `builtin` section and the
+quadrants for `workspace`, but nothing prevents the other combinations.
 
-| Position | Description |
-| -------- | ----------- |
-| `center` | Center on built-in display (default) |
-| `keep` | Do not reposition |
+A `center` window that is **already on its target monitor** is left where it is
+rather than snapped to the exact centre, so re-applying a profile does not
+disturb a window you positioned by hand.
 
 ### Workspace Quadrant Diagram
 
@@ -131,6 +135,46 @@ Each app entry supports:
 
 - `position` (required): Where to place the window
 - `sizing`: `"keep"` (default) preserves current window size
+
+### What Happens to an Invalid Position
+
+The two config forms behave **differently**, which is worth knowing when a layout
+isn't doing what you expect:
+
+| Written as | Result |
+| ---------- | ------ |
+| `{ "position": "top-left" }` (object form, typo) | The **entire config fails to load** |
+| `"top-left"` (legacy string form, typo) | Silently treated as `center`, no warning |
+| `{ "sizing": "keep" }` (`position` omitted) | Defaults to `center` |
+
+In the object form a bad value is reported precisely:
+
+```text
+Error decoding config at /Users/you/.config/mac-app-positioner/config.json:
+  Data was corrupted. Path: layout.workspace.`com.google.Chrome`.position.
+  Cannot initialize WindowPosition from invalid String value top-left
+```
+
+Note that this message is followed by `Config not found in any standard location`
+and the list of search paths. That second message is misleading — your file *was*
+found, it just could not be decoded. Fix the path named in the first message.
+
+The legacy string form has no such safety net: a typo there centres the window
+instead of failing, so prefer the object form.
+
+### Legacy Shorthand
+
+An older format, where the value is the position string directly, still loads:
+
+```json
+"workspace": {
+  "com.google.Chrome": "top_left"
+}
+```
+
+This is equivalent to `{ "position": "top_left", "sizing": "keep" }`. New configs
+should use the object form: it is the only one that can carry `sizing`, and it
+reports typos instead of silently centring the window.
 
 ## Applications
 
