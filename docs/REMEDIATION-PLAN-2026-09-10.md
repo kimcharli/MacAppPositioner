@@ -1,6 +1,6 @@
 # Remediation Plan — 2026-09-10
 
-**Status:** Approved by @ckim on 2026-09-10. **Phase 0 complete**, **Phase 1 complete** (both 2026-09-10). **Phase 2 approved and executing** (2026-09-10), re-scoped — see the toolchain ruling below. Phases 3–5 remain queued.
+**Status:** Approved by @ckim on 2026-09-10. **Phase 0 complete**, **Phase 1 complete**, **Phase 2 complete** (all 2026-09-10), Phase 2 re-scoped during execution — see the toolchain ruling. Phases 3–5 remain queued; **Phase 3 is blocked on two @ckim decisions** (see Parked).
 
 ## Context
 
@@ -189,16 +189,46 @@ See Parked / deferred for the migration decision.
 ```bash
 ./Scripts/build-all.sh                      # exits 0, CLI + GUI
 ./Scripts/test_all.sh                       # exits 0
-grep -rn "1329" Tests/ MacAppPositioner/    # no matches
 grep -rn "NSScreen" MacAppPositioner/Shared/CocoaProfileManager.swift   # no matches
-grep -rn "ConfigManager.shared" MacAppPositioner/Shared/CocoaCoordinateManager.swift  # no matches (2.6)
-./Scripts/test_all.sh 2>&1 | grep "Config not found"                    # no matches (2.6)
+grep -n "ConfigManager.shared" MacAppPositioner/Shared/CocoaCoordinateManager.swift  # matches only in comments (2.6)
+./Scripts/test_all.sh 2>&1 | grep -c "Config not found"                 # 0 (2.6)
+test ! -e Tests/test_chrome_simple.swift -a ! -e Tests/test_positioning_success.swift  # 2.5
 ```
+
+**Corrected criterion (2026-09-10).** This section originally required `grep -rn "1329" Tests/ MacAppPositioner/` to return no matches. That criterion was wrong, and it is corrected here rather than quietly declared passed: `Tests/test_profile_logic.swift` legitimately *declares* a 1329pt-tall fixture screen. The defect was never the number — it was a test **assuming** the author's hardware. A fixture that states its own geometry is the fix, not a recurrence of the problem. The real criterion is the `test !` line above: the two scripts that read that number off the operator's real displays are gone.
 
 Plus, by observation:
 
 - `./dist/MacAppPositioner detect` and `plan` behave identically to before the refactor on real hardware (the seams default to the system implementations).
 - The fixture tests fail if the Phase 0 builtin-alias fix is reverted — i.e. they actually guard it.
+
+## Phase 2 outcome (2026-09-10)
+
+**Complete.** Commits `3131815`..`8fcb59e` — 7 commits, one more than planned, because 2.6 was found during execution.
+
+| Item | Result |
+| ---- | ------ |
+| Toolchain | SPM/XCTest **dropped, not deferred**. Command Line Tools ship neither `XCTest` nor `Testing`; `swift build` works, `swift test` cannot. The `Package.swift` experiment was deleted. `run_compiled_test` is the supported harness, not a stopgap. |
+| 2.1 | `Tests/TestSupport.swift` — `TestRunner` (`section` / `check` / `checkEqual` / `finish`), so test files stop carrying private copies of the same pass/fail bookkeeping. |
+| 2.2 | `Shared/ScreenProviding.swift` — `ScreenSnapshot`, `SystemScreenProvider`, `FixtureScreenProvider`. `getBuiltinScreen()` now returns an optional; it was a force-unwrap that could trap when no screen matched. |
+| 2.3 | `Shared/WindowControlling.swift` — `SystemWindowController` + `FixtureWindowController` (records moves and activations; `frame == nil` models a headless process). `CocoaProfileManager` becomes fully injectable and is the first real consumer of `ConfigManaging`. Also fixed `updateProfile` reaching for `ConfigManager.shared` instead of its injected instance. |
+| 2.4 | `Tests/test_profile_logic.swift` — 27 assertions, no hardware required. |
+| 2.6 | Monitor detection no longer loads `ConfigManager.shared`. Found by running 2.4. |
+| 2.5 | `test_chrome_simple.swift` and `test_positioning_success.swift` deleted. |
+
+**Measured:** suite 8/8 → **9/9**, exit 0. `build-all.sh` exit 0. Fixture-backed calls no longer print `Config not found` (previously: on every call).
+
+**Observed on real hardware** (temporary config produced by `generate-config`, removed afterwards):
+
+- `detect` → `Matched profile: detected`.
+- `plan` → the workspace monitor is correctly flagged `Workspace: true` through the new 2.6 path; a `center` app already on its target screen reports `KEEP — already on the target screen / Target: unchanged`, which is the Phase 1 D1 fix visible end-to-end; a non-running app reports `UNAVAILABLE` with its would-be target instead of a fabricated `MOVE`.
+- `generate-config` output parsed clean by `json.load`, and emitted a `workspace` monitor — both Phase 0 fixes still hold.
+
+**Two hand-written expectations in 2.4 were wrong and the run corrected them**, both recorded in that commit: a centred app already on its target screen is `keepOnTargetScreen` by design, and target sizes preserve the current window size because `AppLayoutEntry.sizing` defaults to `"keep"` — not because a 1200x800 default applied.
+
+**Known-unfixed, carried forward:** `generate-config` still writes diagnostics to stdout, so `generate-config > config.json` yields an unparseable file and the JSON has to be extracted with `sed -n '/^{/,$p'`. Queued for Phase 3.
+
+**Next:** Phase 3 (honest config). **Blocked on two @ckim decisions** — the quadrant-semantics ruling and the fate of `positioning_strategy`. See Parked.
 
 ## Later phases (not approved for execution)
 
