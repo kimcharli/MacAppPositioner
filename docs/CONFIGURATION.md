@@ -71,6 +71,11 @@ Each profile defines a monitor setup identified by resolutions.
 | `left`, `right` | Physical position descriptors for additional monitors |
 | `secondary` | Additional monitor without specific role |
 
+> **Only `workspace` and `builtin` can host applications.** `layout` has exactly
+> those two sections, so a monitor labelled `secondary`, `left` or `right` is
+> recorded in the profile but cannot be given any apps. On a three-display setup
+> the third screen is effectively unused by the positioner.
+
 ### Resolution Format
 
 - External monitors: `"3440x1440"`, `"3840x2160"`, etc.
@@ -135,6 +140,40 @@ Each app entry supports:
 
 - `position` (required): Where to place the window
 - `sizing`: `"keep"` (default) preserves current window size
+
+### Adding an application
+
+Apps are positioned **only if they appear in `layout`**. Nothing is auto-detected
+at run time: an app you have open but have not listed is silently ignored, and
+will not show up in `plan` output at all — not even as `UNAVAILABLE`, which means
+"listed, but no moveable window".
+
+`generate-config` does not help here. Its `layout` is a fixed five-app starter
+template; only the `profiles` section reflects your real hardware.
+
+To add one, find its bundle ID and put it in the section for the monitor you
+want it on:
+
+```bash
+osascript -e 'id of app "KakaoTalk"'
+# com.kakao.KakaoTalkMac
+```
+
+```json
+"layout": {
+  "workspace": {
+    "com.kakao.KakaoTalkMac": { "position": "bottom_right" }
+  }
+}
+```
+
+Then confirm it is picked up before applying anything — `plan` is read-only:
+
+```bash
+./dist/MacAppPositioner plan | grep -i kakao
+```
+
+If it prints nothing, the entry is in the wrong place or the bundle ID is wrong.
 
 ### What Happens to an Invalid Position
 

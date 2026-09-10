@@ -105,7 +105,7 @@ Updates an existing profile with your current monitor configuration.
 
 ### `generate-config` - Generate Config Template
 
-Outputs a JSON configuration template based on your current monitors and running apps.
+Outputs a JSON configuration template based on your current monitors. The `profiles` section reflects the displays actually attached; the `layout` section is a fixed five-app starter template (Chrome, Teams, Outlook, Slack, Obsidian) and is **not** derived from what you have running. Add any other app to `layout` yourself.
 
 ```bash
 ./dist/MacAppPositioner generate-config

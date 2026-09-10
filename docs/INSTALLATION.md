@@ -70,13 +70,19 @@ Then edit it to match your monitors and desired layout. See the [Configuration G
 
 ### Alternative: derive a config from your current hardware
 
-`generate-config` inspects your attached displays and running apps and prints a
-matching config. Only the JSON goes to stdout, so it can be redirected straight
-to a file:
+`generate-config` inspects your attached displays and prints a config whose
+`profiles` section matches them. Only the JSON goes to stdout, so it can be
+redirected straight to a file:
 
 ```bash
 ./dist/MacAppPositioner generate-config > ~/.config/mac-app-positioner/config.json
 ```
+
+**It does not look at your running apps.** The `layout` section it writes is a
+fixed five-app starter template — Chrome, Teams, Outlook, Slack and Obsidian —
+not a survey of what you have open. Any other app you want positioned has to be
+added to `layout` by hand; see
+[Adding an application](CONFIGURATION.md#adding-an-application).
 
 Progress messages go to stderr, so they stay on your terminal. Add `2>/dev/null`
 to silence them.
