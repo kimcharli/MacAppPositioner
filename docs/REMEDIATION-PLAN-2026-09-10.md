@@ -160,6 +160,16 @@ See Parked / deferred for the migration decision.
 - Delete `Tests/test_chrome_simple.swift` (moves real Chrome windows; hardcodes the author's `1329`px display — the last remaining hardcoded `1329` in the repo) and `Tests/test_positioning_success.swift` (stale binary path, invokes a real `apply`).
 - Remove their exclusion comments from `Scripts/test_all.sh`, which exist only to explain why they were skipped.
 
+### 2.6 — Residual `ConfigManager.shared` inside the seamed coordinate manager (added during execution, 2026-09-10)
+
+**Not in the approved plan. Found by running 2.4's tests** — every fixture-backed call printed `Config not found in any standard location`, which is a config *read* that no test asked for.
+
+- **Defect:** `CocoaCoordinateManager.getAllMonitors(for:)` opens with `let config = ConfigManager.shared.loadConfig()`. It uses it for exactly one thing: looking up the profile's workspace resolution so it can set `CocoaMonitorInfo.isWorkspace`.
+- **Why it matters beyond noise:** `CocoaProfileManager.generatePlan` calls `getAllMonitors(for: profileName)` *after* loading config through its **injected** `configManager`. The monitor list is therefore built from `ConfigManager.shared` — the operator's real `config.json` — while the rest of the plan is built from the injected one. 2.3 claimed to close the `ConfigManaging` gap; it closed it in `CocoaProfileManager` only. A test can be handed a stub config and still be silently influenced by the machine it runs on, which is the exact failure mode Phase 2 exists to eliminate. In production it is a redundant second config load per plan.
+- **Fix:** delete the config read. Change the signature to `getAllMonitors(workspaceResolution: String? = nil)` — the callers that care already hold a `Config`, so they pass the resolution in. `CocoaCoordinateManager` goes back to being a pure geometry/AX type with no I/O, matching the `LayoutEngine` rule from Phase 1.
+- **Call sites:** `CocoaProfileManager.generatePlan` supplies the resolution from its already-loaded profile. `DashboardViewModel` no longer reaches for `CocoaCoordinateManager.shared` at all — it goes through a new `CocoaProfileManager.currentMonitors()`, so the GUI reads config through one injected seam rather than two singletons. `CocoaMain`, `ProfileManagerView`, and the three other `CocoaProfileManager` call sites pass nothing and are unchanged.
+- **Guard:** an assertion in `Tests/test_profile_logic.swift` that the workspace monitor is flagged from the *stub* config, which fails if the singleton read returns.
+
 ## Phase 2 commit sequence
 
 | # | Commit | Items |
@@ -169,7 +179,10 @@ See Parked / deferred for the migration decision.
 | 14 | `refactor(core): introduce ScreenProviding seam` | 2.2 |
 | 15 | `refactor(core): introduce WindowControlling seam` | 2.3 |
 | 16 | `test: cover profile detection and plan generation with fixtures` | 2.4 |
-| 17 | `test: retire hardware-dependent scripts` | 2.5 |
+| 17 | `refactor(core): drop the singleton config read from monitor detection` | 2.6 |
+| 18 | `test: retire hardware-dependent scripts` | 2.5 |
+
+2.6 is sequenced after 2.4 because 2.4 is what exposed it.
 
 ## Phase 2 verification
 
@@ -178,6 +191,8 @@ See Parked / deferred for the migration decision.
 ./Scripts/test_all.sh                       # exits 0
 grep -rn "1329" Tests/ MacAppPositioner/    # no matches
 grep -rn "NSScreen" MacAppPositioner/Shared/CocoaProfileManager.swift   # no matches
+grep -rn "ConfigManager.shared" MacAppPositioner/Shared/CocoaCoordinateManager.swift  # no matches (2.6)
+./Scripts/test_all.sh 2>&1 | grep "Config not found"                    # no matches (2.6)
 ```
 
 Plus, by observation:
