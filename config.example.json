@@ -1,0 +1,39 @@
+{
+  "log_directory": "~/Documents/logs",
+  "profiles": {
+    "office": {
+      "monitors": [
+        { "resolution": "3440x1440", "position": "workspace" },
+        { "resolution": "2560x1440", "position": "secondary" },
+        { "resolution": "macbook", "position": "builtin" }
+      ]
+    },
+    "home": {
+      "monitors": [
+        { "resolution": "3840x2160", "position": "workspace" },
+        { "resolution": "macbook", "position": "builtin" }
+      ]
+    },
+    "laptop-only": {
+      "monitors": [
+        { "resolution": "macbook", "position": "workspace" }
+      ]
+    }
+  },
+  "layout": {
+    "workspace": {
+      "com.google.Chrome": { "position": "top_left" },
+      "com.microsoft.teams2": { "position": "top_right" },
+      "com.microsoft.Outlook": { "position": "bottom_left" },
+      "com.slack.Slack": { "position": "bottom_right" }
+    },
+    "builtin": {
+      "md.obsidian": { "position": "center" }
+    }
+  },
+  "applications": {
+    "com.google.Chrome": {
+      "sizing": "keep"
+    }
+  }
+}

@@ -31,7 +31,13 @@ A native macOS application that automatically positions application windows acco
     ./Scripts/build-all.sh
     ```
 
-2. **Configure** your layouts in `config.json` (see [Configuration Guide](docs/CONFIGURATION.md))
+2. **Configure**: copy the template and edit it for your setup (see [Configuration Guide](docs/CONFIGURATION.md))
+
+    ```bash
+    mkdir -p ~/.config/mac-app-positioner
+    cp config.example.json ~/.config/mac-app-positioner/config.json
+    ```
+
 3. **Grant Accessibility Permissions** when prompted
 4. **Apply**:
 

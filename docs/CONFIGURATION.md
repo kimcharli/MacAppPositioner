@@ -2,6 +2,17 @@
 
 This is the single reference for the `config.json` format used by Mac App Positioner.
 
+## Getting Started
+
+A ready-to-edit template ships with the repository as [`config.example.json`](../config.example.json):
+
+```bash
+mkdir -p ~/.config/mac-app-positioner
+cp config.example.json ~/.config/mac-app-positioner/config.json
+```
+
+Then replace the resolutions under `profiles` with your own — run `./dist/MacAppPositioner generate-config` to see what the app detects.
+
 ## Config File Locations
 
 `ConfigManager` searches these paths in order and uses the first one found:
@@ -244,3 +255,6 @@ ls ~/Documents/logs/
 # Generate a config template from current setup
 ./dist/MacAppPositioner generate-config
 ```
+
+`generate-config` prints diagnostics ahead of the JSON payload, so copy the
+JSON from the first `{` onward rather than redirecting the command to a file.
