@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Remediation, Phase 3c (2026-09-10)
+
+#### Fixed
+
+- **[BUG]** Windows placed at `top_left` or `top_right` **never reached their
+  target**. `apply` reported failure and the next `plan` proposed the same move
+  again, on every run, so half of every quadrant layout was permanently broken.
+  `NSScreen.visibleFrame` under-reports the menu bar inset on external displays
+  until the process has an `NSApplication`; the CLI never created one, so an
+  external screen claimed 30pt at the top that the window server would not
+  actually give up. Confirmed by sweeping a real window across the boundary:
+  every request above the limit was granted exactly the limit. The CLI now
+  initialises `NSApplication` with `.accessory` policy — no Dock icon, no menu
+  bar — before reading any screen. The GUI was never affected.
+- **[BUG]** `test-coordinates` labelled its output `[Native Cocoa]` and claimed
+  bottom-left origin, but printed the *converted* top-left values. The one
+  command for diagnosing coordinate problems was mislabelling coordinates. It
+  now prints raw AppKit and internal side by side, each correctly labelled, and
+  reports the reserved menu bar / Dock insets directly.
+
 ### Remediation, Phase 3b (2026-09-10)
 
 Multi-profile authoring. The repository exists to serve several environments,
@@ -42,9 +62,6 @@ but there was no working way to create a second one.
 
 #### Known issues
 
-- `top_left` and `top_right` windows land 30pt short of their target and never
-  converge: `apply` reports failure and the next `plan` still says `MOVE`.
-  Bottom-row positions are unaffected.
 - `README.md` describes "different layouts" per profile. Layout is currently
   global — profiles switch which monitor the layout targets, not the layout
   itself. Unresolved; tracked as 3b.4.

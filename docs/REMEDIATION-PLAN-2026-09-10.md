@@ -661,13 +661,63 @@ was restored and confirmed by hash afterwards:
 
 - **3b.4** — per-profile layouts. `README.md:18` promises them; `Config.layout`
   is global. Options A/B/C in the section above.
-- **Top-row windows never converge.** `top_left` / `top_right` land 30pt short,
-  `apply` reports failure, the next `plan` still says MOVE. Bottom row is
-  clean. `LayoutEngine` does use `visibleFrame`, so the suspect is the
-  Cocoa->internal conversion (`CocoaCoordinateManager.swift:49,73`). The
-  measured 30pt does not match that monitor's 90pt menu bar, so the mechanism
-  is not yet understood.
 - Quadrant tiling, and the Phase 4 / Phase 5 remainders.
+
+## Phase 3c — Top-row convergence (2026-09-10)
+
+Not planned in advance: taken directly after 3b because `apply` was reporting
+failure on half the quadrant apps on every run.
+
+### Root cause
+
+`NSScreen.visibleFrame` under-reports the menu bar inset on external displays
+until the process has an `NSApplication`. Proven by reading the same screens
+before and after touching `NSApplication.shared` in one process:
+
+```text
+[before NSApplication.shared] SAMSUNG: reservedTop=0.0
+[after  NSApplication.shared] SAMSUNG: reservedTop=30.0
+```
+
+The CLI never created one, so `top_left` / `top_right` targets were anchored
+30pt above the usable area. The window server clamped every such request, the
+verification step in `setWindowPosition` reported failure, and the next `plan`
+proposed the identical move — permanently.
+
+That the clamp was the system's and not ours was confirmed by sweeping a real
+window's Y across the boundary: every request above `-2130` was granted exactly
+`-2130`; every request at or below was granted exactly. `-2130` is 30pt below
+that screen's top edge at `-2160`.
+
+`LayoutEngine` was never at fault. It correctly anchors to `visibleFrame`; the
+input was wrong.
+
+### What made this expensive to find
+
+`test-coordinates` printed `CocoaMonitorInfo`'s **converted** rects labelled
+`[Native Cocoa]`, and closed by asserting bottom-left origin. Both wrong — the
+fields are internal top-left (`CocoaCoordinateManager.swift:14-15`). The raw
+AppKit values, which is where the discrepancy actually lived, were never shown.
+Fixed first, in its own commit, because the wrong labels were what made the
+real defect invisible.
+
+### Commits
+
+| # | Commit | Item |
+| - | ------ | ---- |
+| 43 | `67e1d90` `fix(cli): stop test-coordinates mislabelling its own coordinates` | diagnostics |
+| 44 | `b088189` `fix(cli): initialise NSApplication so screen metrics are correct` | root cause |
+
+### Verification
+
+| Check | Before | After |
+| ----- | ------ | ----- |
+| reported inset, external screens | 0.0pt | 30.0pt |
+| `top_left` target Y | -2160 (unreachable) | -2130 |
+| Chrome / Teams after `apply` | ❌ did not move to position | ✅ moved |
+| re-`plan` | `MOVE` forever | `KEEP` |
+| displaced window still moves | — | yes, then converges |
+| suite | 9/9 | 9/9 |
 
 ### Phase 3b commit sequence
 

@@ -8,7 +8,7 @@ This file tracks the development tasks for the Mac App Positioner application.
 >
 > **▶ Open ruling:** 3b.4 — `README.md:18` promises "different layouts" per profile, but `layout` is global. Implement the per-profile override, or correct the claim. Tracked under "Open decisions" below.
 >
-> **▶ Known defect:** top-row windows never converge. `top_left` / `top_right` apps land 30pt short, `apply` reports failure, and the next `plan` still says MOVE — forever. Bottom row is clean. Not yet isolated.
+> **▶ Known defect:** none outstanding — the top-row convergence bug is fixed. `NSScreen.visibleFrame` under-reported the external-display menu bar until the process had an `NSApplication`, so `top_left` / `top_right` targets were 30pt too high, were clamped by the window server, and failed verification on every run. The CLI now initialises `NSApplication` with `.accessory` policy before reading any screen.
 >
 > **▶ Environment:** the Command Line Tools 27.0 update (2026-09-10 16:37) ships no `libSwiftUIMacros.dylib`, so **no SwiftUI file compiles** and `Scripts/build-all.sh` fails. `Scripts/build.sh` (CLI) and `Scripts/test_all.sh` are unaffected. Reproduced on a clean `HEAD`.
 >
@@ -127,10 +127,6 @@ This file tracks the development tasks for the Mac App Positioner application.
 - [ ] **Quadrant tiling.** Four documented quadrant apps overlap 41–80% pairwise
   and sum to 228% of the workspace monitor's area. Must be opt-out, because
   `AppLayoutEntry.sizing` defaults to `"keep"`.
-- [ ] **Top-row windows never converge.** `top_left` / `top_right` land 30pt
-  short, `apply` reports failure, next `plan` still says MOVE — forever. Bottom
-  row converges. Not yet isolated; `LayoutEngine` does use `visibleFrame`, so
-  the suspect is the Cocoa→internal conversion (`CocoaCoordinateManager.swift:49,73`).
 
 ### Next Priority Features
 - [ ] **Enhanced Profile Management**
