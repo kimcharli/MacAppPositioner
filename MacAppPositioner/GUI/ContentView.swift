@@ -231,11 +231,15 @@ struct ExecutionPlanView: View {
                     VStack(alignment: .leading) {
                         Text("  - \(action.appName):")
                             .fontWeight(.medium)
-                        Text("    Action: \(action.action.rawValue)")
+                        Text("    Action: \(action.action.rawValue) — \(action.reason)")
                         if let current = action.currentPosition {
                             Text("    Current: \(coordinateManager.debugDescription(rect: current, label: "", system: "Accessibility"))")
                         }
-                        Text("    Target:  \(coordinateManager.debugDescription(rect: action.targetPosition, label: "", system: "Accessibility"))")
+                        if let target = action.targetPosition {
+                            Text("    Target:  \(coordinateManager.debugDescription(rect: target, label: "", system: "Accessibility"))")
+                        } else {
+                            Text("    Target:  unchanged")
+                        }
                     }
                     .padding(.bottom, 8)
                 }

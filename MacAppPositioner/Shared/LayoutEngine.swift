@@ -45,13 +45,14 @@ enum LayoutEngine {
         /// No running process with a moveable window for this bundle ID.
         case appUnavailable
 
-        var actionLabel: String {
+        /// How this decision is reported in an execution plan.
+        var actionType: ActionType {
             switch self {
-            case .move:               return "MOVE"
-            case .appUnavailable:     return "UNAVAILABLE"
+            case .move:               return .move
+            case .appUnavailable:     return .unavailable
             case .keepConfigured,
                  .keepAlreadyPlaced,
-                 .keepOnTargetScreen: return "KEEP"
+                 .keepOnTargetScreen: return .keep
             }
         }
 

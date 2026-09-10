@@ -101,13 +101,17 @@ struct MacAppPositioner {
                     print("\nApp Actions:")
                     for action in plan.actions {
                         print("  - \(action.appName):")
-                        print("    Action: \(action.action.rawValue)")
+                        print("    Action: \(action.action.rawValue) — \(action.reason)")
                         if let current = action.currentPosition {
                             print("    Current: \(coordinateManager.debugDescription(rect: current, label: "", system: "Accessibility"))")
                         } else {
                             print("    Current: Not running or window not found")
                         }
-                        print("    Target: \(coordinateManager.debugDescription(rect: action.targetPosition, label: "", system: "Accessibility"))")
+                        if let target = action.targetPosition {
+                            print("    Target: \(coordinateManager.debugDescription(rect: target, label: "", system: "Accessibility"))")
+                        } else {
+                            print("    Target: unchanged")
+                        }
                     }
                 } else {
                     print("❌ Could not generate a plan. No matching profile detected or profile not found.")

@@ -46,75 +46,8 @@ class CocoaProfileManager {
         return nil
     }
     
-    // MARK: - Unified Positioning
-    
-    private func positionApp(bundleID: String,
-                            position: WindowPosition,
-                            sizing: String?,
-                            targetMonitor: CocoaMonitorInfo,
-                            appSettings: AppSettings?) {
-
-        let pids = getAppPIDs(bundleID: bundleID)
-        guard !pids.isEmpty else {
-            print("  ❌ App not running: \(bundleID)")
-            return
-        }
-
-        if position == .keep {
-            print("  🔒 \(bundleID) has 'keep' position - skipping repositioning")
-            return
-        }
-
-        // When multiple processes share a bundle ID (e.g. a visible Chrome and a
-        // headless debug instance), try each PID until we find one with a moveable window.
-        // hasMovableWindow checks without activation so no flicker on skipped processes.
-        guard let pid = pids.first(where: { coordinateManager.hasMovableWindow(pid: $0) }) else {
-            print("  ❌ No moveable window found for \(bundleID) across \(pids.count) process(es).")
-            return
-        }
-
-        let currentPosition = coordinateManager.getWindowRect(pid: pid)
-        let actualWindowSize = resolveWindowSize(currentSize: currentPosition?.size, sizing: sizing, appSettings: appSettings)
-
-        if let currentPosition = currentPosition {
-            print("  Current position: \(coordinateManager.debugDescription(rect: currentPosition, label: "Current"))")
-
-            if position == .center {
-                let windowCenter = CGPoint(x: currentPosition.midX, y: currentPosition.midY)
-                if targetMonitor.frame.contains(windowCenter) {
-                    print("  📱 \(bundleID) is already on target screen, skipping repositioning")
-                    return
-                }
-            }
-        }
-
-        let calculatedPosition: CGPoint
-        switch position {
-        case .center:
-            calculatedPosition = CGPoint(
-                x: targetMonitor.visibleFrame.midX - actualWindowSize.width / 2,
-                y: targetMonitor.visibleFrame.midY - actualWindowSize.height / 2
-            )
-        case .keep:
-            return
-        case .topLeft, .topRight, .bottomLeft, .bottomRight:
-            calculatedPosition = coordinateManager.calculateQuadrantPosition(
-                quadrant: position,
-                windowSize: actualWindowSize,
-                visibleFrame: targetMonitor.visibleFrame
-            )
-        }
-
-        print("  Calculated Position: \(calculatedPosition) [Global]")
-        coordinateManager.setWindowPosition(pid: pid, position: calculatedPosition, size: nil)
-
-        if let finalPosition = coordinateManager.getWindowRect(pid: pid) {
-            print("  Final position: \(coordinateManager.debugDescription(rect: finalPosition, label: "Final"))")
-        }
-    }
-    
     // MARK: - Plan Generation
-    
+
     func generatePlan(for profileName: String) -> ExecutionPlan? {
         guard let config = configManager.loadConfig(), let profile = config.profiles[profileName] else {
             print("Failed to load config or profile.")
@@ -127,102 +60,102 @@ class CocoaProfileManager {
         if let workspaceMonitorConfig = profile.monitors.first(where: { $0.position == .workspace }),
            let workspaceMonitor = coordinateManager.findWorkspaceMonitor(resolution: workspaceMonitorConfig.resolution, from: allMonitors),
            let layout = config.layout?.workspace {
-            for (bundleID, workspaceApp) in layout {
-                let action = createAppAction(bundleID: bundleID, position: workspaceApp.position, sizing: workspaceApp.sizing, targetMonitor: workspaceMonitor, appSettings: config.applications?[bundleID])
-                actions.append(action)
+            for (bundleID, entry) in layout {
+                actions.append(createAppAction(bundleID: bundleID,
+                                               entry: entry,
+                                               targetMonitor: workspaceMonitor,
+                                               appSettings: config.applications?[bundleID]))
             }
         }
 
         if let builtinApps = config.layout?.builtin,
            let builtinMonitor = allMonitors.first(where: { $0.isBuiltIn }) {
-            for (bundleID, builtinApp) in builtinApps {
-                let action = createAppAction(bundleID: bundleID, position: builtinApp.position, sizing: builtinApp.sizing, targetMonitor: builtinMonitor, appSettings: config.applications?[bundleID])
-                actions.append(action)
+            for (bundleID, entry) in builtinApps {
+                actions.append(createAppAction(bundleID: bundleID,
+                                               entry: entry,
+                                               targetMonitor: builtinMonitor,
+                                               appSettings: config.applications?[bundleID]))
             }
         }
+
+        // Layout is a dictionary, so iteration order is not stable. Sort so that
+        // plan output is reproducible and apply visits apps in the previewed order.
+        actions.sort { $0.bundleID < $1.bundleID }
 
         return ExecutionPlan(profileName: profileName, monitors: allMonitors, actions: actions)
     }
 
-    private func createAppAction(bundleID: String, position: WindowPosition, sizing: String?, targetMonitor: CocoaMonitorInfo, appSettings: AppSettings?) -> AppAction {
-        let currentPosition = getAppPIDs(bundleID: bundleID).first(where: { coordinateManager.hasMovableWindow(pid: $0) }).flatMap { coordinateManager.getWindowRect(pid: $0) }
-        let actualWindowSize = resolveWindowSize(currentSize: currentPosition?.size, sizing: sizing, appSettings: appSettings)
+    /// Builds one plan entry. All target geometry comes from `LayoutEngine`, which
+    /// is also what `executePlan` acts on — so a preview and an apply cannot disagree.
+    private func createAppAction(bundleID: String,
+                                 entry: AppLayoutEntry,
+                                 targetMonitor: CocoaMonitorInfo,
+                                 appSettings: AppSettings?) -> AppAction {
 
-        let calculatedPosition = coordinateManager.calculateQuadrantPosition(quadrant: position, windowSize: actualWindowSize, visibleFrame: targetMonitor.visibleFrame)
-        let targetRect = CGRect(origin: calculatedPosition, size: actualWindowSize)
-        
-        var actionType: ActionType = .move
-        if position == .keep {
-            actionType = .keep
-        } else if let current = currentPosition {
-            let tolerance = AppConstants.positioningTolerance
-            if abs(current.origin.x - targetRect.origin.x) < tolerance && abs(current.origin.y - targetRect.origin.y) < tolerance {
-                actionType = .keep
-            }
-        }
+        let currentFrame = currentWindowFrame(bundleID: bundleID)
 
-        let appName = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleID })?.localizedName ?? bundleID
+        let placement = LayoutEngine.resolve(
+            position: entry.position,
+            sizing: entry.sizing,
+            appSizingOverride: appSettings?.sizing,
+            currentFrame: currentFrame,
+            monitor: MonitorGeometry(frame: targetMonitor.frame,
+                                     visibleFrame: targetMonitor.visibleFrame)
+        )
+
+        let appName = NSWorkspace.shared.runningApplications
+            .first(where: { $0.bundleIdentifier == bundleID })?.localizedName ?? bundleID
 
         return AppAction(
             bundleID: bundleID,
             appName: appName,
-            currentPosition: currentPosition,
-            targetPosition: targetRect,
-            action: actionType
+            currentPosition: currentFrame,
+            targetPosition: placement.targetFrame,
+            action: placement.decision.actionType,
+            reason: placement.decision.explanation
         )
     }
-    
-    // MARK: - Profile Application
-    
-    func applyProfile(_ profileName: String) {
-        guard let config = configManager.loadConfig(), let profile = config.profiles[profileName] else {
-            print("Failed to load config or profile.")
-            return
-        }
 
-        // Remember which app had focus so we can restore it after positioning
+    // MARK: - Profile Application
+
+    /// Applies a profile by generating a plan and executing it.
+    ///
+    /// Apply is deliberately *defined* as "execute what plan describes". The two
+    /// used to be separate implementations of the same geometry rules and had
+    /// already drifted: plan routed `center` and `keep` through the quadrant
+    /// calculation and reported a top-left target that apply never used.
+    func applyProfile(_ profileName: String) {
+        guard let plan = generatePlan(for: profileName) else { return }
+        executePlan(plan)
+    }
+
+    /// Executes a previously generated plan.
+    ///
+    /// PIDs are resolved here rather than captured in the plan, so an `AppAction`
+    /// stays a pure description and cannot carry a stale process identifier.
+    func executePlan(_ plan: ExecutionPlan) {
+        // Remember which app had focus so we can restore it after positioning.
         let previousApp = NSWorkspace.shared.frontmostApplication
 
-        let allMonitors = coordinateManager.getAllMonitors(for: profileName)
-        
-        guard let workspaceMonitorConfig = profile.monitors.first(where: { $0.position == .workspace }) else {
-            print("No workspace monitor found in profile")
-            return
-        }
-        
-        guard let workspaceMonitor = coordinateManager.findWorkspaceMonitor(resolution: workspaceMonitorConfig.resolution, from: allMonitors) else {
-            print("Workspace monitor with resolution \(workspaceMonitorConfig.resolution) not found")
-            return
-        }
-        
-        if let layout = config.layout?.workspace {
-            for (bundleID, workspaceApp) in layout {
-                print("\nProcessing \(bundleID) for workspace position '\(workspaceApp.position)':")
-                positionApp(
-                    bundleID: bundleID,
-                    position: workspaceApp.position,
-                    sizing: workspaceApp.sizing,
-                    targetMonitor: workspaceMonitor,
-                    appSettings: config.applications?[bundleID]
-                )
+        for action in plan.actions {
+            print("\n📱 \(action.bundleID): \(action.action.rawValue) — \(action.reason)")
+
+            guard action.action == .move, let target = action.targetPosition else { continue }
+
+            // When multiple processes share a bundle ID (e.g. a visible Chrome and a
+            // headless debug instance), use the first one with a moveable window.
+            // hasMovableWindow checks without activating, so skipped processes don't flicker.
+            guard let pid = getAppPIDs(bundleID: action.bundleID)
+                    .first(where: { coordinateManager.hasMovableWindow(pid: $0) }) else {
+                print("  ❌ No moveable window found for \(action.bundleID).")
+                continue
             }
-        }
-        
-        if let builtinApps = config.layout?.builtin,
-           let builtinMonitor = allMonitors.first(where: { $0.isBuiltIn }) {
-            for (bundleID, builtinApp) in builtinApps {
-                print("\n📱 Processing \(bundleID) for builtin screen (position: \(builtinApp.position.rawValue)):")
-                positionApp(
-                    bundleID: bundleID,
-                    position: builtinApp.position,
-                    sizing: builtinApp.sizing,
-                    targetMonitor: builtinMonitor,
-                    appSettings: config.applications?[bundleID]
-                )
-            }
+
+            print("  \(coordinateManager.debugDescription(rect: target, label: "Target"))")
+            coordinateManager.setWindowPosition(pid: pid, position: target.origin, size: nil)
         }
 
-        // Restore focus to the app that was active before positioning
+        // Restore focus to the app that was active before positioning.
         if let previousApp = previousApp {
             if #available(macOS 14.0, *) {
                 previousApp.activate()
@@ -234,15 +167,14 @@ class CocoaProfileManager {
 
     // MARK: - Utility Functions
 
-    /// Determines the window size to use: keeps the current size when sizing is
-    /// "keep", otherwise falls back to `AppConstants.defaultWindowSize`.
-    private func resolveWindowSize(currentSize: CGSize?, sizing: String?, appSettings: AppSettings?) -> CGSize {
-        if sizing == "keep" || appSettings?.sizing == "keep", let currentSize = currentSize {
-            return currentSize
-        }
-        return AppConstants.defaultWindowSize
+    /// Current frame of the addressable window for a bundle ID, or `nil` when the
+    /// app isn't running or exposes no moveable window.
+    private func currentWindowFrame(bundleID: String) -> CGRect? {
+        getAppPIDs(bundleID: bundleID)
+            .first(where: { coordinateManager.hasMovableWindow(pid: $0) })
+            .flatMap { coordinateManager.getWindowRect(pid: $0) }
     }
-    
+
     /// Returns all PIDs for running apps with the given bundle ID, most recently
     /// launched first. Callers should try each PID in order and use the first
     /// one that has a moveable window.
@@ -252,7 +184,7 @@ class CocoaProfileManager {
             .sorted { $0.processIdentifier > $1.processIdentifier } // higher PID = more recent
             .map { $0.processIdentifier }
     }
-    
+
     // MARK: - Profile Generation
     
     func updateProfile(name: String) {

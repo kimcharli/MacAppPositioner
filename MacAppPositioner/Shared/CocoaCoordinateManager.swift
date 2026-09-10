@@ -240,21 +240,6 @@ class CocoaCoordinateManager {
         return windowArray.first
     }
     
-    /// Returns the target top-left corner for a window given a `WindowPosition`.
-    /// `.center` and `.keep` are handled by callers; this method falls back to `.topLeft` for those.
-    func calculateQuadrantPosition(quadrant: WindowPosition, windowSize: CGSize, visibleFrame: CGRect) -> CGPoint {
-        switch quadrant {
-        case .topLeft, .center, .keep:
-            return CGPoint(x: visibleFrame.minX, y: visibleFrame.minY)
-        case .topRight:
-            return CGPoint(x: visibleFrame.maxX - windowSize.width, y: visibleFrame.minY)
-        case .bottomLeft:
-            return CGPoint(x: visibleFrame.minX, y: visibleFrame.maxY - windowSize.height)
-        case .bottomRight:
-            return CGPoint(x: visibleFrame.maxX - windowSize.width, y: visibleFrame.maxY - windowSize.height)
-        }
-    }
-
     /// Returns the `MonitorRole` for a detected monitor based on its characteristics.
     /// Use this wherever a position label must be written into a `Monitor` config record.
     static func positionLabel(for monitor: CocoaMonitorInfo) -> MonitorRole {
