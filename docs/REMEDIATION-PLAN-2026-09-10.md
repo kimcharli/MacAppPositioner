@@ -1,6 +1,6 @@
 # Remediation Plan — 2026-09-10
 
-**Status:** Approved by @ckim on 2026-09-10. **Phase 0 complete**, **Phase 1 complete**, **Phase 2 complete** (all 2026-09-10), Phase 2 re-scoped during execution — see the toolchain ruling. Phases 3–5 remain queued; **Phase 3 is blocked on two @ckim decisions** (see Parked).
+**Status:** Approved by @ckim on 2026-09-10. **Phase 0 complete**, **Phase 1 complete**, **Phase 2 complete** (all 2026-09-10), Phase 2 re-scoped during execution — see the toolchain ruling. **Phase 2.5 (doc truth-up, unblocked subset) approved and executing** (2026-09-10). Phases 3–5 remain queued; **Phase 3 is blocked on two @ckim decisions** (see Parked).
 
 ## Context
 
@@ -230,11 +230,102 @@ Plus, by observation:
 
 **Next:** Phase 3 (honest config). **Blocked on two @ckim decisions** — the quadrant-semantics ruling and the fate of `positioning_strategy`. See Parked.
 
+## Phase 2.5 — Doc truth-up, unblocked subset (added 2026-09-10)
+
+**Why this exists.** A doc audit run after Phase 2 found the documentation is not merely stale but in places actively harmful: the primary documented install path writes a config file the application cannot parse, and the guide `README.md` points AI agents to mandates an API that no longer exists. Roughly half the defects are downstream of the two parked decisions and cannot be written correctly until @ckim rules. This phase takes **only the subset that needs no decision**. The remainder moves to Phase 5, restated below so the two do not overlap.
+
+Every item below was verified against the code, not inferred from reading.
+
+### 2.5.1 — The documented install path produces an unparseable config
+
+- **Defect:** `docs/INSTALLATION.md:71` instructs `./dist/MacAppPositioner generate-config > ~/.config/mac-app-positioner/config.json`. `AppLogger.start()` and a CLI header write to stdout first, so the file begins `📝 Logging to: …`. Verified: `json.load` fails with `Expecting value: line 1 column 1`. This is the first thing a new user does, and it cannot work.
+- **Aggravating:** three docs give three different setup instructions. `README.md:38` copies `config.example.json`; `CONFIGURATION.md:259` explicitly warns against redirecting; `INSTALLATION.md` does the thing the other two warn about.
+- **Fix:** `INSTALLATION.md` adopts the `config.example.json` path as primary, matching `README.md`, and shows `generate-config | sed -n '/^{/,$p'` as the derive-from-current-hardware alternative, with a note that the filter goes away in Phase 3.
+- **Note:** this is a workaround for a code defect. The real fix — diagnostics to stderr — is Phase 3, and is what lets the original one-liner work as written. Recorded so the workaround is removed rather than left behind.
+
+### 2.5.2 — Agent docs mandate a function that no longer exists
+
+- **Defect:** `docs/AGENTS.md:62,66` and `docs/TROUBLESHOOTING.md:188,190` require `getAppPIDs(bundleID:)` — "Always go through `getAppPIDs` rather than querying `NSWorkspace` directly." `grep -rn getAppPIDs MacAppPositioner/` returns nothing; item 2.3 replaced it with `WindowControlling.addressablePID(bundleID:)`.
+- **Why it matters more than a normal stale reference:** `README.md:1` directs AI agents to read `AGENTS.md` **before acting**. The doc instructs them to call a symbol that will not compile.
+- **Fix:** repoint both docs at `addressablePID(bundleID:)` / `runningPIDs(bundleID:)` and at `WindowControlling` as the seam. Keep the multi-instance Chrome explanation — the reasoning is still correct, only the API name changed.
+- Add `ScreenProviding` / `WindowControlling` to the `AGENTS.md` Key Classes table.
+
+### 2.5.3 — `DEVELOPMENT.md` describes a source tree that is not on disk
+
+- `:35` lists `WindowManager.swift`, which does not exist. The tree omits `LayoutEngine.swift`, `ScreenProviding.swift`, `WindowControlling.swift` and `AppLogger.swift`.
+- `:44` credits `CocoaCoordinateManager` with "quadrant calculations"; Phase 1 moved that to `LayoutEngine`, which is absent from the Core Classes table entirely.
+- `:160` — in the *Historical Bugs to Avoid* table — says "Always pass profile name to `getAllMonitors(for:)`". Item 2.6 changed the signature to `getAllMonitors(workspaceResolution:)`. A table of things not to get wrong should not itself be wrong.
+- `:99-110` test template uses `#!/usr/bin/env swift` and top-level statements. The compiled harness rejects **both** (`hashbang line is allowed only in the main file`; `expressions are not allowed at the top level`). Document both harnesses and when to use each: `run_test` for standalone observation scripts, `run_compiled_test` with `@main` for anything linking `Shared/`.
+- `:146` Rule 4 is substantively right — activation does happen per app — but attributes it to `applyProfile()`. It happens inside `setWindowPosition`. Correct the mechanism, keep the rule.
+
+### 2.5.4 — `USAGE.md` sample output predates Phase 1
+
+- `:44-58` shows bare `Action: MOVE` / `Action: KEEP`. Real output carries the `LayoutEngine` reason string (`MOVE — will be repositioned`, `KEEP — already on the target screen`, `Target: unchanged`) and `[Accessibility]` coordinate-space tags. Replace with **actual captured output**, not hand-written.
+- `test-coordinates` is implemented in `CocoaMain.swift` and listed in `ARCHITECTURE.md:14`, but undocumented here.
+- The `generate-config` section tells users to run it without mentioning the output cannot be redirected. Cross-reference 2.5.1.
+
+### 2.5.5 — `ARCHITECTURE.md` omits the Phase 2 seams
+
+- The most accurate doc in the repo; the data flow matches the code line for line, and "verify it" at `:72` is real (`setWindowPosition` re-reads and compares within tolerance). Two gaps only: `ScreenProviding` / `WindowControlling` are missing from Shared Core, and the "Singleton managers" design decision at `:90` predates injection. Note that singletons remain the *default*, not the only, wiring.
+
+### 2.5.6 — `CHANGELOG.md` has no record of Phases 0–2
+
+- Nineteen commits, including two user-visible bug fixes (`generate-config` emitted invalid JSON; profiles naming the built-in display were detected but applied nothing) and one **behaviour change** (apply now skips windows already within `positioningTolerance`). A user upgrading gets no notice of any of it.
+- Add an `Unreleased` entry covering Phase 0, 1 and 2, with the behaviour change called out separately from the fixes.
+
+### 2.5.7 — Smaller truth-ups
+
+- `README.md:69` roadmap ("layout snapshots, menu bar integration improvements") contradicts `TODO.md`, which points at Phase 3. Align on the plan. **The `README.md:17` quadrant claim is deliberately left alone — it is decision-blocked.**
+- `CONFIGURATION.md:99-114` presents Workspace and Builtin position values as two disjoint tables, implying `center` is builtin-only. There is one `WindowPosition` enum: `center` is valid on workspace and the quadrants are valid on builtin. Merge into one table. **The quadrant *semantics* prose and the ASCII diagram stay untouched — decision-blocked.**
+- Document two real but unrecorded behaviours: the legacy string layout form (`"com.google.Chrome": "top_left"`) that `AppLayoutEntry.init(from:)` still decodes, and the silent `?? .center` fallback — a typo such as `"top-left"` centres the window with no warning. Document the fallback now; whether it should instead be an error is a Phase 3 question.
+
+### Explicitly deferred to Phase 3 / Phase 5 (do NOT touch in 2.5)
+
+| Deferred | Blocked on |
+| -------- | ---------- |
+| `README.md:17`, `CONFIGURATION.md:99-126` quadrant-as-four-zones prose and diagram | Quadrant semantics ruling |
+| `CONFIGURATION.md:142,149,178` `positioning_strategy`, and the "special Chrome handling" prose at `:186` | `positioning_strategy` ruling |
+| `CONFIGURATION.md:150` `applications.positioning` — decoded, never read | Phase 3 honor-or-delete |
+| `CHANGELOG.md` `@AppStorage` claim — the value persists but nothing consumes it, so the setting is inert | Phase 3 read-or-remove |
+| `INSTALLATION.md` redirect workaround removal | Phase 3 stderr routing |
+| `DEVELOPMENT.md:144` Rule 3 ("never hardcode default sizes") vs `AppConstants.defaultWindowSize` | Phase 5 |
+| The three half-done `[x]` items in `TODO.md` | Phase 5 |
+
+## Phase 2.5 commit sequence
+
+| # | Commit | Items |
+| - | ------ | ----- |
+| 20 | `docs: plan the unblocked doc truth-up as Phase 2.5` | this section |
+| 21 | `docs: fix the install path that generates an unparseable config` | 2.5.1 |
+| 22 | `docs: repoint agent guides at the current window API` | 2.5.2 |
+| 23 | `docs: correct the development guide's source tree and test template` | 2.5.3 |
+| 24 | `docs: refresh usage guide against real command output` | 2.5.4, 2.5.5 |
+| 25 | `docs: record Phases 0-2 in the changelog` | 2.5.6 |
+| 26 | `docs: align roadmap and document undocumented layout behaviour` | 2.5.7 |
+
+## Phase 2.5 verification
+
+```bash
+# Every .swift filename mentioned in docs must exist on disk (excluding the plan,
+# which cites deleted files as history).
+grep -rhno "[A-Za-z_][A-Za-z0-9_]*\.swift" README.md docs/*.md CHANGELOG.md \
+  --exclude=REMEDIATION-PLAN-2026-09-10.md | sed 's/.*://' | sort -u
+
+grep -rn "getAppPIDs" README.md docs/ CHANGELOG.md   # no matches outside the plan
+grep -rn "getAllMonitors(for:" docs/                 # no matches outside the plan
+```
+
+By observation:
+
+- Every command shown in `INSTALLATION.md` and `USAGE.md` is **executed**, and its real output pasted in. No hand-written samples.
+- The config produced by the documented install path parses via `json.load` *and* loads through `ConfigManager`.
+- No claim about quadrant tiling or `positioning_strategy` changes in either direction — those stay untouched pending the rulings.
+
 ## Later phases (not approved for execution)
 
-- **Phase 3 — Honest config.** Real tiling via the already-present `size:` parameter; honor or delete `applications.positioning`; make `saveConfig` non-destructive (merge, don't re-encode); read or remove `@AppStorage("defaultProfile")`; route `generate-config` diagnostics to stderr.
+- **Phase 3 — Honest config.** Real tiling via the already-present `size:` parameter; honor or delete `applications.positioning`; make `saveConfig` non-destructive (merge, don't re-encode); read or remove `@AppStorage("defaultProfile")`; route `generate-config` diagnostics to stderr — which also retires the `sed` workaround 2.5.1 documents.
 - **Phase 4 — Robustness.** Display identity via `CGDisplayCreateUUIDFromDisplayID`; harden `getBestWindow` (drop the `as!` force-cast, filter before accepting `kAXMainWindow`); move the apply loop off the main-thread `RunLoop.run(until:)` reentrancy pattern.
-- **Phase 5 — Doc truth-up.** Remove the nonexistent `WindowManager` from `ARCHITECTURE.md:32` and `DEVELOPMENT.md:35`; reconcile Rule 3 with `AppConstants`; correct the three half-done `[x]` items in `TODO.md`.
+- **Phase 5 — Doc truth-up, decision-dependent remainder.** Everything in the deferral table above: the quadrant prose and diagram, `positioning_strategy`, `applications.positioning`, the inert `@AppStorage` changelog claim, `DEVELOPMENT.md` Rule 3 vs `AppConstants.defaultWindowSize`, and the three half-done `[x]` items in `TODO.md`. (Phase 2.5 already took the unblocked subset, including the `WindowManager` removal originally scoped here.)
 
 ## Commit sequence
 

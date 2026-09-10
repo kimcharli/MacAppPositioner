@@ -4,7 +4,9 @@ This file tracks the development tasks for the Mac App Positioner application.
 
 > **▶ Active work:** [docs/REMEDIATION-PLAN-2026-09-10.md](docs/REMEDIATION-PLAN-2026-09-10.md) — Phase 0 (correctness fixes), Phase 1 (`plan` and `apply` unified behind a pure `LayoutEngine`) and Phase 2 (injectable screen/window seams + fixture tests, 9/9 suite) are **complete**. Phase 2 was re-scoped away from SPM/XCTest, which this machine's toolchain cannot run.
 >
-> **Next: Phase 3 (honest config) — blocked on two decisions from @ckim**, both in the plan's Parked section: (1) do `top_left`/`top_right`/etc. actually tile a window, or only anchor it at its current size, and (2) keep or delete `positioning_strategy`, which `CONFIGURATION.md` documents but no code reads.
+> **Now: Phase 2.5 (doc truth-up, unblocked subset)** — a post-Phase-2 audit found the docs are not merely stale but in places harmful: `INSTALLATION.md` told users to generate a config file the app cannot parse, and `AGENTS.md` mandated a function deleted in Phase 2. Phase 2.5 fixes only what needs no decision.
+>
+> **Then: Phase 3 (honest config) — blocked on two decisions from @ckim**, both in the plan's Parked section: (1) do `top_left`/`top_right`/etc. actually tile a window, or only anchor it at its current size, and (2) keep or delete `positioning_strategy`, which `CONFIGURATION.md` documents but no code reads. About half the remaining doc defects are downstream of these two rulings and are deliberately left untouched until then.
 >
 > That plan supersedes the status of the "CODE REVIEW FINDINGS & FIX PLAN" section below, which a 2026-09-10 audit found to contain three items marked `[x]` that are only half-done. Trust the remediation plan over this file until Phase 5 reconciles them.
 
