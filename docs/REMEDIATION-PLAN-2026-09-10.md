@@ -405,15 +405,19 @@ Phase 3a takes everything that needs no ruling.
 
 ## Phase 3a commit sequence
 
-| # | Commit | Items |
-| - | ------ | ----- |
-| 28 | `docs: plan Phase 3a, the unblocked config fidelity work` | this section |
-| 29 | `docs: remove positioning_strategy from the config reference` | 3a.1 |
-| 30 | `refactor(config): delete the dead applications.positioning key` | 3a.2 |
-| 31 | `fix(config): report a rejected config as rejected, not missing` | 3a.3 |
-| 32 | `feat(gui): honour the default profile setting` | 3a.4 |
-| 33 | `fix(cli): send diagnostics to stderr so output can be redirected` | 3a.5 |
-| 34 | `fix(cli): drop the doubled colon in plan output` | 3a.6 |
+| # | Commit | Items | Status |
+| - | ------ | ----- | ------ |
+| 28 | `5bd754a` `docs: plan Phase 3a, the unblocked config fidelity work` | this section | ✅ |
+| 29 | `a8b2dcd` `refactor(config): delete the two dead application keys` | 3a.1 + 3a.2 | ✅ merged |
+| 30 | — | — | folded into 29 |
+| 31 | `a14733e` `fix(config): report a rejected config as rejected, not missing` | 3a.3 | ✅ |
+| 32 | `8d574bb` `feat(gui): honour the default profile setting` | 3a.4 | ✅ |
+| 33 | `ede2060` `fix(cli): send diagnostics to stderr so output can be redirected` | 3a.5 | ✅ |
+| 34 | `18b9236` `fix(cli): drop the doubled colon in plan output` | 3a.6 | ✅ |
+
+29 and 30 were planned as separate commits but both rewrite the same
+`CONFIGURATION.md` table; splitting them would have left the table
+inconsistent at commit 29.
 
 ## Phase 3a verification
 
@@ -438,6 +442,59 @@ By observation:
 
 - Setting a Default Profile other than Auto-detect in the GUI and clicking Apply Auto applies *that* profile (3a.4).
 - `sed -n '/^{/,$p'` no longer appears in `INSTALLATION.md`, `USAGE.md` or `CONFIGURATION.md`.
+
+## Phase 3a outcome (2026-09-10)
+
+All six items shipped, in six commits (`5bd754a`..`18b9236`). `build-all.sh` and
+`test_all.sh` both exit 0; the suite is still 9/9.
+
+Verification block re-run at close, all green:
+
+| Check | Result |
+| ----- | ------ |
+| `generate-config > /tmp/c.json` then `python3 -m json.tool` | parses |
+| `positioning_strategy` in `docs/` | 0 hits |
+| `case positioning` in `MacAppPositioner/` | 0 hits |
+| `plan \| grep -c "Current: :"` | 4 -> 0 |
+| invalid `position` value: `grep -c "Config not found"` | 0 |
+| suite | 9 passed / 0 failed |
+
+### What the plan got wrong
+
+- **3a.1 was never a decision.** The plan carried `positioning_strategy` as
+  blocked on a ruling. Commit `9c675b6` had already removed the field from the
+  code and from the shipped config months earlier and simply missed
+  `CONFIGURATION.md`. It was a stale doc, not an open question, so it moved
+  from Phase 5 into Phase 3a and shipped as a deletion.
+- **29 and 30 could not be split** — see the note under the commit sequence.
+
+### Newly observed while executing
+
+- 3a.3 turned out to be two defects, not one. Beyond mislabelling a rejected
+  config as missing, `loadConfig` fell *through* to the next search path, so a
+  malformed high-priority config would silently hand control to a stale
+  lower-priority one. Making the rejection terminal fixes both. The decode
+  error now names the exact JSON path
+  (`layout.builtin.md.obsidian.position`).
+- 3a.5's fix could not use `printDiagnostic` for `AppLogger.start()`'s own
+  banner; that line writes to `FileHandle.standardError` directly, because
+  routing it through the logger would re-enter it during its own startup.
+- 3a.6 was fixed in the formatter rather than at the four call sites, which
+  covers the GUI's plan view for free.
+
+### Not verified
+
+- **3a.4's end-to-end GUI behaviour.** `autoApplyProfile` only runs on a menu
+  click, which is not scriptable from the test harness. The wiring is verified
+  by construction: `defaultProfileKey` / `autoDetectProfile` are now shared
+  `AppConstants` read by both `SettingsView.swift` and `MenuBarManager.swift`
+  (previously two literals in two files, where a divergence would fail
+  silently), and the stored profile is re-checked against the config before
+  use. A manual click is still the only way to confirm the whole path.
+
+**Next:** Phase 3 proper, which needs the quadrant tiling ruling. Everything
+else remaining is Phase 4 (agreed skippable) or Phase 5 (blocked on that same
+ruling).
 
 ## Later phases (not approved for execution)
 

@@ -2,15 +2,13 @@
 
 This file tracks the development tasks for the Mac App Positioner application.
 
-> **▶ Active work:** [docs/REMEDIATION-PLAN-2026-09-10.md](docs/REMEDIATION-PLAN-2026-09-10.md) — Phase 0 (correctness fixes), Phase 1 (`plan` and `apply` unified behind a pure `LayoutEngine`) and Phase 2 (injectable screen/window seams + fixture tests, 9/9 suite) are **complete**. Phase 2 was re-scoped away from SPM/XCTest, which this machine's toolchain cannot run.
+> **▶ Active work:** [docs/REMEDIATION-PLAN-2026-09-10.md](docs/REMEDIATION-PLAN-2026-09-10.md) — Phases 0, 1, 2, 2.5 and **3a are complete**. Phase 2 was re-scoped away from SPM/XCTest, which this machine's toolchain cannot run; `Scripts/test_all.sh` is the supported harness (9/9).
 >
-> **▶ Active work:** [docs/REMEDIATION-PLAN-2026-09-10.md](docs/REMEDIATION-PLAN-2026-09-10.md) — Phases 0, 1, 2 and 2.5 are **complete**. **Phase 3a (unblocked config fidelity) is approved and executing.**
+> **▶ Next:** Phase 3 proper, which is blocked on one ruling — **quadrant tiling**. Measured on real hardware, the four documented quadrant apps overlap 41–80% pairwise and sum to 228% of the workspace monitor's area, so anchoring full-size windows to four corners just stacks them. Tiling has to be opt-out, because `AppLayoutEntry.sizing` defaults to `"keep"` — that default is *why* nothing currently resizes.
 >
-> Investigating the two "blocked" decisions showed only one is real. `positioning_strategy` was already deleted from the code in commit `9c675b6` as dead; only `CONFIGURATION.md` was missed, so that is a doc fix, not a ruling. **Quadrant tiling is the one genuine decision left** — measured at 41–80% pairwise overlap and 228% of screen area under today's anchor-only behaviour, so the documented four-zone layout does not work; it stays deferred to Phase 3 proper.
+> Everything else outstanding is Phase 4 (robustness; agreed skippable until something misbehaves) or Phase 5 (doc remainder, blocked on the same ruling).
 >
 > That plan supersedes the status of the "CODE REVIEW FINDINGS & FIX PLAN" section below, which a 2026-09-10 audit found to contain three items marked `[x]` that are only half-done. **The Phase 1 checklist below is also unreliable** — it credits `WindowManager.swift`, a file that does not exist. Trust the remediation plan over this file until Phase 5 reconciles them.
->
-> That plan supersedes the status of the "CODE REVIEW FINDINGS & FIX PLAN" section below, which a 2026-09-10 audit found to contain three items marked `[x]` that are only half-done. Trust the remediation plan over this file until Phase 5 reconciles them.
 
 ## ✅ COMPLETED PHASES
 

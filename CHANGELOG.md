@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Remediation, Phase 3a (2026-09-10)
+
+Config fidelity: the parts of Phase 3 that needed no design ruling.
+
+#### Fixed
+
+- **[BUG]** `generate-config > config.json` produced an **unparseable file**. The
+  logging banner, the Accessibility check and the "Generated configuration"
+  header all went to stdout ahead of the JSON. Diagnostics now go to stderr, so
+  the command can be redirected as its documentation always claimed. The
+  `sed -n '/^{/,$p'` workaround has been removed from all three docs that
+  carried it.
+- **[BUG]** A config that failed to parse was reported as **"Config not found"**,
+  followed by a list of the four paths searched. Worse, the search continued, so
+  a malformed high-priority config silently handed control to a stale
+  lower-priority one. A rejected config is now terminal and names the failing
+  JSON path.
+- **[BUG]** Every rect in `plan` output rendered with a **doubled colon**
+  (`Current: : (0.0, …)`), in both the CLI and the GUI's plan view.
+
+#### Added
+
+- The GUI's **Default Profile setting is now honoured**. It persisted across
+  restarts but nothing ever read it: "Apply Auto" always auto-detected. It now
+  applies the configured profile, falling back to detection if that profile is
+  no longer in the config.
+
+#### Removed
+
+- `positioning_strategy` from `CONFIGURATION.md`. The field was deleted from the
+  code in `9c675b6` as dead; the reference doc still documented it.
+- `AppSettings.positioning`, decoded but never read. Configs that still contain
+  the key continue to load.
+
 ### Remediation, Phases 0–2 (2026-09-10)
 
 A structural audit found `plan` and `apply` computing target geometry twice by
@@ -106,7 +140,7 @@ that emitted invalid JSON. Plan in `docs/REMEDIATION-PLAN-2026-09-10.md`.
 - **[PRACTICE]** Removed `isMain: Bool` from `CocoaMonitorInfo` (used `NSScreen.main`, forbidden per AGENTS.md; the property was never consumed).
 - **[PRACTICE]** Wired the dead `accessibilityErrorDescription(_:)` method into `setWindowPosition()` log output for richer AX error reporting.
 - **[PRACTICE]** Introduced `WindowPosition` and `MonitorRole` enums (both `Codable` with matching raw string values). All string-literal comparisons and switch statements across `ConfigManager`, `CocoaCoordinateManager`, `CocoaProfileManager`, and the GUI views now use typed enum cases. `calculateQuadrantPosition()` is now exhaustive.
-- **[PRACTICE]** `SettingsView.defaultProfile` picker now uses `@AppStorage` so the selection survives app restarts.
+- **[PRACTICE]** `SettingsView.defaultProfile` picker now uses `@AppStorage` so the selection survives app restarts. (The setting was still inert at this point — nothing read the stored value until Phase 3a wired it into "Apply Auto".)
 - **[PRACTICE]** Added `AppConstants` namespace in `AppUtils.swift` centralising `defaultWindowSize` and `positioningTolerance`; removed the duplicate `private static let defaultWindowSize` from `CocoaProfileManager` and the inline `let tolerance: CGFloat = 1.0` literals.
 
 - Fixed Outlook window positioning by improving window selection logic to prioritize the main application window and filter out secondary windows like "Reminders".
