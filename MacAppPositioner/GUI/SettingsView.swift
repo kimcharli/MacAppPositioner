@@ -179,7 +179,9 @@ struct SettingsView: View {
     }
     
     private func getMainDisplayInfo() -> String {
-        let builtinScreen = CocoaCoordinateManager.shared.getBuiltinScreen()
+        guard let builtinScreen = CocoaCoordinateManager.shared.getBuiltinScreen() else {
+            return "No display detected"
+        }
         let frame = builtinScreen.frame
         let scale = builtinScreen.backingScaleFactor
         return "\(Int(frame.width))x\(Int(frame.height)) @\(scale)x"

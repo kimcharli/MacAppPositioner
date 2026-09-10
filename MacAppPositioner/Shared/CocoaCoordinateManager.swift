@@ -18,48 +18,61 @@ struct CocoaMonitorInfo {
     let isBuiltIn: Bool
     let isWorkspace: Bool
     
-    init(from nsScreen: NSScreen, isWorkspace: Bool = false, mainScreenHeight: CGFloat) {
-        self.frame = CocoaCoordinateManager.shared.convertCocoaToInternal(cocoaRect: nsScreen.frame, mainScreenHeight: mainScreenHeight)
-        self.visibleFrame = CocoaCoordinateManager.shared.convertCocoaToInternal(cocoaRect: nsScreen.visibleFrame, mainScreenHeight: mainScreenHeight)
-        self.resolution = "\(nsScreen.frame.width)x\(nsScreen.frame.height)"
-        self.scale = nsScreen.backingScaleFactor
-        self.isBuiltIn = CocoaCoordinateManager.isBuiltInScreen(nsScreen)
+    init(from screen: ScreenSnapshot, isWorkspace: Bool = false, mainScreenHeight: CGFloat) {
+        self.frame = CocoaCoordinateManager.convertCocoaToInternal(cocoaRect: screen.frame, mainScreenHeight: mainScreenHeight)
+        self.visibleFrame = CocoaCoordinateManager.convertCocoaToInternal(cocoaRect: screen.visibleFrame, mainScreenHeight: mainScreenHeight)
+        self.resolution = screen.resolution
+        self.scale = screen.backingScaleFactor
+        self.isBuiltIn = CocoaCoordinateManager.isBuiltInScreen(screen)
         self.isWorkspace = isWorkspace
     }
 }
 
 class CocoaCoordinateManager {
     static let shared = CocoaCoordinateManager()
-    
-    private init() {}
+
+    private let screenProvider: ScreenProviding
+
+    /// Injectable for tests; production callers use `shared`, which reads AppKit.
+    init(screenProvider: ScreenProviding = SystemScreenProvider()) {
+        self.screenProvider = screenProvider
+    }
     
     // MARK: - Coordinate Conversion
     
-    func convertCocoaToInternal(cocoaRect: CGRect, mainScreenHeight: CGFloat) -> CGRect {
+    /// Converts a Cocoa rect (bottom-left origin, Y up) to the internal top-left
+    /// system (Y down) that matches the Accessibility API.
+    ///
+    /// `mainScreenHeight` must be the height of the menu bar screen. Static because
+    /// it depends on nothing but its arguments.
+    static func convertCocoaToInternal(cocoaRect: CGRect, mainScreenHeight: CGFloat) -> CGRect {
         let internalY = mainScreenHeight - cocoaRect.maxY
         return CGRect(x: cocoaRect.origin.x, y: internalY, width: cocoaRect.width, height: cocoaRect.height)
+    }
+
+    func convertCocoaToInternal(cocoaRect: CGRect, mainScreenHeight: CGFloat) -> CGRect {
+        Self.convertCocoaToInternal(cocoaRect: cocoaRect, mainScreenHeight: mainScreenHeight)
     }
 
     // MARK: - Monitor Detection
     
     func getAllMonitors(for profileName: String? = nil) -> [CocoaMonitorInfo] {
-        let configManager = ConfigManager.shared
-        let config = configManager.loadConfig()
-        // NSScreen.screens.first is always the menu bar screen (Cocoa origin 0,0).
+        let config = ConfigManager.shared.loadConfig()
+        let screens = screenProvider.screens
+        // screens.first is always the menu bar screen (Cocoa origin 0,0).
         // Do NOT use NSScreen.main here — it returns different screens in CLI vs GUI contexts.
-        let mainScreenHeight = NSScreen.screens.first?.frame.height ?? 0
+        let mainScreenHeight = screens.first?.frame.height ?? 0
         
         var workspaceMonitorResolution: String?
         if let profileName = profileName, let profile = config?.profiles[profileName] {
             workspaceMonitorResolution = profile.monitors.first(where: { $0.position == .workspace })?.resolution
         }
         
-        return NSScreen.screens.map { screen in
-            let screenResolution = "\(screen.frame.width)x\(screen.frame.height)"
+        return screens.map { screen in
             let isWorkspace = workspaceMonitorResolution.map { configured in
                 Self.isBuiltInAlias(configured)
                     ? Self.isBuiltInScreen(screen)
-                    : AppUtils.normalizeResolution(screenResolution) == AppUtils.normalizeResolution(configured)
+                    : AppUtils.normalizeResolution(screen.resolution) == AppUtils.normalizeResolution(configured)
             } ?? false
             return CocoaMonitorInfo(from: screen, isWorkspace: isWorkspace, mainScreenHeight: mainScreenHeight)
         }
@@ -249,9 +262,12 @@ class CocoaCoordinateManager {
     }
     
     /// Shared predicate for built-in screen detection.
-    /// Used by both `CocoaMonitorInfo.init` and `getBuiltinScreen()`.
-    static func isBuiltInScreen(_ screen: NSScreen) -> Bool {
+    static func isBuiltInScreen(_ screen: ScreenSnapshot) -> Bool {
         screen.localizedName.contains("Built-in") || screen.localizedName.contains("Liquid")
+    }
+
+    static func isBuiltInScreen(_ screen: NSScreen) -> Bool {
+        isBuiltInScreen(ScreenSnapshot(screen))
     }
 
     /// Config `resolution` values that name the built-in display rather than a literal
@@ -262,17 +278,22 @@ class CocoaCoordinateManager {
         return normalized == "builtin" || normalized == "macbook"
     }
 
-    func getBuiltinScreen() -> NSScreen {
-        if let builtinScreen = NSScreen.screens.first(where: { Self.isBuiltInScreen($0) }) {
+    /// Best guess at the built-in display, in order: an explicitly named built-in
+    /// screen, the screen at the Cocoa origin, then the smallest by area.
+    ///
+    /// Returns `nil` only when no screens are attached. Routed through the
+    /// screen provider so it is testable and so the class holds no direct
+    /// `NSScreen` dependency.
+    func getBuiltinScreen() -> ScreenSnapshot? {
+        let screens = screenProvider.screens
+
+        if let builtinScreen = screens.first(where: { Self.isBuiltInScreen($0) }) {
             return builtinScreen
         }
-        if let originScreen = NSScreen.screens.first(where: { $0.frame.origin == .zero }) {
+        if let originScreen = screens.first(where: { $0.frame.origin == .zero }) {
             return originScreen
         }
-        if let smallestScreen = NSScreen.screens.min(by: { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height }) {
-            return smallestScreen
-        }
-        return NSScreen.screens.first!
+        return screens.min(by: { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height })
     }
     
     // MARK: - Debug Utilities
