@@ -136,16 +136,39 @@ class MenuBarManager: NSObject {
         }
     }
     
+    /// Profile to apply for "Apply Auto".
+    ///
+    /// Honours the Default Profile setting when it names a real profile,
+    /// otherwise falls back to detection. The setting is stored by
+    /// `SettingsView` under the same `defaultProfile` key; reading it here is
+    /// what makes that picker do anything.
+    private func profileForAutoApply() -> (name: String, wasDetected: Bool)? {
+        let configured = UserDefaults.standard.string(forKey: AppConstants.defaultProfileKey)
+
+        if let configured = configured, configured != AppConstants.autoDetectProfile {
+            // Only honour it if the profile still exists — it may have been
+            // renamed or deleted since the setting was chosen.
+            if case .success(let names) = AppUtils.loadProfileNames(), names.contains(configured) {
+                return (configured, false)
+            }
+            print("   Default profile '\(configured)' is no longer in config; detecting instead")
+        }
+
+        return profileManager.detectProfile().map { ($0, true) }
+    }
+
     @objc func autoApplyProfile() {
         print("\n🚀 [Menu] Apply Auto clicked")
-        if let detectedProfile = profileManager.detectProfile() {
-            print("   Applying detected profile: \(detectedProfile)")
-            profileManager.applyProfile(detectedProfile)
-            showNotification(title: "Profile Applied", message: "Applied profile: \(detectedProfile)")
-        } else {
+        guard let (profile, wasDetected) = profileForAutoApply() else {
             print("   No profile detected")
             showNotification(title: "Auto Apply Failed", message: "No matching profile found for current setup.")
+            return
         }
+
+        let source = wasDetected ? "detected" : "default"
+        print("   Applying \(source) profile: \(profile)")
+        profileManager.applyProfile(profile)
+        showNotification(title: "Profile Applied", message: "Applied \(source) profile: \(profile)")
     }
 
     @objc func applyProfile(_ sender: NSMenuItem) {

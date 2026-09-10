@@ -21,6 +21,14 @@ enum AppConstants {
 
     /// Tolerance (in points) when comparing window positions for equality.
     static let positioningTolerance: CGFloat = 1.0
+
+    /// Sentinel for the Default Profile setting meaning "detect at apply time".
+    /// Shared so the Settings picker and the menu bar agree on the exact string;
+    /// they are matched against each other, not just displayed.
+    static let autoDetectProfile = "Auto-detect"
+
+    /// `UserDefaults` / `@AppStorage` key backing the Default Profile setting.
+    static let defaultProfileKey = "defaultProfile"
 }
 
 // MARK: - Errors

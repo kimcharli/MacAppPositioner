@@ -12,9 +12,9 @@ import AppKit
  */
 
 struct SettingsView: View {
-    @AppStorage("defaultProfile") private var defaultProfile = "Auto-detect"
+    @AppStorage(AppConstants.defaultProfileKey) private var defaultProfile = AppConstants.autoDetectProfile
     @State private var statusMessage = ""
-    @State private var availableProfiles: [String] = ["Auto-detect"]
+    @State private var availableProfiles: [String] = [AppConstants.autoDetectProfile]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -117,7 +117,7 @@ struct SettingsView: View {
         .frame(maxWidth: 600)
         .onAppear {
             if case .success(let names) = AppUtils.loadProfileNames() {
-                availableProfiles = ["Auto-detect"] + names
+                availableProfiles = [AppConstants.autoDetectProfile] + names
             }
         }
     }
