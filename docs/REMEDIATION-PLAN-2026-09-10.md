@@ -359,9 +359,89 @@ Running that end to end surfaced a **new, unfixed defect**, recorded below: afte
 
 **Next:** Phase 3 (honest config), still **blocked on the two @ckim decisions**. About half the remaining doc defects — the quadrant prose and diagram, `positioning_strategy`, `applications.positioning`, the inert `@AppStorage` claim — are held in Phase 5 pending those rulings.
 
+## Phase 3a — Unblocked config fidelity (added 2026-09-10)
+
+**Why this exists.** Phase 3 was blocked on two rulings. Investigating them showed only *one* is a real decision:
+
+- **`positioning_strategy` is not a decision at all.** Commit `9c675b6` already resolved it — "Remove dead positioningStrategy field from AppSettings (was parsed but never used)" — and deleted it from the shipped `config.json`. It updated `TROUBLESHOOTING.md` and `AGENTS.md` but missed `CONFIGURATION.md`, which still documents it in three places including the Complete Example users copy from. The Chrome problem it was meant to address was solved in that same commit by PID selection. Parking it as a question was my error.
+- **Quadrant semantics is a real decision, and it is a product change, not a doc fix.** Measured on the current setup with the four documented quadrant apps: pairwise overlap 41–80%, and the four target frames sum to **228% of the workspace monitor's area**. Anchoring full-size windows to four corners stacks them. "Fix the docs instead" would mean documenting that the headline feature produces a pile of overlapping windows. **Still deferred to Phase 3 proper**, and it needs its own care: `sizing` defaults to `"keep"`, which is *why* nothing resizes, so tiling must be opt-out via an explicit `"sizing": "keep"` rather than silently overriding a documented default.
+
+Phase 3a takes everything that needs no ruling.
+
+### 3a.1 — Remove `positioning_strategy` from the config reference
+
+- **File:** `docs/CONFIGURATION.md`. Delete the `positioning_strategy` row from the Applications property table, the key from the `applications` example, the key from the Complete Example, and the "with special Chrome handling" claim in the prose that follows it.
+- Replace with a pointer to the multi-instance handling that actually exists (`addressablePID`), so the Chrome question has an answer rather than a gap.
+
+### 3a.2 — Delete the dead `applications.positioning` key
+
+- **Defect:** `AppSettings.positioning` is decoded (`ConfigManager.swift:73,79`) and never read. `CONFIGURATION.md:150` documents it as "Override to prevent repositioning".
+- **Ruling — delete, do not implement.** `layout.<section>.<bundleID>.position: "keep"` already does exactly this and *is* honoured. Adding a second, redundant way to express the same intent is not worth the surface area, and the precedent from `9c675b6` is to delete rather than retrofit. Reversible if a real need appears.
+- **Files:** remove the field and its `CodingKeys` case from `AppSettings`; remove the table row from `CONFIGURATION.md`.
+- Leave `AppSettings.sizing` alone — it *is* read, by `LayoutEngine.resolveWindowSize`.
+
+### 3a.3 — A rejected config must not be reported as a missing one
+
+- **Defect:** `ConfigManager.loadConfig` catches a decode error, prints it, then **continues the search loop** and finally prints `Config not found in any standard location` plus all four paths. A user with a one-character typo is told their file is missing when it was found and rejected. Verified end to end in Phase 2.5.
+- **Fix:** when a file exists but fails to decode, that is terminal for that path — report it as a decode failure and do not fall through to the "not found" message. Keep searching only past paths that genuinely do not exist.
+
+### 3a.4 — Make the Default Profile setting do something
+
+- **Defect:** `SettingsView.swift:15` stores `@AppStorage("defaultProfile")`, and `:118-120` populates the picker with real profile names from config. Nothing reads the stored value. It is a visible control that does nothing.
+- **Fix — wire it, don't remove it.** `MenuBarManager.autoApplyProfile` (`:140-143`) unconditionally calls `detectProfile()`. Honour the setting: when `defaultProfile` is anything other than `"Auto-detect"`, apply that profile; otherwise detect as now. Removing the picker would be the cheaper fix but discards a feature that is already 90% built and genuinely useful when two profiles match the same displays.
+
+### 3a.5 — Route diagnostics to stderr so `generate-config` can be redirected
+
+- **Defect:** `generate-config > config.json` produces an unparseable file, because `AppLogger.start()`'s banner, the Accessibility permission line, the config-loaded notice and the `Generated configuration for current setup:` header all go to stdout ahead of the JSON. This is the defect behind the `sed -n '/^{/,$p'` workaround now documented in three places.
+- **Fix:** add a diagnostics channel to `AppLogger` that tees to **stderr** and the log file, leaving `print()` for actual command output. Convert only the polluting sites: the logging banner, `AppUtils`'s permission line, `ConfigManager`'s loaded/not-found/decode-error messages, and `CocoaMain`'s generate-config header.
+- **Deliberately not** a sweeping stdout/stderr audit — plan tables, `detect` results and the JSON stay on stdout.
+- **Then retire the workaround** in `docs/INSTALLATION.md`, `docs/USAGE.md` and `docs/CONFIGURATION.md`, which all currently document the `sed` filter and say it goes away with this fix.
+
+### 3a.6 — Fix the doubled colon in plan output
+
+- **Defect:** `CocoaCoordinateManager.debugDescription(rect:label:system:)` (`:305-307`) always emits `"\(label): …"`. Callers in `CocoaMain.swift:109,114` and `ContentView.swift:236,239` pass `label: ""` and prefix their own `"Current: "`, producing `Current: : (0.0, …)`.
+- **Fix:** omit the separator when `label` is empty. One line; corrects CLI and GUI together.
+- Then remove the "known cosmetic defect" note from `docs/USAGE.md`.
+
+## Phase 3a commit sequence
+
+| # | Commit | Items |
+| - | ------ | ----- |
+| 28 | `docs: plan Phase 3a, the unblocked config fidelity work` | this section |
+| 29 | `docs: remove positioning_strategy from the config reference` | 3a.1 |
+| 30 | `refactor(config): delete the dead applications.positioning key` | 3a.2 |
+| 31 | `fix(config): report a rejected config as rejected, not missing` | 3a.3 |
+| 32 | `feat(gui): honour the default profile setting` | 3a.4 |
+| 33 | `fix(cli): send diagnostics to stderr so output can be redirected` | 3a.5 |
+| 34 | `fix(cli): drop the doubled colon in plan output` | 3a.6 |
+
+## Phase 3a verification
+
+```bash
+./Scripts/build-all.sh && ./Scripts/test_all.sh            # both exit 0
+
+# 3a.5 — the originally documented one-liner must now work unaided
+./dist/MacAppPositioner generate-config > /tmp/c.json
+python3 -m json.tool /tmp/c.json > /dev/null && echo OK
+
+# 3a.1 / 3a.2 — dead keys gone from docs and model
+grep -rn "positioning_strategy" docs/ ; grep -rn "case positioning" MacAppPositioner/
+
+# 3a.6 — no doubled colon
+./dist/MacAppPositioner plan | grep -c "Current: :"        # 0
+
+# 3a.3 — a typo reports a decode error and NOT "not found"
+# (inject an invalid position, confirm the not-found banner is absent)
+```
+
+By observation:
+
+- Setting a Default Profile other than Auto-detect in the GUI and clicking Apply Auto applies *that* profile (3a.4).
+- `sed -n '/^{/,$p'` no longer appears in `INSTALLATION.md`, `USAGE.md` or `CONFIGURATION.md`.
+
 ## Later phases (not approved for execution)
 
-- **Phase 3 — Honest config.** Real tiling via the already-present `size:` parameter; honor or delete `applications.positioning`; make `saveConfig` non-destructive (merge, don't re-encode); read or remove `@AppStorage("defaultProfile")`; route `generate-config` diagnostics to stderr — which also retires the `sed` workaround 2.5.1 documents.
+- **Phase 3 — Honest config (remaining).** **Quadrant tiling** — the one genuine ruling left, measured at 41–80% pairwise window overlap and 228% of screen area under today's anchor-only behaviour; must be opt-out because `sizing` defaults to `"keep"`. Plus non-destructive `saveConfig` (verified: `update` silently drops config keys the schema does not model; everything modelled, including `log_directory`, survives).
 - **Phase 4 — Robustness.** Display identity via `CGDisplayCreateUUIDFromDisplayID`; harden `getBestWindow` (drop the `as!` force-cast, filter before accepting `kAXMainWindow`); move the apply loop off the main-thread `RunLoop.run(until:)` reentrancy pattern.
 - **Phase 5 — Doc truth-up, decision-dependent remainder.** Everything in the deferral table above: the quadrant prose and diagram, `positioning_strategy`, `applications.positioning`, the inert `@AppStorage` changelog claim, `DEVELOPMENT.md` Rule 3 vs `AppConstants.defaultWindowSize`, and the three half-done `[x]` items in `TODO.md`. (Phase 2.5 already took the unblocked subset, including the `WindowManager` removal originally scoped here.)
 

@@ -4,9 +4,9 @@ This file tracks the development tasks for the Mac App Positioner application.
 
 > **▶ Active work:** [docs/REMEDIATION-PLAN-2026-09-10.md](docs/REMEDIATION-PLAN-2026-09-10.md) — Phase 0 (correctness fixes), Phase 1 (`plan` and `apply` unified behind a pure `LayoutEngine`) and Phase 2 (injectable screen/window seams + fixture tests, 9/9 suite) are **complete**. Phase 2 was re-scoped away from SPM/XCTest, which this machine's toolchain cannot run.
 >
-> **▶ Active work:** [docs/REMEDIATION-PLAN-2026-09-10.md](docs/REMEDIATION-PLAN-2026-09-10.md) — Phase 0 (correctness fixes), Phase 1 (`plan` and `apply` unified behind a pure `LayoutEngine`), Phase 2 (injectable screen/window seams + fixture tests, 9/9 suite) and Phase 2.5 (doc truth-up, unblocked subset) are **complete**.
+> **▶ Active work:** [docs/REMEDIATION-PLAN-2026-09-10.md](docs/REMEDIATION-PLAN-2026-09-10.md) — Phases 0, 1, 2 and 2.5 are **complete**. **Phase 3a (unblocked config fidelity) is approved and executing.**
 >
-> **Next: Phase 3 (honest config) — blocked on two decisions from @ckim**, both in the plan's Parked section: (1) do `top_left`/`top_right`/etc. actually tile a window, or only anchor it at its current size, and (2) keep or delete `positioning_strategy`, which `CONFIGURATION.md` documents but no code reads. About half the remaining doc defects are downstream of these two rulings and are deliberately untouched until then — see the Phase 2.5 deferral table.
+> Investigating the two "blocked" decisions showed only one is real. `positioning_strategy` was already deleted from the code in commit `9c675b6` as dead; only `CONFIGURATION.md` was missed, so that is a doc fix, not a ruling. **Quadrant tiling is the one genuine decision left** — measured at 41–80% pairwise overlap and 228% of screen area under today's anchor-only behaviour, so the documented four-zone layout does not work; it stays deferred to Phase 3 proper.
 >
 > That plan supersedes the status of the "CODE REVIEW FINDINGS & FIX PLAN" section below, which a 2026-09-10 audit found to contain three items marked `[x]` that are only half-done. **The Phase 1 checklist below is also unreliable** — it credits `WindowManager.swift`, a file that does not exist. Trust the remediation plan over this file until Phase 5 reconciles them.
 >
