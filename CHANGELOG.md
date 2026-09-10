@@ -7,6 +7,82 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Remediation, Phases 0–2 (2026-09-10)
+
+A structural audit found `plan` and `apply` computing target geometry twice by
+different rules, a test suite that had never run, and a `generate-config` command
+that emitted invalid JSON. Plan in `docs/REMEDIATION-PLAN-2026-09-10.md`.
+
+#### Changed — behaviour
+
+- **`apply` now skips windows already at their target** (within a 1pt tolerance)
+  instead of re-setting every position. Re-running a profile no longer nudges
+  windows you have already arranged. A `center` window that is already on its
+  target display is likewise left where it is.
+- **`plan` no longer invents targets it will not use.** Apps configured as `keep`,
+  and apps that are not running, previously displayed a top-left target as though
+  the window were about to move there. They now report `KEEP` or `UNAVAILABLE`
+  with the reason, and `Target: unchanged` where nothing will happen.
+- **`apply` is now defined as "execute what `plan` printed"** rather than a second
+  implementation of the same rules. The preview and the run cannot disagree.
+- Plan actions are **sorted by bundle ID**, so repeated runs list apps in a stable
+  order. Previously the order came from dictionary iteration and varied run to run.
+
+#### Fixed
+
+- **[BUG]** `generate-config` emitted **invalid JSON** — a trailing comma made the
+  output unparseable. It is now encoded from the config model rather than
+  assembled by string concatenation.
+- **[BUG]** `generate-config` produced **no workspace monitor at all** whenever the
+  built-in display sorted first, so the generated config could not position
+  anything. It also labelled monitors `left`, a role `update` never emits.
+- **[BUG]** Profiles naming the built-in display as their workspace monitor
+  (`"resolution": "builtin"` or `"macbook"`) were **detected but applied nothing**.
+  The alias was resolved during detection but not when locating the monitor.
+- **[BUG]** `plan` and `apply` disagreed for `center` and `keep`: plan routed both
+  through the quadrant calculation, which collapsed them to the monitor's
+  top-left corner.
+- **[BUG]** `updateProfile` wrote through `ConfigManager.shared` instead of its
+  injected config manager.
+- **[BUG]** `getBuiltinScreen()` force-unwrapped its result and could trap when no
+  screen matched. It now returns an optional.
+- **[BUG]** Monitor detection loaded `ConfigManager.shared` internally, so a caller
+  using an injected config had its monitor list — including the workspace flag —
+  built from a different config file.
+- **[TEST]** The test suite **had never run**: all five scripts named in
+  `test_all.sh` were absent, and the runner contained a line of Python syntax.
+  The suite now runs 9 tests and passes.
+
+#### Added
+
+- **`LayoutEngine`** — the single owner of target window geometry. Pure
+  (Foundation + CoreGraphics only), so placement rules are testable directly.
+  Replaces `positionApp`, `calculateQuadrantPosition` and `resolveWindowSize`.
+- **`ScreenProviding`** and **`WindowControlling`** seams, letting screens, running
+  processes and window frames be substituted with fixtures. Profile detection,
+  plan generation and apply can now be tested without the author's hardware.
+- **`config.example.json`**, a ready-to-copy template. `README.md` had instructed
+  users to configure the app without shipping anything to configure it from.
+- Fixture-based tests covering coordinate conversion, profile detection including
+  the built-in alias, per-monitor targeting, the multi-process Chrome case, and
+  apply-matches-plan.
+
+#### Removed
+
+- `Tests/test_chrome_simple.swift` and `Tests/test_positioning_success.swift`,
+  which moved real windows and asserted against one specific machine's displays.
+  Superseded by the fixture tests.
+
+#### Documentation
+
+- `INSTALLATION.md` no longer tells users to create their config with a command
+  that produces an unparseable file.
+- `AGENTS.md` and `TROUBLESHOOTING.md` no longer mandate a function that was
+  deleted.
+- `DEVELOPMENT.md` source tree, class table, coordinate rules and test template
+  corrected against the code.
+- `USAGE.md` samples recaptured from real command output.
+
 ### Code Review (2026-02-27)
 
 **Findings documented in `TODO.md` under "Code Review Findings & Fix Plan".** Summary:
