@@ -109,20 +109,6 @@ run_test "Real Positioning"          "Tests/test_real_positioning.swift"
 run_compiled_test "Layout Engine"    "Tests/test_layout_engine.swift"
 run_compiled_test "Profile Logic"    "Tests/test_profile_logic.swift"
 
-# Deliberately excluded from the suite:
-#
-#   Tests/test_chrome_simple.swift
-#     Moves real Chrome windows and asserts against a 1329px-tall display
-#     belonging to the original author. Cannot pass on other hardware.
-#
-#   Tests/test_positioning_success.swift
-#     Shells out to ./MacAppPositioner/MacAppPositioner (a stale path; the
-#     binary is built to dist/) and invokes a real `apply`, which requires a
-#     configured profile and moves the operator's windows.
-#
-# Both are superseded by the fixture-based XCTest target planned in Phase 2 of
-# docs/REMEDIATION-PLAN-2026-09-10.md rather than repaired in place.
-
 echo ""
 echo "=================================================="
 echo -e "${BLUE}🏁 TEST SUITE RESULTS${NC}"
