@@ -95,6 +95,43 @@ Positions running applications according to a profile's layout.
 
 Focus returns to whichever app was frontmost before the run.
 
+### `list` - List Profiles
+
+Shows every configured profile, its monitors, and which one matches the
+displays attached right now. `✓` means that display is present, `✗` means it
+is not.
+
+```bash
+./dist/MacAppPositioner list
+```
+
+```text
+Profiles:
+
+  home ← matches current setup
+    ✓ builtin: 2056x1329
+    ✓ secondary: 2560x1440
+    ✓ workspace: 3840x2160
+
+  office
+    ✓ builtin: macbook
+    ✗ workspace: 3440x1440
+```
+
+When nothing matches, it lists what *is* attached, which is usually enough to
+spot the mismatch:
+
+```text
+❌ Nothing matches the displays attached right now:
+    2056x1329
+    2560x1440
+    3840x2160
+```
+
+A profile matches only when its monitor set is **exactly** the attached set —
+not a subset. Two monitors at the office and three at home therefore need two
+profiles.
+
 ### `update` - Create or Update a Profile
 
 Writes your current monitor setup into a profile, creating it if it does not

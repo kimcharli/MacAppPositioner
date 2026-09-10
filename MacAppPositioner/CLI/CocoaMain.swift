@@ -14,6 +14,7 @@ func printUsage() {
     
     Commands:
       detect                  - Detect current monitor profile
+      list                    - List configured profiles and which one matches
       apply [profile-name]    - Auto-detect and apply profile (or force specific profile)
       update <profile-name>   - Update profile with current monitor setup
       generate-config         - Generate monitor configuration
@@ -21,6 +22,7 @@ func printUsage() {
     
     Examples:
       MacAppPositioner detect
+      MacAppPositioner list
       MacAppPositioner apply              # Auto-detect and apply
       MacAppPositioner apply office       # Force apply 'office' profile
       MacAppPositioner update office
@@ -162,6 +164,9 @@ struct MacAppPositioner {
             let profileName = arguments[2]
             profileManager.updateProfile(name: profileName)
             
+        case "list":
+            profileManager.listProfiles()
+
         case "generate-config":
             let generatedConfig = profileManager.generateConfigForCurrentSetup()
             printDiagnostic("Generated configuration for current setup:")

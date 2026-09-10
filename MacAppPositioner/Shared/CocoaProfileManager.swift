@@ -221,6 +221,59 @@ class CocoaProfileManager {
         }
     }
     
+    /// Prints every configured profile, its monitors, and which one matches the
+    /// hardware attached right now.
+    ///
+    /// Without this there is no way to see what environments exist: `detect`
+    /// names only the profile that matched, and on a machine that matches
+    /// nothing it reports just that, leaving the operator to read the JSON to
+    /// find out what it was looking for.
+    func listProfiles() {
+        guard let config = configManager.loadConfig() else {
+            print("Failed to load config")
+            return
+        }
+
+        guard !config.profiles.isEmpty else {
+            print("No profiles configured.")
+            return
+        }
+
+        let matched = detectProfile()
+        let attached = Set(coordinateManager.getAllMonitors()
+            .map { AppUtils.normalizeResolution($0.resolution) })
+
+        print("\nProfiles:")
+        for name in config.profiles.keys.sorted() {
+            guard let profile = config.profiles[name] else { continue }
+            let marker = name == matched ? " ← matches current setup" : ""
+            print("\n  \(name)\(marker)")
+
+            for monitor in profile.monitors.sorted(by: { $0.position.rawValue < $1.position.rawValue }) {
+                // Resolve the alias so a profile written as "macbook" still shows
+                // whether that display is actually here.
+                let resolved = CocoaCoordinateManager.isBuiltInAlias(monitor.resolution)
+                    ? coordinateManager.getAllMonitors().first(where: { $0.isBuiltIn })
+                        .map { AppUtils.normalizeResolution($0.resolution) }
+                    : AppUtils.normalizeResolution(monitor.resolution)
+
+                let present = resolved.map(attached.contains) ?? false
+                print("    \(present ? "✓" : "✗") \(monitor.position.rawValue): \(monitor.resolution)")
+            }
+        }
+
+        if matched == nil {
+            print("\n❌ Nothing matches the displays attached right now:")
+            for resolution in attached.sorted() {
+                print("    \(resolution)")
+            }
+            print("\n   A profile matches only when its monitor set is exactly the")
+            print("   attached set. Run 'update <name>' here to record this setup.")
+        }
+
+        print("")
+    }
+
     func generateConfig() {
         let config = generateConfigForCurrentSetup()
         print(config)
