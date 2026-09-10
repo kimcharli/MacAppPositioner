@@ -56,15 +56,15 @@ Monitors:
 App Actions:
   - Google Chrome:
     Action: MOVE — will be repositioned
-    Current: : (0.0, -2130.0, 2056.0, 1200.0) [Accessibility]
-    Target: : (-2560.0, -1440.0, 2056.0, 1200.0) [Accessibility]
+    Current: (0.0, -2130.0, 2056.0, 1200.0) [Accessibility]
+    Target: (-2560.0, -1440.0, 2056.0, 1200.0) [Accessibility]
   - com.slack.Slack:
     Action: UNAVAILABLE — not running, or no moveable window
     Current: Not running or window not found
-    Target: : (-1200.0, -800.0, 1200.0, 800.0) [Accessibility]
+    Target: (-1200.0, -800.0, 1200.0, 800.0) [Accessibility]
   - Obsidian:
     Action: KEEP — already on the target screen
-    Current: : (0.0, 52.0, 2056.0, 1225.0) [Accessibility]
+    Current: (0.0, 52.0, 2056.0, 1225.0) [Accessibility]
     Target: unchanged
 ```
 
@@ -81,8 +81,6 @@ Every action carries the reason it was chosen:
 `Target: unchanged` means nothing will be done. Apps whose action is not `MOVE` are never touched.
 
 An app listed as `UNAVAILABLE` still shows where it *would* go, which is why it displays a `Target` — that is a preview, not a pending move.
-
-> The doubled colon in `Current: :` is a known cosmetic defect in the output formatting, not a config problem.
 
 ### `apply` - Apply Layout
 

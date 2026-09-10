@@ -302,8 +302,14 @@ class CocoaCoordinateManager {
     
     // MARK: - Debug Utilities
     
-    func debugDescription(rect: CGRect, label: String, system: String = "Global") -> String {
-        return "\(label): (\(rect.origin.x), \(rect.origin.y), \(rect.width), \(rect.height)) [\(system)]"
+    /// Formats a rect for diagnostic output.
+    ///
+    /// `label` is optional: callers that already print their own prefix pass an
+    /// empty string, and the leading separator is dropped rather than rendering
+    /// as a doubled colon (`Current: : (0.0, …)`).
+    func debugDescription(rect: CGRect, label: String = "", system: String = "Global") -> String {
+        let geometry = "(\(rect.origin.x), \(rect.origin.y), \(rect.width), \(rect.height)) [\(system)]"
+        return label.isEmpty ? geometry : "\(label): \(geometry)"
     }
     
     private func accessibilityErrorDescription(_ error: AXError) -> String {

@@ -106,12 +106,12 @@ struct MacAppPositioner {
                         print("  - \(action.appName):")
                         print("    Action: \(action.action.rawValue) — \(action.reason)")
                         if let current = action.currentPosition {
-                            print("    Current: \(coordinateManager.debugDescription(rect: current, label: "", system: "Accessibility"))")
+                            print("    Current: \(coordinateManager.debugDescription(rect: current, system: "Accessibility"))")
                         } else {
                             print("    Current: Not running or window not found")
                         }
                         if let target = action.targetPosition {
-                            print("    Target: \(coordinateManager.debugDescription(rect: target, label: "", system: "Accessibility"))")
+                            print("    Target: \(coordinateManager.debugDescription(rect: target, system: "Accessibility"))")
                         } else {
                             print("    Target: unchanged")
                         }

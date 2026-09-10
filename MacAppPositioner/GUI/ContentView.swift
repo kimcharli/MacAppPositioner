@@ -233,10 +233,10 @@ struct ExecutionPlanView: View {
                             .fontWeight(.medium)
                         Text("    Action: \(action.action.rawValue) — \(action.reason)")
                         if let current = action.currentPosition {
-                            Text("    Current: \(coordinateManager.debugDescription(rect: current, label: "", system: "Accessibility"))")
+                            Text("    Current: \(coordinateManager.debugDescription(rect: current, system: "Accessibility"))")
                         }
                         if let target = action.targetPosition {
-                            Text("    Target:  \(coordinateManager.debugDescription(rect: target, label: "", system: "Accessibility"))")
+                            Text("    Target:  \(coordinateManager.debugDescription(rect: target, system: "Accessibility"))")
                         } else {
                             Text("    Target:  unchanged")
                         }
