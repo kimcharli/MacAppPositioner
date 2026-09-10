@@ -27,12 +27,16 @@ Detects your current monitor configuration and finds a matching profile.
 Output:
 
 ```text
-Detected profile: office
+✅ Accessibility permission: granted
+✅ Matched profile: office
+✅ Detected profile: office
 ```
+
+If no profile's resolution set matches your attached displays, it reports `❌ No matching profile detected.`
 
 ### `plan` - Preview Execution Plan
 
-Shows what would happen without actually moving windows.
+Shows what would happen without moving any windows.
 
 ```bash
 ./dist/MacAppPositioner plan
@@ -42,20 +46,43 @@ Shows what would happen without actually moving windows.
 Output:
 
 ```text
-Execution Plan for Profile: office
+✅ Execution Plan for Profile: office
 
 Monitors:
-  - 3440x1440 (Workspace: true, Built-in: false)
-  - 1440x900 (Workspace: false, Built-in: true)
+  - 2056.0x1329.0 (Workspace: false, Built-in: true)
+  - 2560.0x1440.0 (Workspace: true, Built-in: false)
+  - 3840.0x2160.0 (Workspace: false, Built-in: false)
 
 App Actions:
   - Google Chrome:
-    Action: MOVE
-    Current: (100.0, 200.0, 1200.0, 800.0)
-    Target: (0.0, 0.0, 1200.0, 800.0)
-  - Slack:
-    Action: KEEP
+    Action: MOVE — will be repositioned
+    Current: : (0.0, -2130.0, 2056.0, 1200.0) [Accessibility]
+    Target: : (-2560.0, -1440.0, 2056.0, 1200.0) [Accessibility]
+  - com.slack.Slack:
+    Action: UNAVAILABLE — not running, or no moveable window
+    Current: Not running or window not found
+    Target: : (-1200.0, -800.0, 1200.0, 800.0) [Accessibility]
+  - Obsidian:
+    Action: KEEP — already on the target screen
+    Current: : (0.0, 52.0, 2056.0, 1225.0) [Accessibility]
+    Target: unchanged
 ```
+
+Every action carries the reason it was chosen:
+
+| Action | Meaning |
+| ------ | ------- |
+| `MOVE — will be repositioned` | The window will be moved to `Target` |
+| `KEEP — layout says 'keep'` | Your config asked for `"position": "keep"` |
+| `KEEP — already at the target position` | Already there, within a 1pt tolerance |
+| `KEEP — already on the target screen` | A `center` window already on its target display, so it is left where you put it |
+| `UNAVAILABLE — not running, or no moveable window` | No process for that bundle ID exposes a window that can be moved |
+
+`Target: unchanged` means nothing will be done. Apps whose action is not `MOVE` are never touched.
+
+An app listed as `UNAVAILABLE` still shows where it *would* go, which is why it displays a `Target` — that is a preview, not a pending move.
+
+> The doubled colon in `Current: :` is a known cosmetic defect in the output formatting, not a config problem.
 
 ### `apply` - Apply Layout
 
@@ -65,6 +92,10 @@ Positions running applications according to a profile's layout.
 ./dist/MacAppPositioner apply          # Auto-detect profile
 ./dist/MacAppPositioner apply office   # Force specific profile
 ```
+
+`apply` executes exactly what `plan` prints — it runs the same plan rather than recomputing positions. Windows already within a point of their target are left alone, so re-running is safe and does not nudge windows.
+
+Focus returns to whichever app was frontmost before the run.
 
 ### `update` - Update Profile
 
@@ -76,10 +107,32 @@ Updates an existing profile with your current monitor configuration.
 
 ### `generate-config` - Generate Config Template
 
-Outputs a JSON configuration template based on your current monitors.
+Outputs a JSON configuration template based on your current monitors and running apps.
 
 ```bash
 ./dist/MacAppPositioner generate-config
+```
+
+Diagnostics are written to stdout ahead of the JSON, so the output **cannot be redirected straight to a file**. Filter from the first `{`:
+
+```bash
+./dist/MacAppPositioner generate-config | sed -n '/^{/,$p' > ~/.config/mac-app-positioner/config.json
+```
+
+### `test-coordinates` - Coordinate Diagnostics
+
+Prints each monitor's raw Cocoa frame, visible frame, and built-in/workspace flags, followed by what `NSScreen.main` reports. Useful when windows land on the wrong display and you need to see the geometry the app is working from.
+
+```bash
+./dist/MacAppPositioner test-coordinates
+```
+
+```text
+📺 All Monitors (Native Cocoa Coordinates):
+Monitor 1: 2056.0x1329.0
+  Frame: (0.0, 0.0, 2056.0, 1329.0) [Native Cocoa]
+  Visible Frame: (0.0, 39.0, 2056.0, 1290.0) [Native Cocoa]
+  isBuiltIn: true, isWorkspace: false
 ```
 
 ## GUI Usage
@@ -115,7 +168,8 @@ The dashboard provides:
 2. Run `./dist/MacAppPositioner generate-config` to see detected resolutions
 3. Add the profile to your `config.json` (see [Configuration Guide](CONFIGURATION.md))
 4. Test: `./dist/MacAppPositioner detect`
-5. Apply: `./dist/MacAppPositioner apply`
+5. Preview: `./dist/MacAppPositioner plan`
+6. Apply: `./dist/MacAppPositioner apply`
 
 ### Switching Between Setups
 
@@ -138,6 +192,8 @@ alias layout-detect='~/path/to/dist/MacAppPositioner detect'
 ## Tips
 
 - **Launch apps first**: Windows must exist before they can be positioned
-- **Use `plan` to debug**: Preview before applying to see what will change
+- **Use `plan` to debug**: Preview before applying to see what will change, and read the reason on each action
+- **Re-running `apply` is safe**: windows already at their target are skipped
 - **Test one app first**: When setting up a new profile, test with a single app before configuring many
 - **Monitor arrangement matters**: Profile detection matches by resolution set, not physical arrangement
+- **Check the logs**: every run writes to `~/Documents/logs/`; the first lines show whether Accessibility permission was granted

@@ -28,6 +28,8 @@ Mac App Positioner automatically positions application windows according to pred
 - **`LayoutEngine`**: **Single owner of target window geometry.** Pure (Foundation + CoreGraphics only — no AppKit, no Accessibility API, no singletons). Both plan generation and layout application call `LayoutEngine.resolve(...)`, which is what prevents a preview from disagreeing with an apply.
 - **`CocoaCoordinateManager`**: Coordinate conversion (Cocoa to internal top-left), screen detection, window positioning via Accessibility API
 - **`CocoaProfileManager`**: Profile detection by resolution matching, plan generation, plan execution
+- **`ScreenProviding`**: Seam over screen enumeration. `SystemScreenProvider` reads `NSScreen`; `FixtureScreenProvider` serves a canned arrangement, so monitor-dependent logic is testable without the displays attached.
+- **`WindowControlling`**: Seam over process and window access. `SystemWindowController` wraps `NSWorkspace` and the Accessibility API; `FixtureWindowController` serves canned frames and *records* the moves it was asked to perform, so a test can assert what an apply would do without moving a window.
 - **`ConfigManager`**: JSON configuration loading from multiple search paths, caching
 - **`AppLogger`**: Shared file logger that overrides `print()` to tee all output to both stdout and a timestamped log file under the configured `log_directory`
 - **`AppUtils`**: Resolution normalization, Accessibility permission check, shared constants
@@ -87,5 +89,6 @@ NSScreen.screens -> resolution strings -> compare against config profiles -> mat
 - **Top-left internal coordinates**: Aligns with Accessibility API, avoiding per-window conversion
 - **Explicit builtin screen detection**: `getBuiltinScreen()` avoids `NSScreen.main` inconsistency between CLI and GUI apps
 - **Resolution-based matching**: Profiles matched by monitor resolution sets, not by arrangement position
-- **Singleton managers**: `ConfigManager.shared`, `CocoaCoordinateManager.shared`, and `AppLogger.shared` ensure consistent state
+- **Singletons are the default wiring, not the only one**: `ConfigManager.shared`, `CocoaCoordinateManager.shared` and `AppLogger.shared` keep state consistent across the app, but `CocoaProfileManager` and `CocoaCoordinateManager` take their dependencies through initialisers (`ConfigManaging`, `ScreenProviding`, `WindowControlling`) that default to those singletons. Production wiring is unchanged; tests substitute fixtures.
+- **Geometry types do no I/O**: `LayoutEngine` and `CocoaCoordinateManager` never load config. Callers that hold a `Config` pass in what they need — e.g. `getAllMonitors(workspaceResolution:)` takes a resolution rather than a profile name. This keeps one config load per operation and stops a caller's injected config from being silently bypassed.
 - **Global print() override**: `AppLogger` shadows `Swift.print` at module scope so all output is logged without call-site changes
