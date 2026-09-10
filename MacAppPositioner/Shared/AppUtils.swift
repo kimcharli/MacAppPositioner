@@ -86,9 +86,9 @@ class AppUtils {
         let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): false]
         let trusted = AXIsProcessTrustedWithOptions(options)
         if trusted {
-            print("✅ Accessibility permission: granted")
+            printDiagnostic("✅ Accessibility permission: granted")
         } else {
-            print("⚠️  Accessibility permission: NOT granted — window positioning will fail")
+            printDiagnostic("⚠️  Accessibility permission: NOT granted — window positioning will fail")
             print("   To fix:")
             print("   1. Open System Settings > Privacy & Security > Accessibility")
             print("   2. Remove any existing MacAppPositionerGUI entry (select it, click '−')")

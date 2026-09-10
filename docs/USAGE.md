@@ -113,10 +113,10 @@ Outputs a JSON configuration template based on your current monitors and running
 ./dist/MacAppPositioner generate-config
 ```
 
-Diagnostics are written to stdout ahead of the JSON, so the output **cannot be redirected straight to a file**. Filter from the first `{`:
+Diagnostics go to stderr and the JSON goes to stdout, so the output can be redirected straight to a file:
 
 ```bash
-./dist/MacAppPositioner generate-config | sed -n '/^{/,$p' > ~/.config/mac-app-positioner/config.json
+./dist/MacAppPositioner generate-config > ~/.config/mac-app-positioner/config.json
 ```
 
 ### `test-coordinates` - Coordinate Diagnostics

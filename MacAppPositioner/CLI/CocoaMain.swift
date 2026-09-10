@@ -164,7 +164,7 @@ struct MacAppPositioner {
             
         case "generate-config":
             let generatedConfig = profileManager.generateConfigForCurrentSetup()
-            print("Generated configuration for current setup:")
+            printDiagnostic("Generated configuration for current setup:")
             print(generatedConfig)
             
         case "test-coordinates":

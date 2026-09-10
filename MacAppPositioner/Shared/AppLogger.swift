@@ -47,7 +47,7 @@ class AppLogger {
 
         // Header
         write("=== Mac App Positioner (\(codeName.uppercased())) — \(Date()) ===\n")
-        Swift.print("📝 Logging to: \(logFile.path)")
+        FileHandle.standardError.write(Data("📝 Logging to: \(logFile.path)\n".utf8))
     }
 
     /// Flush and close the current log file.
@@ -111,5 +111,21 @@ class AppLogger {
 func print(_ items: Any..., separator: String = " ", terminator: String = "\n") {
     let output = items.map { "\($0)" }.joined(separator: separator)
     Swift.print(output, terminator: terminator)
+    AppLogger.shared.write(output + terminator)
+}
+
+/// Writes progress and status messages to **stderr** and the log file, leaving
+/// stdout for a command's actual result.
+///
+/// This exists so output can be redirected. `generate-config > config.json`
+/// previously produced an unparseable file, because the logging banner, the
+/// Accessibility check and the "Generated configuration" header were all on
+/// stdout ahead of the JSON.
+///
+/// Rule of thumb: if a user might pipe it, it belongs on stdout via `print`.
+/// If it only tells them what the program is doing, use `printDiagnostic`.
+func printDiagnostic(_ items: Any..., separator: String = " ", terminator: String = "\n") {
+    let output = items.map { "\($0)" }.joined(separator: separator)
+    FileHandle.standardError.write(Data((output + terminator).utf8))
     AppLogger.shared.write(output + terminator)
 }

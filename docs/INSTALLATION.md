@@ -71,21 +71,21 @@ Then edit it to match your monitors and desired layout. See the [Configuration G
 ### Alternative: derive a config from your current hardware
 
 `generate-config` inspects your attached displays and running apps and prints a
-matching config. It writes diagnostics to stdout ahead of the JSON, so the output
-cannot be redirected straight to a file — filter from the first `{`:
+matching config. Only the JSON goes to stdout, so it can be redirected straight
+to a file:
 
 ```bash
-./dist/MacAppPositioner generate-config | sed -n '/^{/,$p' > ~/.config/mac-app-positioner/config.json
+./dist/MacAppPositioner generate-config > ~/.config/mac-app-positioner/config.json
 ```
+
+Progress messages go to stderr, so they stay on your terminal. Add `2>/dev/null`
+to silence them.
 
 Verify it parses before relying on it:
 
 ```bash
 python3 -m json.tool ~/.config/mac-app-positioner/config.json > /dev/null && echo OK
 ```
-
-The `sed` filter is a workaround for the diagnostics going to stdout rather than
-stderr; it will be removed once that is fixed.
 
 ## Verify
 

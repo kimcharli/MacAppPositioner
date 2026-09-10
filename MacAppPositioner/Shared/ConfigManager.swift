@@ -154,7 +154,7 @@ class ConfigManager: ConfigManaging {
                 let data = try Data(contentsOf: url)
                 let decoder = JSONDecoder()
                 let config = try decoder.decode(Config.self, from: data)
-                print("Loaded config from: \(url.path)")
+                printDiagnostic("Loaded config from: \(url.path)")
                 cachedConfig = config      // Cache the loaded config
                 loadedConfigURL = url      // Remember where we loaded from
                 return config
@@ -165,17 +165,17 @@ class ConfigManager: ConfigManaging {
                 // found and rejected -- and would send them looking in the
                 // wrong place, or silently pick up a stale config from a
                 // lower-priority path.
-                print("❌ Could not read the config at \(url.path)")
-                print("   \(error)")
-                print("   Fix this file, or move it aside to fall back to another location.")
+                printDiagnostic("❌ Could not read the config at \(url.path)")
+                printDiagnostic("   \(error)")
+                printDiagnostic("   Fix this file, or move it aside to fall back to another location.")
                 return nil
             }
         }
 
-        print("Config not found in any standard location")
-        print("Searched paths:")
+        printDiagnostic("Config not found in any standard location")
+        printDiagnostic("Searched paths:")
         for path in configPaths {
-            print("  - \(path.path)")
+            printDiagnostic("  - \(path.path)")
         }
         return nil
     }

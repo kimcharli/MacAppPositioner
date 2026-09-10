@@ -302,5 +302,5 @@ ls ~/Documents/logs/
 ./dist/MacAppPositioner generate-config
 ```
 
-`generate-config` prints diagnostics ahead of the JSON payload, so copy the
-JSON from the first `{` onward rather than redirecting the command to a file.
+`generate-config` prints only the JSON payload on stdout — diagnostics go to
+stderr — so it can be redirected straight to a file.
