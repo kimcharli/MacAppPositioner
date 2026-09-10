@@ -289,55 +289,57 @@ class CocoaProfileManager {
     
     func generateConfigForCurrentSetup() -> String {
         let monitors = coordinateManager.getAllMonitors()
-        
-        var generatedConfig = """
-{
-  "profiles": {
-    "detected": {
-      "monitors": [
-"""
-        
-        for (index, monitor) in monitors.enumerated() {
+
+        // No profile exists yet when bootstrapping a config, so every monitor's
+        // `isWorkspace` is false and `positionLabel(for:)` cannot classify them.
+        // Heuristic: the first non-builtin display becomes the workspace monitor,
+        // any further displays are secondary. Roles use the same vocabulary that
+        // `positionLabel(for:)` emits, so a generated config and one written by
+        // `update <profile>` agree.
+        var workspaceAssigned = false
+        let configuredMonitors: [Monitor] = monitors.map { monitor in
             let role: MonitorRole
             if monitor.isBuiltIn {
                 role = .builtin
-            } else if index == 0 {
+            } else if !workspaceAssigned {
                 role = .workspace
+                workspaceAssigned = true
             } else {
-                role = .left
+                role = .secondary
             }
-            
-            generatedConfig += """
-        {
-          "resolution": "\(monitor.resolution)",
-          "position": "\(role.rawValue)"
+            return Monitor(resolution: AppUtils.normalizeResolution(monitor.resolution),
+                           position: role)
         }
-"""
-            
-            if index < monitors.count - 1 {
-                generatedConfig += ","
-            }
-            generatedConfig += "\n"
+
+        let config = Config(
+            layout: Layout(
+                workspace: [
+                    "com.google.Chrome": AppLayoutEntry(position: .topLeft),
+                    "com.microsoft.teams2": AppLayoutEntry(position: .topRight),
+                    "com.microsoft.Outlook": AppLayoutEntry(position: .bottomLeft),
+                    "com.slack.Slack": AppLayoutEntry(position: .bottomRight)
+                ],
+                builtin: [
+                    "md.obsidian": AppLayoutEntry(position: .center)
+                ]
+            ),
+            applications: nil,
+            profiles: ["detected": Profile(monitors: configuredMonitors)],
+            log_directory: nil
+        )
+
+        // Encode rather than concatenate strings. The previous template emitted a
+        // trailing comma after `layout`, producing JSON that ConfigManager refused
+        // to decode; encoding makes malformed output structurally impossible.
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+
+        guard let data = try? encoder.encode(config),
+              let json = String(data: data, encoding: .utf8) else {
+            print("❌ Failed to encode generated configuration.")
+            return ""
         }
-        
-        generatedConfig += """
-      ]
-    }
-  },
-  "layout": {
-    "workspace": {
-      "com.google.Chrome": { "position": "top_left" },
-      "com.microsoft.teams2": { "position": "top_right" },
-      "com.microsoft.Outlook": { "position": "bottom_left" },
-      "com.slack.Slack": { "position": "bottom_right" }
-    },
-    "builtin": {
-      "md.obsidian": { "position": "center" }
-    }
-  },
-}
-"""
-        
-        return generatedConfig
+
+        return json
     }
 }

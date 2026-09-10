@@ -36,3 +36,6 @@ gui_output.log
 
 ## IDE / Editor
 .vscode/
+
+## Tooling artifacts
+graphify-out/

@@ -29,6 +29,13 @@ struct AppLayoutEntry: Codable {
     var position: WindowPosition = .center
     var sizing: String? = "keep"
 
+    /// Explicit memberwise init: declaring `init(from:)` below suppresses the
+    /// synthesized one, and config generation needs to construct entries directly.
+    init(position: WindowPosition, sizing: String? = "keep") {
+        self.position = position
+        self.sizing = sizing
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if let stringValue = try? container.decode(String.self) {
